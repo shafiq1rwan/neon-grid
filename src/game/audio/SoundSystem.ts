@@ -24,7 +24,8 @@ export type SfxName =
   | 'error'
   | 'victory'
   | 'defeat'
-  | 'coin';
+  | 'coin'
+  | 'frost';
 
 /** Minimum milliseconds between two plays of the same sound. */
 const THROTTLE: Partial<Record<SfxName, number>> = {
@@ -38,6 +39,7 @@ const THROTTLE: Partial<Record<SfxName, number>> = {
   kill: 45,
   shieldBreak: 80,
   coin: 60,
+  frost: 90,
 };
 
 class SoundSystem {
@@ -170,6 +172,11 @@ class SoundSystem {
         break;
       case 'error':
         this.tone('square', 180, 140, t, 0.12, 0.08);
+        break;
+      case 'frost':
+        this.noiseBurst(t, 0.35, 4000, 'highpass', 0.14);
+        this.tone('sine', 1900, 900, t, 0.3, 0.05);
+        this.tone('triangle', 2600, 2200, t + 0.04, 0.2, 0.03);
         break;
       case 'coin':
         this.tone('triangle', 1318, 1760, t, 0.07, 0.05);

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH, css } from '../config';
 import { viewBounds } from '../utils/View';
-import { TOWERS, TOWER_ORDER, type TowerDef, type TowerType } from '../data/towers';
+import { TOWERS, type TowerDef, type TowerType } from '../data/towers';
 import { iconKey } from '../rendering/TowerRenderer';
 import { NeonButton, Icons, drawPanel, text } from './widgets';
 import { sfx } from '../audio/SoundSystem';
@@ -13,6 +13,10 @@ export const DRAWER_TOP_Y = 112;
 export function statValues(def: TowerDef, levelIndex: number): { damage: number; rate: number; range: number } {
   const l = def.levels[levelIndex];
   const rate = def.attack === 'beam' ? 4.5 : 1 / l.fireInterval;
+  // frost pulses barely hurt; show their slow strength as the damage bar
+  if (def.attack === 'frost') {
+    return { damage: Math.min(1, (l.slow ?? 0) * 1.6), rate: Math.sqrt(Math.min(1, rate / 4.5)), range: Math.min(1, l.range / 200) };
+  }
   return {
     damage: Math.sqrt(Math.min(1, l.damage / 150)),
     rate: Math.sqrt(Math.min(1, rate / 4.5)),
@@ -37,7 +41,8 @@ interface Card {
   affordable: boolean | null;
 }
 
-const CARD_W = 232;
+const MAX_CARD_W = 232;
+const CARD_GAP = 12;
 const CARD_H = 140;
 const ROLES: Record<TowerType, string> = {
   pulse: 'Fast single target',
@@ -45,6 +50,7 @@ const ROLES: Record<TowerType, string> = {
   missile: 'Hits enemy groups',
   tesla: 'Chains through shields',
   laser: 'Continuous armor piercing',
+  cryo: 'Slows everything in range',
 };
 const MOBILE_ROLES: Record<TowerType, string> = {
   pulse: 'Rapid fire',
@@ -52,17 +58,21 @@ const MOBILE_ROLES: Record<TowerType, string> = {
   missile: 'Splash damage',
   tesla: 'Chain lightning',
   laser: 'Piercing beam',
+  cryo: 'Freeze & slow',
 };
 
-/** Bottom/top docked drawer listing all five towers for an empty platform. */
+/** Bottom/top docked drawer listing the sector's towers for an empty platform. */
 export class TowerMenu {
   readonly root: Phaser.GameObjects.Container;
   private readonly cards: Card[] = [];
   private visible = false;
   dockTop = false;
+  /** Card width, shrunk to fit when a sector offers more towers. */
+  private readonly cardW: number;
 
   constructor(
     private readonly scene: Phaser.Scene,
+    towers: readonly TowerType[],
     private readonly onPick: (type: TowerType) => void,
     private readonly onClose: () => void,
   ) {
@@ -86,9 +96,13 @@ export class TowerMenu {
     });
     this.root.add(close);
 
-    const gap = (W - 32 - CARD_W * 5) / 4;
-    TOWER_ORDER.forEach((type, i) => {
-      const cx = 16 + i * (CARD_W + gap);
+    const n = towers.length;
+    this.cardW = Math.min(MAX_CARD_W, (W - 32 - CARD_GAP * (n - 1)) / n);
+    // centre the row when there are fewer cards than fit
+    const rowW = n * this.cardW + (n - 1) * CARD_GAP;
+    const left = (W - rowW) / 2;
+    towers.forEach((type, i) => {
+      const cx = left + i * (this.cardW + CARD_GAP);
       this.cards.push(this.makeCard(type, cx, 64));
     });
   }
@@ -99,12 +113,13 @@ export class TowerMenu {
     const c = s.add.container(x, y);
     const bg = s.add.graphics();
     c.add(bg);
-    const icon = s.add.image(60, 76, iconKey(type, 1)).setScale(1);
+    const CARD_W = this.cardW;
+    const icon = s.add.image(CARD_W * 0.26, 76, iconKey(type, 1)).setScale(1);
     const name = text(s, CARD_W / 2, 22, def.name.replace(' Tower', ''), 24, def.color).setOrigin(0.5);
     const desc = text(s, CARD_W / 2, 118, ROLES[type], 15, COLORS.textDim,
       { fontStyle: 'normal' }).setOrigin(0.5);
-    const coin = s.add.image(150, 78, 'ui_coin').setScale(0.75);
-    const cost = text(s, 176, 78, `${def.levels[0].cost}`, 26, COLORS.gold).setOrigin(0, 0.5);
+    const coin = s.add.image(CARD_W * 0.65, 78, 'ui_coin').setScale(0.75);
+    const cost = text(s, CARD_W * 0.76, 78, `${def.levels[0].cost}`, 26, COLORS.gold).setOrigin(0, 0.5);
     c.add([icon, name, desc, coin, cost]);
 
     // Children are laid out from the card's top-left, so a centred zone is the hit area.
@@ -136,6 +151,7 @@ export class TowerMenu {
   }
 
   private drawCard(card: Card): void {
+    const CARD_W = this.cardW;
     const def = TOWERS[card.type];
     const g = card.bg;
     g.clear();
@@ -175,12 +191,12 @@ export class TowerMenu {
         .setFontSize(compact ? 22 : 15)
         .setColor(css(compact ? COLORS.text : COLORS.textDim));
       // Icon and price share a row, leaving the bottom row for a readable role.
-      card.icon.setPosition(60, 76)
-        .setScale(compact ? 0.9 : 1);
+      card.icon.setPosition(this.cardW * 0.26, 76)
+        .setScale((compact ? 0.9 : 1) * Math.min(1, this.cardW / 210));
       const costY = 78;
       // Center the coin + price together, including two- and three-digit costs.
       const groupWidth = 26 + card.cost.width;
-      const groupLeft = 177 - groupWidth / 2;
+      const groupLeft = this.cardW * 0.76 - groupWidth / 2;
       card.coin.setPosition(groupLeft + 9, costY);
       card.cost.setPosition(groupLeft + 26, costY);
     }
@@ -210,6 +226,6 @@ export class TowerMenu {
   /** World-space centre of a tower card (for tutorial pointers). */
   cardCenter(type: TowerType): { x: number; y: number } {
     const card = this.cards.find((c) => c.type === type)!;
-    return { x: this.root.x + card.container.x + CARD_W / 2, y: drawerY(this.scene, this.dockTop) + card.container.y + CARD_H / 2 };
+    return { x: this.root.x + card.container.x + this.cardW / 2, y: drawerY(this.scene, this.dockTop) + card.container.y + CARD_H / 2 };
   }
 }

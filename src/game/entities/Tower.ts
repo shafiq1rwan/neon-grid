@@ -6,13 +6,14 @@ import {
   TESLA_ANCHOR_Y,
   TESLA_TEX_H,
   baseKey,
+  cryoCoreY,
   gunKey,
   teslaTopY,
 } from '../rendering/TowerRenderer';
 import type { Enemy } from './Enemy';
 
 /** Distance from the weapon pivot to the muzzle at level 1. */
-const MUZZLE: Record<string, number> = { pulse: 34, cannon: 36, missile: 18, laser: 36, tesla: 0 };
+const MUZZLE: Record<string, number> = { pulse: 34, cannon: 36, missile: 18, laser: 36, tesla: 0, cryo: 0 };
 
 export class Tower {
   readonly base: Phaser.GameObjects.Image;
@@ -56,6 +57,16 @@ export class Tower {
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale(1.2)
         .setAlpha(0.5);
+    } else if (def.type === 'cryo') {
+      // stationary emitter: glow sits on the frost crystal
+      this.base.setOrigin(0.5, 0.5);
+      this.coreGlow = scene.add
+        .image(x, y + cryoCoreY(1), 'fx_glow')
+        .setDepth(depth + 0.001)
+        .setTint(def.color)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setScale(0.8)
+        .setAlpha(0.4);
     } else {
       this.base.setOrigin(0.5, 0.5);
       this.gunShadow = scene.add
@@ -89,12 +100,14 @@ export class Tower {
   }
 
   get pivotY(): number {
-    return this.def.type === 'tesla' ? this.y + teslaTopY(this.level) - 6 : this.y + GUN_OFFSET_Y;
+    if (this.def.type === 'tesla') return this.y + teslaTopY(this.level) - 6;
+    if (this.def.type === 'cryo') return this.y + cryoCoreY(this.level);
+    return this.y + GUN_OFFSET_Y;
   }
 
   /** World position of the muzzle / emitter. */
   muzzle(out: { x: number; y: number }, lateral = 0): void {
-    if (this.def.type === 'tesla') {
+    if (this.def.type === 'tesla' || this.def.type === 'cryo') {
       out.x = this.x;
       out.y = this.pivotY;
       return;
@@ -137,6 +150,11 @@ export class Tower {
       this.orb.setPosition(this.x, top).setScale(0.85 + this.level * 0.08 + pulse * 0.08 + this.recoil * 0.3);
       this.coreGlow.setPosition(this.x, top).setAlpha(0.35 + pulse * 0.25 + this.recoil * 0.4);
       this.coreGlow.setScale(1 + this.level * 0.15 + this.recoil * 0.6);
+    } else {
+      // cryo: crystal shimmer, flaring on each frost pulse
+      const top = this.pivotY + Math.sin(this.idle * 1.8) * 1;
+      this.coreGlow.setPosition(this.x, top).setAlpha(0.3 + pulse * 0.2 + this.recoil * 0.5);
+      this.coreGlow.setScale(0.7 + this.level * 0.12 + this.recoil * 0.8);
     }
   }
 

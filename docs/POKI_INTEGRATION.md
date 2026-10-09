@@ -57,9 +57,9 @@ Retry:         gameplayStop (game over) → commercialBreak → gameplayStart
 ## Rewarded ad
 
 - **Reward:** revive with +10 reactor HP, and all enemies on the field are cleared. Once per run.
-- **Disclosure:** the button reads "REVIVE · watch an ad for +10 HP", so the player knows an ad will play, as Poki requires.
+- **Button rules:** the gold "🎬 REVIVE +10 HP" button sits beside an equal-size RETRY button (the normal continue option). It is not green and has a prominent 🎬 icon, with "Watch an ad to restore the reactor" underneath, as Poki requires.
 - **Result:** the reward is granted only when `rewardedBreak()` resolves `true`. Otherwise the button changes to "Ad unavailable".
-- **Standalone exception:** with no SDK at all, the revive is granted without an ad so the feature still works locally. Change `rewardedBreak()` in the adapter if a host requires otherwise.
+- **No SDK, no reward:** Revive is offered only when the SDK initialised (`poki.rewardedAvailable`). With an ad blocker or on other hosts it's hidden, so no reward is ever given without an ad. Dev builds simulate a successful ad for testing.
 
 ## Fullscreen
 
@@ -67,7 +67,8 @@ Poki provides its own fullscreen control. The game's fullscreen button and the a
 
 ## Submission checklist
 
-- [ ] `npm run build` passes, and `dist/` works when opened through a static server.
+- [ ] `npm run package` creates `release/neon-wasteland-defense-v<version>.zip` with `index.html` at its root.
+- [ ] Listing copy, categories and thumbnails are ready (see [POKI_SUBMISSION.md](POKI_SUBMISSION.md)).
 - [ ] Drag `dist/` into the Poki Inspector and confirm the event order in its log.
 - [ ] No ads during waves; breaks happen only at Play, Retry or Restart.
 - [ ] Sound is muted during ads, and the mute setting persists.

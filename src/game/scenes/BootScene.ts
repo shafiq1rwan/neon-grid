@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES } from '../config';
-import { SECTOR_7 } from '../data/maps';
+import { MAPS } from '../data/maps';
 import { poki } from '../platform/PokiAdapter';
 import { generateEffectTextures } from '../rendering/EffectsRenderer';
 import { generateEnemyTextures } from '../rendering/EnemyRenderer';
-import { generateEnvironment } from '../rendering/EnvironmentRenderer';
+import { ensureMapBackground, generateSharedEnvironment } from '../rendering/EnvironmentRenderer';
 import { generateTowerTextures } from '../rendering/TowerRenderer';
 import { PathData } from '../utils/MathUtils';
 import { centerCamera } from '../utils/View';
@@ -27,12 +27,13 @@ export class BootScene extends Phaser.Scene {
 
     // Let the loading label render before the (synchronous) texture bake.
     this.time.delayedCall(30, () => {
-      const path = new PathData(SECTOR_7.path, SECTOR_7.cornerRadius);
+      const first = MAPS[0];
       generateEffectTextures(this);
       generateTowerTextures(this);
       generateEnemyTextures(this);
-      const signs = generateEnvironment(this, SECTOR_7, path);
-      this.registry.set('signs', signs);
+      generateSharedEnvironment(this);
+      // Only sector 1 is baked up front (menu + first game); later sectors bake on demand.
+      ensureMapBackground(this, first, first.paths.map((lane) => new PathData(lane, first.cornerRadius)));
       poki.gameLoadingFinished();
       this.scene.start(SCENES.menu);
     });

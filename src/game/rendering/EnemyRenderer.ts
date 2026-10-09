@@ -31,6 +31,7 @@ export const ENEMY_TEX_SIZE: Record<EnemyType, number> = {
   juggernaut: 92,
   specter: 64,
   spawner: 88,
+  titan: 150,
 };
 
 export function enemyKey(type: EnemyType): string {
@@ -51,6 +52,8 @@ export function generateEnemyTextures(scene: Phaser.Scene): void {
   make(enemyKey('runner'), ENEMY_TEX_SIZE.runner, (ctx) => drawRunner(ctx));
   make(enemyKey('juggernaut'), ENEMY_TEX_SIZE.juggernaut, (ctx) => drawJuggernaut(ctx, false));
   make('en_juggernaut_dmg', ENEMY_TEX_SIZE.juggernaut, (ctx) => drawJuggernaut(ctx, true));
+  make(enemyKey('titan'), ENEMY_TEX_SIZE.titan, (ctx) => drawTitan(ctx, false));
+  make('en_titan_dmg', ENEMY_TEX_SIZE.titan, (ctx) => drawTitan(ctx, true));
   make(enemyKey('specter'), ENEMY_TEX_SIZE.specter, (ctx) => drawSpecter(ctx));
   make(enemyKey('spawner'), ENEMY_TEX_SIZE.spawner, (ctx) => drawSpawner(ctx));
   make('spawner_hatch', 40, (ctx) => drawHatchGlow(ctx));
@@ -132,9 +135,25 @@ function drawRunner(ctx: Ctx): void {
   neonDot(ctx, -10, 8, 1, c, 4);
 }
 
-function drawJuggernaut(ctx: Ctx, damaged: boolean): void {
-  const c = COLORS.orange;
-  const armor = 0x6b3812;
+/** Boss: a scaled-up war machine in red armour with twin side cannons. */
+function drawTitan(ctx: Ctx, damaged: boolean): void {
+  ctx.save();
+  ctx.scale(1.6, 1.6);
+  // twin side cannons under the hull
+  for (const sy of [-15, 15]) {
+    fillRR(ctx, 4, sy - 2.5, 26, 5, 2, css(0x1b1214), css(0x5a2a30), 1);
+    neonDot(ctx, 30, sy, 1.6, COLORS.red, 6);
+  }
+  drawJuggernaut(ctx, damaged, COLORS.red, 0x4a1420);
+  // command spires
+  for (const sx of [-12, -4]) {
+    fillPoly(ctx, [sx - 3, -4, sx, -10, sx + 3, -4], css(0x2a1218), css(COLORS.red), 0.8);
+    neonDot(ctx, sx, -10, 1.1, COLORS.red, 5);
+  }
+  ctx.restore();
+}
+
+function drawJuggernaut(ctx: Ctx, damaged: boolean, c: number = COLORS.orange, armor = 0x6b3812): void {
   // drop shadow
   fillRR(ctx, -21, -19, 44, 42, 6, 'rgba(0,0,0,0.5)');
   // treads

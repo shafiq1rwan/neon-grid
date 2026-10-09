@@ -1,6 +1,6 @@
 import { ECONOMY, WAVE_TIMING } from '../config';
 import type { EnemyType } from '../data/enemies';
-import { WAVES, waveEnemyCount, type WaveDef, type WaveGroup } from '../data/waves';
+import { waveEnemyCount, type WaveDef, type WaveGroup } from '../data/waves';
 
 export type WaveState = 'prewave' | 'spawning' | 'waiting' | 'complete';
 
@@ -11,7 +11,7 @@ interface GroupRun {
 }
 
 export interface WaveCallbacks {
-  spawn(type: EnemyType, hpScale: number): void;
+  spawn(type: EnemyType, hpScale: number, lane: number): void;
   waveStarted(index: number): void;
   waveSpawned(index: number, def: WaveDef): void;
 }
@@ -28,10 +28,13 @@ export class WaveSystem {
   hold = false;
   private runs: GroupRun[] = [];
   private elapsed = 0;
+  /** Round-robin lane for groups without a fixed lane. */
+  private nextLane = 0;
 
   constructor(
     private readonly callbacks: WaveCallbacks,
-    readonly waves: WaveDef[] = WAVES,
+    readonly waves: WaveDef[],
+    private readonly laneCount = 1,
   ) {}
 
   get total(): number {
@@ -97,7 +100,12 @@ export class WaveSystem {
       done = false;
       run.timer -= dt;
       while (run.timer <= 0 && run.spawned < run.group.count) {
-        this.callbacks.spawn(run.group.type, def.hpScale);
+        let lane = run.group.lane;
+        if (lane === undefined) {
+          lane = this.nextLane;
+          this.nextLane = (this.nextLane + 1) % this.laneCount;
+        }
+        this.callbacks.spawn(run.group.type, def.hpScale, Math.min(lane, this.laneCount - 1));
         run.spawned++;
         this.spawned++;
         run.timer += run.group.interval;

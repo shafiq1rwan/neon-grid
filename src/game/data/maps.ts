@@ -1,3 +1,7 @@
+import type { EnemyType } from './enemies';
+import type { TowerType } from './towers';
+import { WAVES_SECTOR_1, WAVES_SECTOR_2, WAVES_SECTOR_3, type WaveDef } from './waves';
+
 export interface Vec2 {
   x: number;
   y: number;
@@ -25,23 +29,43 @@ export interface PropDef {
 }
 
 export interface MapDef {
+  /** Stable id, used for texture keys and saves. */
+  id: string;
   name: string;
-  /** Corner points of the road; corners are rounded at build time. */
-  path: Vec2[];
+  /** One-line description of the sector's twist (sector select screen). */
+  subtitle: string;
+  /** One or more roads (lanes); corners are rounded at build time. */
+  paths: Vec2[][];
   cornerRadius: number;
   roadWidth: number;
   platforms: Vec2[];
   reactor: Vec2;
   /** Where the "call wave" button sits (near the road entrance). */
   waveButton: Vec2;
-  buildings: BuildingDef[];
-  props: PropDef[];
+  /** Handcrafted scenery. When omitted, scenery is placed procedurally. */
+  buildings?: BuildingDef[];
+  props?: PropDef[];
   seed: number;
+  waves: WaveDef[];
+  /** Towers that can be built in this sector (later sectors unlock more). */
+  towers: TowerType[];
+  /** Multiplies every enemy's HP and shield in this sector (main balance knob). */
+  difficulty: number;
+  startCredits: number;
+  /** Platform highlighted by the first-run tutorial (sector 1 only). */
+  tutorialPlatform?: number;
 }
 
 export const SECTOR_7: MapDef = {
-  name: 'Sector 7 — Reactor Row',
-  path: [
+  id: 'reactor-row',
+  name: 'Reactor Row',
+  subtitle: 'One winding road. Learn the ropes.',
+  waves: WAVES_SECTOR_1,
+  towers: ['pulse', 'cannon', 'missile', 'tesla'],
+  difficulty: 1.1,
+  startCredits: 220,
+  tutorialPlatform: 1,
+  paths: [[
     // starts beyond the widest visible area so machines never pop in on screen
     { x: -440, y: 300 },
     { x: 230, y: 300 },
@@ -53,7 +77,7 @@ export const SECTOR_7: MapDef = {
     { x: 1060, y: 520 },
     { x: 1060, y: 300 },
     { x: 1150, y: 300 },
-  ],
+  ]],
   cornerRadius: 56,
   roadWidth: 62,
   platforms: [
@@ -131,3 +155,111 @@ export const SECTOR_7: MapDef = {
   ],
   seed: 7331,
 };
+
+/** Shared trunk for Twin Gates: both gates merge at (330, 385). */
+const TWIN_TRUNK: Vec2[] = [
+  { x: 330, y: 385 },
+  { x: 640, y: 385 },
+  { x: 640, y: 160 },
+  { x: 900, y: 160 },
+  { x: 900, y: 560 },
+  { x: 1080, y: 560 },
+  { x: 1080, y: 330 },
+  { x: 1150, y: 330 },
+];
+
+export const TWIN_GATES: MapDef = {
+  id: 'twin-gates',
+  name: 'Twin Gates',
+  subtitle: 'Two entrances. Machines attack on two lanes.',
+  waves: WAVES_SECTOR_2,
+  towers: ['pulse', 'cannon', 'missile', 'tesla', 'laser'],
+  difficulty: 1.3,
+  startCredits: 300,
+  paths: [
+    [{ x: -440, y: 170 }, { x: 330, y: 170 }, ...TWIN_TRUNK],
+    [{ x: -440, y: 600 }, { x: 330, y: 600 }, ...TWIN_TRUNK],
+  ],
+  cornerRadius: 50,
+  roadWidth: 62,
+  platforms: [
+    { x: 180, y: 290 },
+    { x: 180, y: 480 },
+    { x: 480, y: 270 },
+    { x: 480, y: 500 },
+    { x: 770, y: 280 },
+    { x: 770, y: 480 },
+    { x: 990, y: 440 },
+    { x: 990, y: 660 },
+    { x: 1180, y: 470 },
+    { x: 200, y: 686 },
+    { x: 1000, y: 245 },
+  ],
+  reactor: { x: 1192, y: 330 },
+  waveButton: { x: 62, y: 385 },
+  seed: 9182,
+};
+
+export const LONG_ROAD: MapDef = {
+  id: 'long-road',
+  name: 'The Long Road',
+  subtitle: 'A long serpentine highway. The Titan awaits.',
+  waves: WAVES_SECTOR_3,
+  towers: ['pulse', 'cannon', 'missile', 'tesla', 'laser', 'cryo'],
+  difficulty: 1.7,
+  startCredits: 360,
+  paths: [
+    [
+      { x: -440, y: 150 },
+      { x: 1010, y: 150 },
+      { x: 1010, y: 345 },
+      { x: 200, y: 345 },
+      { x: 200, y: 545 },
+      { x: 1150, y: 545 },
+    ],
+  ],
+  cornerRadius: 56,
+  roadWidth: 62,
+  platforms: [
+    { x: 330, y: 247 },
+    { x: 560, y: 247 },
+    { x: 790, y: 247 },
+    { x: 1130, y: 250 },
+    { x: 90, y: 445 },
+    { x: 330, y: 445 },
+    { x: 560, y: 445 },
+    { x: 790, y: 445 },
+    { x: 1050, y: 440 },
+    { x: 450, y: 650 },
+    { x: 800, y: 650 },
+    { x: 1110, y: 655 },
+  ],
+  reactor: { x: 1192, y: 545 },
+  waveButton: { x: 66, y: 250 },
+  seed: 4471,
+};
+
+/** Towers a sector adds compared with the one before it (shown as an unlock). */
+export function newTowersInMap(mapIndex: number): TowerType[] {
+  const before = mapIndex > 0 ? MAPS[mapIndex - 1].towers : [];
+  return MAPS[mapIndex].towers.filter((t) => !before.includes(t));
+}
+
+/** The campaign, in order. Each sector unlocks after clearing the previous one. */
+export const MAPS: MapDef[] = [SECTOR_7, TWIN_GATES, LONG_ROAD];
+
+/**
+ * Enemy types that appear for the first time in the campaign at this wave
+ * (earlier sectors count as already seen).
+ */
+export function newEnemiesInWave(mapIndex: number, waveIndex: number): EnemyType[] {
+  const seen = new Set<EnemyType>();
+  for (let m = 0; m < mapIndex; m++) for (const w of MAPS[m].waves) for (const grp of w.groups) seen.add(grp.type);
+  const waves = MAPS[mapIndex].waves;
+  for (let i = 0; i < waveIndex; i++) for (const grp of waves[i].groups) seen.add(grp.type);
+  const fresh: EnemyType[] = [];
+  for (const grp of waves[waveIndex].groups) {
+    if (!seen.has(grp.type) && !fresh.includes(grp.type)) fresh.push(grp.type);
+  }
+  return fresh;
+}

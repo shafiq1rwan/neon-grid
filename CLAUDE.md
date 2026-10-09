@@ -8,7 +8,7 @@ A Phaser 3 + TypeScript (strict) + Vite tower defense game for Poki. There are n
 - `npm run typecheck`: types only.
 
 ## Where things live
-- Balance and content: `src/game/data/*.ts` and `ECONOMY` / `WAVE_TIMING` in `src/game/config.ts`.
+- Balance and content: `src/game/data/*.ts` (campaign sectors live in `MAPS` in `maps.ts`, with wave lists in `waves.ts`) and `ECONOMY` / `WAVE_TIMING` in `src/game/config.ts`.
 - Simulation: `src/game/systems/`, orchestrated by `scenes/GameScene.ts`.
 - UI: `scenes/UIScene.ts` plus `src/game/ui/`. It reads GameScene state each frame and listens to `GameEvents`.
 - Art: `src/game/rendering/`. All textures are baked once in `BootScene`.

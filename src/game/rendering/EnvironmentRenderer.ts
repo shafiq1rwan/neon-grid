@@ -46,30 +46,12 @@ const AREA = {
 const rx = (rng: () => number) => AREA.x + rng() * AREA.w;
 const ry = (rng: () => number) => AREA.y + rng() * AREA.h;
 
-/**
- * Bakes the whole static battlefield (ground, road, ruins, props, platforms)
- * into a single texture so it costs one sprite draw per frame.
- */
-export function generateEnvironment(scene: Phaser.Scene, map: MapDef, path: PathData): SignInfo[] {
-  const signs: SignInfo[] = [];
-  const rng = createRng(map.seed);
+export function bgKey(map: MapDef): string {
+  return `bg_${map.id}`;
+}
 
-  bakeTexture(scene, 'bg', AREA.w, AREA.h, (ctx) => {
-    // draw in world coordinates; the texture is placed at (AREA.x, AREA.y)
-    ctx.translate(-AREA.x, -AREA.y);
-    drawGround(ctx, rng);
-    drawRoad(ctx, map, path, rng);
-    drawEntry(ctx, map.path[0]);
-    const blockers: Vec2[] = [...map.platforms, map.reactor];
-    drawReactorPad(ctx, map.reactor);
-    drawRubbleField(ctx, map, path, rng, blockers);
-    drawStreetlights(ctx, map, path);
-    const sorted = [...map.buildings].sort((a, b) => a.y + a.d + a.h - (b.y + b.d + b.h));
-    for (const b of sorted) drawBuilding(ctx, b, rng, signs);
-    for (const p of map.props) drawProp(ctx, p, rng);
-    for (const p of map.platforms) drawPlatform(ctx, p.x, p.y, rng);
-  });
-
+/** Textures shared by every map (vignette, reactor parts). Bake once at boot. */
+export function generateSharedEnvironment(scene: Phaser.Scene): void {
   // screen-space vignette, stretched over whatever area is visible
   bakeTexture(scene, 'vignette', 256, 256, (ctx) => {
     const g = ctx.createRadialGradient(128, 128, 70, 128, 128, 182);
@@ -78,7 +60,6 @@ export function generateEnvironment(scene: Phaser.Scene, map: MapDef, path: Path
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 256, 256);
   });
-
   bakeTexture(scene, 'reactor_base', 160, 160, (ctx) => {
     ctx.translate(80, 84);
     drawReactorBase(ctx);
@@ -91,8 +72,104 @@ export function generateEnvironment(scene: Phaser.Scene, map: MapDef, path: Path
     ctx.translate(36, 36);
     energyCore(ctx, 0, 0, 14, COLORS.cyan);
   });
+}
 
+/**
+ * Bakes a map's whole static battlefield (ground, roads, ruins, props,
+ * platforms) into one texture so it costs a single sprite draw per frame.
+ * Cached: baking only happens the first time a map is shown.
+ */
+export function ensureMapBackground(scene: Phaser.Scene, map: MapDef, paths: PathData[]): SignInfo[] {
+  const key = bgKey(map);
+  const signsKey = `signs_${map.id}`;
+  if (scene.textures.exists(key)) return (scene.registry.get(signsKey) as SignInfo[] | undefined) ?? [];
+
+  const signs: SignInfo[] = [];
+  const rng = createRng(map.seed);
+  const scenery =
+    map.buildings && map.props ? { buildings: map.buildings, props: map.props } : autoScenery(map, paths, rng);
+
+  bakeTexture(scene, key, AREA.w, AREA.h, (ctx) => {
+    // draw in world coordinates; the texture is placed at (AREA.x, AREA.y)
+    ctx.translate(-AREA.x, -AREA.y);
+    drawGround(ctx, rng);
+    for (const path of paths) drawRoad(ctx, map, path, rng);
+    for (const lane of map.paths) drawEntry(ctx, lane[0]);
+    const blockers: Vec2[] = [...map.platforms, map.reactor];
+    drawReactorPad(ctx, map.reactor);
+    drawRubbleField(ctx, map, paths, rng, blockers);
+    for (const path of paths) drawStreetlights(ctx, map, path);
+    const sorted = [...scenery.buildings].sort((a, b) => a.y + a.d + a.h - (b.y + b.d + b.h));
+    for (const b of sorted) drawBuilding(ctx, b, rng, signs);
+    for (const p of scenery.props) drawProp(ctx, p, rng);
+    for (const p of map.platforms) drawPlatform(ctx, p.x, p.y, rng);
+  });
+  scene.registry.set(signsKey, signs);
   return signs;
+}
+
+/** Seeded procedural buildings and props that keep clear of roads and platforms. */
+function autoScenery(map: MapDef, paths: PathData[], rng: () => number): { buildings: BuildingDef[]; props: PropDef[] } {
+  const half = map.roadWidth / 2;
+  const clear = (x: number, y: number, margin: number): boolean => {
+    for (const p of paths) if (p.distanceTo(x, y) < half + margin) return false;
+    for (const p of map.platforms) if (dist2(x, y, p.x, p.y) < 62 * 62) return false;
+    if (dist2(x, y, map.reactor.x, map.reactor.y) < 100 * 100) return false;
+    if (dist2(x, y, map.waveButton.x, map.waveButton.y) < 60 * 60) return false;
+    return true;
+  };
+  const buildings: BuildingDef[] = [];
+  const rects: { x: number; y: number; w: number; h: number }[] = [];
+  const signColors = [COLORS.pink, COLORS.cyan, COLORS.purple, COLORS.orange];
+  for (let tries = 0; tries < 1400 && buildings.length < 40; tries++) {
+    // try big blocks first, then fill gaps with smaller ones
+    const big = tries < 700;
+    const w = big ? 100 + rng() * 80 : 64 + rng() * 50;
+    const d = big ? 48 + rng() * 34 : 38 + rng() * 22;
+    const h = big ? 44 + rng() * 30 : 34 + rng() * 22;
+    const x = AREA.x + 8 + rng() * (AREA.w - w - 16);
+    const y = AREA.y + 8 + rng() * (AREA.h - d - h - 16);
+    const fx = x - 6;
+    const fy = y - 6;
+    const fw = w + 24;
+    const fh = d + h + 18;
+    let ok = true;
+    for (const r of rects) {
+      if (fx < r.x + r.w && fx + fw > r.x && fy < r.y + r.h && fy + fh > r.y) {
+        ok = false;
+        break;
+      }
+    }
+    for (let px = fx; ok && px <= fx + fw; px += 16) {
+      for (let py = fy; py <= fy + fh; py += 16) {
+        if (!clear(px, py, 12)) {
+          ok = false;
+          break;
+        }
+      }
+    }
+    if (!ok) continue;
+    rects.push({ x: fx, y: fy, w: fw, h: fh });
+    buildings.push({
+      x,
+      y,
+      w,
+      d,
+      h,
+      ruined: rng() < 0.4,
+      sign: rng() < 0.35 ? signColors[Math.floor(rng() * signColors.length)] : undefined,
+    });
+  }
+  const props: PropDef[] = [];
+  const kinds: PropDef['kind'][] = ['car', 'car', 'truck', 'crate', 'barrier', 'tank'];
+  for (let tries = 0; tries < 600 && props.length < 26; tries++) {
+    const x = AREA.x + rng() * AREA.w;
+    const y = AREA.y + rng() * AREA.h;
+    if (!clear(x, y, 34)) continue;
+    if (rects.some((r) => x > r.x - 30 && x < r.x + r.w + 30 && y > r.y - 30 && y < r.y + r.h + 30)) continue;
+    props.push({ kind: kinds[Math.floor(rng() * kinds.length)], x, y, angle: rng() * Math.PI * 2 });
+  }
+  return { buildings, props };
 }
 
 /* ------------------------------------------------------------------ */
@@ -271,13 +348,13 @@ function drawEntry(ctx: Ctx, start: Vec2): void {
   ctx.restore();
 }
 
-function drawRubbleField(ctx: Ctx, map: MapDef, path: PathData, rng: () => number, blockers: Vec2[]): void {
+function drawRubbleField(ctx: Ctx, map: MapDef, paths: PathData[], rng: () => number, blockers: Vec2[]): void {
   const half = map.roadWidth / 2;
   let placed = 0;
   for (let tries = 0; tries < 2000 && placed < 220; tries++) {
     const x = rx(rng);
     const y = ry(rng);
-    if (path.distanceTo(x, y) < half + 12) continue;
+    if (paths.some((p) => p.distanceTo(x, y) < half + 12)) continue;
     let ok = true;
     for (const b of blockers) if (dist2(x, y, b.x, b.y) < 52 * 52) ok = false;
     if (!ok) continue;

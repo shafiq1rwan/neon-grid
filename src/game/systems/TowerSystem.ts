@@ -17,6 +17,7 @@ export class TowerSystem {
   readonly towers: (Tower | null)[];
   private readonly muzzlePt = { x: 0, y: 0 };
   private readonly chainBuf: Enemy[] = [];
+  private readonly frostBuf: Enemy[] = [];
   private time = 0;
 
   constructor(
@@ -120,6 +121,12 @@ export class TowerSystem {
       case 'beam':
         this.updateBeam(t, target, aligned, dt);
         break;
+      case 'frost':
+        if (target && t.cooldown <= 0) {
+          t.cooldown = stats.fireInterval;
+          this.fireFrost(t);
+        }
+        break;
     }
   }
 
@@ -195,6 +202,21 @@ export class TowerSystem {
     this.effects.burst(t.x, t.pivotY, COLORS.purple, 4);
     t.recoil = 1;
     sfx.play('tesla');
+  }
+
+  /** Frost pulse: chills and slows every machine in range. */
+  private fireFrost(t: Tower): void {
+    const s = t.stats;
+    const hits = Targeting.within(this.enemies.list, t.x, t.y, s.range, this.frostBuf);
+    for (const e of hits) {
+      this.enemies.damage(e, s.damage, t.def);
+      this.enemies.applySlow(e, s.slow ?? 0.3, s.slowDuration ?? 1.5);
+    }
+    this.effects.ring(t.x, t.y, s.range, t.def.color, 520);
+    this.effects.burst(t.x, t.pivotY, t.def.color, 6);
+    this.effects.burst(t.x, t.pivotY, 0xffffff, 3);
+    t.recoil = 1;
+    sfx.play('frost');
   }
 
   private updateBeam(t: Tower, target: Enemy | null, aligned: boolean, dt: number): void {

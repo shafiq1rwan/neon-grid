@@ -29,6 +29,9 @@ export class Enemy {
 
   alive = true;
   flashTimer = 0;
+  /** Current frost slow (fraction of speed removed) and its remaining time. */
+  slowAmount = 0;
+  slowTimer = 0;
   spawnTimer = 0;
   trailTimer = 0;
   readonly phase = Math.random() * Math.PI * 2;
@@ -40,6 +43,8 @@ export class Enemy {
     hpScale: number,
     startDist: number,
     offset: number,
+    /** Index of the road this enemy follows. */
+    readonly lane = 0,
   ) {
     this.maxHp = Math.round(def.hp * hpScale);
     this.hp = this.maxHp;

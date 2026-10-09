@@ -16,7 +16,8 @@ Scene order is set in `main.ts` and controls draw order (UIScene draws over Game
 | Scene | Responsibility |
 | --- | --- |
 | `BootScene` | Bakes every texture (towers, enemies, effects, background), stores sign positions in the registry, calls `poki.gameLoadingFinished()`. |
-| `MenuScene` | Title, tower showcase, Play / tutorial / sound toggles, best score. Runs a commercial break before starting a game. |
+| `MenuScene` | Title, tower showcase, Play / sound / help, campaign stars. PLAY starts Sector 1 directly for new players, otherwise opens `SectorScene`. |
+| `SectorScene` | Campaign sector select: schematic previews, locks, stars. Runs a commercial break before starting a sector. |
 | `GameScene` | Owns the simulation and all systems. Exposes the player-action API (`tapPlatform`, `buildTower`, `upgradeSelected`, `sellSelected`, `callNextWave`, `toggleSpeed`, `pauseGame`, `resumeGame`, `revive`). |
 | `UIScene` | HUD, build drawer, upgrade panel, tutorial, wave banners, pause overlay. Reads the game state every frame and listens to `GameEvents`. |
 | `ResultScene` | Victory or defeat summary, stars, Revive (rewarded ad), Retry and Menu. |
@@ -119,9 +120,19 @@ Continuous values (credits, HP, wave progress, countdown) are not sent as events
 3. Optional: add idle motion in `EnemySystem.place`.
 4. Use it in `data/waves.ts`. The wave banner introduces it automatically, using its `tip`.
 
-### Add a map
+### Add a map (campaign sector)
 
-Create a `MapDef` in `data/maps.ts` (road corners, platforms, reactor, buildings, props, seed). `SECTOR_7` is currently hard-wired in `BootScene`, `GameScene` and `MenuScene`. Supporting several maps means passing the map key through scene data and baking a `bg` texture per map.
+1. Add a wave list to `data/waves.ts`. Groups may pin a `lane` on multi-road maps.
+2. Create a `MapDef` in `data/maps.ts` and append it to `MAPS`. It needs an id, name, subtitle, one or more `paths` (lanes sharing a trunk should repeat the same trunk points), platforms, reactor, `waveButton`, seed, waves, `difficulty` and `startCredits`.
+   - Leave out `buildings` and `props` to get seeded procedural scenery that keeps clear of roads and platforms.
+   - Keep platforms at least about 75 px from road centre lines, and keep the top-left HUD (x < 440, y < 100) and the top-right buttons (x > 960, y < 90) clear.
+3. Nothing else is required. The sector select screen, unlocks, stars and the NEXT SECTOR button all read `MAPS`.
+
+### How sectors load
+
+- `GameScene.create({ mapIndex })` picks the sector and stores it in the registry, so `scene.restart()` (Retry / Restart) replays the same one.
+- `ensureMapBackground()` bakes a map's background (`bg_<id>`) the first time it's shown and caches it. Only Sector 1 is baked at boot.
+- Each lane is its own `PathData`. Enemies carry a `lane` index; spawners pass theirs to their swarmlings. `WaveSystem` round-robins lanes for groups without a fixed `lane`.
 
 ## Performance notes
 

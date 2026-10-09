@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH, SCENES, VIEW_PAD, css } from '../config';
-import { SECTOR_7 } from '../data/maps';
+import { MAPS } from '../data/maps';
 import { TOWERS, TOWER_ORDER } from '../data/towers';
 import { sfx } from '../audio/SoundSystem';
 import { poki } from '../platform/PokiAdapter';
 import { enemyKey } from '../rendering/EnemyRenderer';
 import { iconKey } from '../rendering/TowerRenderer';
+import { bgKey } from '../rendering/EnvironmentRenderer';
 import { PathData, type PathSample } from '../utils/MathUtils';
 import { storage } from '../utils/Storage';
 import { fullscreen } from '../utils/Fullscreen';
@@ -33,9 +34,9 @@ export class MenuScene extends Phaser.Scene {
   create(): void {
     this.starting = false;
     this.walkers = [];
-    this.path = new PathData(SECTOR_7.path, SECTOR_7.cornerRadius);
+    this.path = new PathData(MAPS[0].paths[0], MAPS[0].cornerRadius);
     centerCamera(this);
-    this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, 'bg').setOrigin(0);
+    this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, bgKey(MAPS[0])).setOrigin(0);
 
     // ambient machines drifting along the road behind the menu
     const types = ['drone', 'runner', 'drone', 'juggernaut', 'specter', 'drone', 'spawner'] as const;
@@ -67,11 +68,11 @@ export class MenuScene extends Phaser.Scene {
     // A visual preview of the arsenal; details belong in the build drawer.
     const stage = this.add.graphics();
     stage.lineStyle(1, COLORS.cyan, 0.18);
-    stage.lineBetween(cx - 440, 397, cx + 440, 397);
+    stage.lineBetween(cx - 480, 397, cx + 480, 397);
     TOWER_ORDER.forEach((type, i) => {
       const def = TOWERS[type];
-      const x = cx - 340 + i * 170;
-      const hero = i === 2;
+      const x = cx + (i - (TOWER_ORDER.length - 1) / 2) * 160;
+      const hero = type === 'missile';
       const halo = this.add.image(x, 346, 'fx_glow').setTint(def.color)
         .setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(150, 94).setAlpha(0.18);
       const img = this.add.image(x, 334, iconKey(type, 3)).setScale(hero ? 1.65 : 1.35);
@@ -92,13 +93,14 @@ export class MenuScene extends Phaser.Scene {
     Icons.play(playIcon, COLORS.green);
     playIcon.setPosition(-86, 0);
     playBtn.add(playIcon);
-    text(this, cx, 555, 'Defend the reactor. Survive 10 waves.', 22, COLORS.text,
+    text(this, cx, 555, 'Defend the reactor across 3 sectors.', 22, COLORS.text,
       { fontStyle: 'normal' }).setOrigin(0.5);
 
     const d = storage.data;
-    const best = d.wins > 0
-      ? `BEST  ${'\u2605'.repeat(d.bestStars)}${'\u2606'.repeat(3 - d.bestStars)}  \u00b7  ${d.wins} ${d.wins === 1 ? 'VICTORY' : 'VICTORIES'}`
-      : d.bestWave > 0 ? `BEST RUN  \u00b7  WAVE ${d.bestWave} / 10` : 'BUILD  \u00b7  UPGRADE  \u00b7  SURVIVE';
+    const cleared = MAPS.filter((_, i) => storage.starsFor(i) > 0).length;
+    const best = cleared > 0
+      ? `CAMPAIGN  \u2605 ${storage.totalStars} / ${MAPS.length * 3}  \u00b7  ${cleared} / ${MAPS.length} SECTORS CLEARED`
+      : d.bestWave > 0 ? `BEST RUN  \u00b7  WAVE ${d.bestWave} / ${MAPS[0].waves.length}` : 'BUILD  \u00b7  UPGRADE  \u00b7  SURVIVE';
     text(this, cx, 607, best, 17, d.bestWave > 0 || d.wins > 0 ? COLORS.gold : COLORS.textDim)
       .setOrigin(0.5);
 
@@ -137,7 +139,7 @@ export class MenuScene extends Phaser.Scene {
     });
     c.add([dim, frame]);
     c.add(text(this, cx - 460, 104, 'HOW TO PLAY', 32, COLORS.text).setOrigin(0, 0.5));
-    c.add(text(this, cx - 460, 146, 'Defend the reactor. Survive 10 waves.', 22, COLORS.textDim,
+    c.add(text(this, cx - 460, 146, 'Defend the reactor. Clear 3 sectors.', 22, COLORS.textDim,
       { fontStyle: 'normal' }).setOrigin(0, 0.5));
 
     const tips = [
@@ -206,10 +208,15 @@ export class MenuScene extends Phaser.Scene {
     if (this.starting) return;
     this.starting = true;
     sfx.unlock();
+    // First-time players go straight into Sector 1; afterwards PLAY opens sector select.
+    if (storage.starsFor(0) > 0) {
+      this.scene.start(SCENES.sectors);
+      return;
+    }
     // still inside the tap gesture, so the browser allows fullscreen
     fullscreen.enterOnTouchDevices();
     await poki.commercialBreak();
-    this.scene.start(SCENES.game);
+    this.scene.start(SCENES.game, { mapIndex: 0 });
   }
 
   update(_time: number, delta: number): void {

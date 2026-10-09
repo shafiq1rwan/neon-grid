@@ -1,7 +1,7 @@
 # Neon Wasteland Defense
 
 A 2D neon-cyberpunk tower defense game built with **Phaser 3**, **TypeScript (strict)** and **Vite**, intended for Poki.
-Hold a ruined city's last reactor against 10 waves of corrupted machines. A full run takes about 5–8 minutes.
+Hold a ruined city's last reactor across a 3-sector campaign (32 waves, ending with a Titan boss). Each sector takes about 6–8 minutes.
 
 ## Run
 
@@ -11,6 +11,8 @@ npm run dev        # http://localhost:5173
 npm run build      # type-check + production build into dist/
 npm run preview    # serve the production build locally
 ```
+
+`npm run package` builds and zips the game into `release/neon-wasteland-defense-v<version>.zip` (index.html at the root), ready to upload to Poki.
 
 `dist/` is a fully static site with relative asset paths, so you can upload it to any static host or zip it for Poki.
 
@@ -34,7 +36,8 @@ One-time setup: in the repo's **Settings → Pages**, set **Source** to **GitHub
 | Cannon  | Heavy shells with recoil; pierces armor                  |
 | Missile | Homing missiles with splash damage                       |
 | Tesla   | Arcs that chain between enemies; 2x damage to shields    |
-| Laser   | Sustained beam after a warm-up; pierces armor            |
+| Laser   | Sustained beam after a warm-up; pierces armor (unlocked in Sector 2) |
+| Cryo    | Frost pulse slows everything in range; frozen machines take +15% damage (unlocked in Sector 3) |
 
 | Enemy                | Trait                                         |
 | -------------------- | --------------------------------------------- |
@@ -84,6 +87,7 @@ src/
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Scenes, systems, rendering, events; how to add towers, enemies and maps |
 | [docs/BALANCING.md](docs/BALANCING.md) | Tuning levers, design targets, bot validation results |
 | [docs/POKI_INTEGRATION.md](docs/POKI_INTEGRATION.md) | SDK usage, event flows, ad rules, submission checklist |
+| [docs/POKI_SUBMISSION.md](docs/POKI_SUBMISSION.md) | Poki listing copy, categories, thumbnails, upload zip, requirements checklist |
 | [docs/TESTING.md](docs/TESTING.md) | Debug snippets and manual QA checklist |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 

@@ -6,6 +6,7 @@ import { storage } from './game/utils/Storage';
 import { BootScene } from './game/scenes/BootScene';
 import { GameScene } from './game/scenes/GameScene';
 import { MenuScene } from './game/scenes/MenuScene';
+import { SectorScene } from './game/scenes/SectorScene';
 import { ResultScene } from './game/scenes/ResultScene';
 import { UIScene } from './game/scenes/UIScene';
 
@@ -26,9 +27,6 @@ document.addEventListener('visibilitychange', () => {
 
 // Keep the page from scrolling / zooming on mobile.
 window.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
-window.addEventListener('keydown', (e) => {
-  if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
-});
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -48,10 +46,12 @@ const config: Phaser.Types.Core.GameConfig = {
     antialias: true,
     powerPreference: 'high-performance',
   },
-  input: { activePointers: 2 },
+  // Phaser blocks page scrolling for these keys *after* handling them. (A
+  // window-level preventDefault would make Phaser ignore the keys entirely.)
+  input: { activePointers: 2, keyboard: { capture: [32, 38, 40] } },
   disableContextMenu: true,
   banner: false,
-  scene: [BootScene, MenuScene, GameScene, UIScene, ResultScene],
+  scene: [BootScene, MenuScene, SectorScene, GameScene, UIScene, ResultScene],
 };
 
 /**

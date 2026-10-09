@@ -53,6 +53,11 @@ export function iconKey(type: TowerType, level: number): string {
   return `tw_${type}_${level}_icon`;
 }
 
+/** Height of the cryo crystal's centre above the tower centre for a level. */
+export function cryoCoreY(level: number): number {
+  return -(30 + level * 4.5);
+}
+
 /** Height of the tesla column top above the tower centre for a level. */
 export function teslaTopY(level: number): number {
   return -(36 + level * 8);
@@ -67,6 +72,11 @@ export function generateTowerTextures(scene: Phaser.Scene): void {
           ctx.translate(TOWER_TEX / 2, TESLA_ANCHOR_Y);
           drawTesla(ctx, level, color);
         });
+      } else if (type === 'cryo') {
+        bakeTexture(scene, baseKey(type, level), TOWER_TEX, TOWER_TEX, (ctx) => {
+          ctx.translate(TOWER_TEX / 2, TOWER_TEX / 2);
+          drawCryo(ctx, level, color);
+        });
       } else {
         bakeTexture(scene, baseKey(type, level), TOWER_TEX, TOWER_TEX, (ctx) => {
           ctx.translate(TOWER_TEX / 2, TOWER_TEX / 2);
@@ -79,7 +89,11 @@ export function generateTowerTextures(scene: Phaser.Scene): void {
         });
       }
       bakeTexture(scene, iconKey(type, level), TOWER_TEX, TOWER_TEX, (ctx) => {
-        if (type === 'tesla') {
+        if (type === 'cryo') {
+          ctx.translate(TOWER_TEX / 2, TOWER_TEX / 2 + 16);
+          ctx.scale(0.92, 0.92);
+          drawCryo(ctx, level, color);
+        } else if (type === 'tesla') {
           ctx.translate(TOWER_TEX / 2, TOWER_TEX * 0.8);
           ctx.scale(0.78, 0.78);
           drawTesla(ctx, level, color);
@@ -530,6 +544,86 @@ function drawTesla(ctx: Ctx, level: number, c: number): void {
   ellipse(ctx, 0, top - 1, 6, 2.4, css(0x05080f));
   bolt(ctx, -4, -4, 1);
   bolt(ctx, 4, -4, 1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Cryo emitter (non-rotating)                                         */
+/* ------------------------------------------------------------------ */
+
+function drawCryo(ctx: Ctx, level: number, c: number): void {
+  drawFoundation(ctx, level, c);
+
+  // frost rime on the slab
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  for (const [fx, fy] of [[-20, 6], [18, 9], [-8, 14], [24, -2], [-26, -4], [6, -14]]) {
+    circle(ctx, fx, fy, 1.4, '#e8fbff');
+  }
+  ctx.restore();
+
+  // frost vents around the tank (more at higher levels)
+  const vents = level === 1 ? 4 : 6;
+  for (let k = 0; k < vents; k++) {
+    const a = (k / vents) * Math.PI * 2 + Math.PI / vents;
+    const vx = Math.cos(a) * 19;
+    const vy = Math.sin(a) * 15 - 3;
+    const blk = [vx - 4, vy - 3, vx + 4, vy - 3, vx + 4, vy + 2, vx - 4, vy + 2];
+    prism(ctx, blk, 3, css(RAISED), DARK_SIDE, EDGE);
+    neonDot(ctx, vx, vy - 0.5, 1.4, c, 6);
+    if (level >= 2) {
+      // coolant lines feeding the tank
+      line(ctx, vx * 0.85, vy * 0.85 - 1, vx * 0.35, vy * 0.35 - 6, 'rgba(169,232,255,0.45)', 1.6);
+    }
+  }
+
+  // central coolant tank
+  const tankTop = -(18 + level * 3);
+  const tw = 11 + level;
+  const tankGrad = ctx.createLinearGradient(-tw, 0, tw, 0);
+  tankGrad.addColorStop(0, css(shade(RAISED, 1.8)));
+  tankGrad.addColorStop(0.45, css(RAISED));
+  tankGrad.addColorStop(1, css(shade(RAISED, 0.55)));
+  ellipse(ctx, 0, -2, tw, tw * 0.42, css(0x0a101c));
+  fillRR(ctx, -tw, tankTop, tw * 2, -tankTop - 2, 3, tankGrad, EDGE, 1.1);
+  // glass window showing the coolant
+  ctx.save();
+  glow(ctx, c, 6);
+  fillRR(ctx, -tw * 0.45, tankTop + 5, tw * 0.9, -tankTop - 12, 2, css(c, 0.55));
+  ctx.restore();
+  for (const by of [tankTop + 3, -6]) line(ctx, -tw, by, tw, by, 'rgba(0,0,0,0.55)', 1.4);
+  ellipse(ctx, 0, tankTop, tw, tw * 0.42, metalGradient(ctx, -tw, tankTop - 5, tw * 2, 10, RAISED), EDGE, 1.1);
+  bolt(ctx, -tw + 3, -8, 1);
+  bolt(ctx, tw - 3, -8, 1);
+
+  // frost crystal(s) on top
+  const cy = cryoCoreY(level);
+  const crystal = (x: number, y: number, h: number, w: number, tilt: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    glow(ctx, c, 12);
+    const g = ctx.createLinearGradient(-w, -h, w, h);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.5, css(c));
+    g.addColorStop(1, css(shade(c, 0.6)));
+    fillPoly(ctx, [0, -h, w, -h * 0.35, w * 0.8, h * 0.6, 0, h, -w * 0.8, h * 0.6, -w, -h * 0.35], g, '#e8fbff', 0.8);
+    noGlow(ctx);
+    line(ctx, 0, -h, 0, h, 'rgba(255,255,255,0.55)', 0.8);
+    ctx.restore();
+  };
+  if (level === 3) {
+    crystal(-8, cy + 6, 7, 3.5, -0.45);
+    crystal(8, cy + 6, 7, 3.5, 0.45);
+  }
+  crystal(0, cy, 9 + level * 1.5, 4.5 + level * 0.6, 0);
+  if (level >= 2) {
+    // frost halo ring around the crystal
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    glow(ctx, c, 6);
+    ellipse(ctx, 0, cy + 4, 12 + level * 2, 4, undefined, css(c), 1.2);
+    ctx.restore();
+  }
 }
 
 function drawTeslaOrbAt(ctx: Ctx, x: number, y: number, r: number, c: number): void {

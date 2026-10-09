@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD } from '../config';
-import { SECTOR_7, type MapDef } from '../data/maps';
+import { MAPS, type MapDef } from '../data/maps';
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Tower } from '../entities/Tower';
 import { sfx } from '../audio/SoundSystem';
 import { poki } from '../platform/PokiAdapter';
 import { Effects } from '../rendering/EffectsRenderer';
 import type { SignInfo } from '../rendering/EnvironmentRenderer';
-import { PLATFORM_RADIUS } from '../rendering/EnvironmentRenderer';
+import { PLATFORM_RADIUS, bgKey, ensureMapBackground } from '../rendering/EnvironmentRenderer';
 import { EconomySystem } from '../systems/EconomySystem';
 import { EnemySystem } from '../systems/EnemySystem';
 import { ProjectileSystem } from '../systems/ProjectileSystem';
@@ -29,6 +29,8 @@ export interface ResultData {
   time: number;
   stars: number;
   canRevive: boolean;
+  /** Campaign sector that was played. */
+  mapIndex: number;
 }
 
 /** Events emitted on `GameScene.events` for the UI layer. */
@@ -43,8 +45,10 @@ export const GameEvents = {
 } as const;
 
 export class GameScene extends Phaser.Scene {
-  readonly map: MapDef = SECTOR_7;
-  path!: PathData;
+  /** Current campaign sector (set in create; kept in the registry for restarts). */
+  map!: MapDef;
+  mapIndex = 0;
+  paths!: PathData[];
   effects!: Effects;
   enemies!: EnemySystem;
   projectiles!: ProjectileSystem;
@@ -74,8 +78,12 @@ export class GameScene extends Phaser.Scene {
     super(SCENES.game);
   }
 
-  create(): void {
+  create(data?: { mapIndex?: number }): void {
     // Scene instances are reused on restart, so reset all state here.
+    const fromRegistry = this.registry.get('mapIndex') as number | undefined;
+    this.mapIndex = Phaser.Math.Clamp(data?.mapIndex ?? fromRegistry ?? 0, 0, MAPS.length - 1);
+    this.registry.set('mapIndex', this.mapIndex);
+    this.map = MAPS[this.mapIndex];
     this.hp = ECONOMY.startingHp;
     this.speed = 1;
     this.over = false;
@@ -89,17 +97,18 @@ export class GameScene extends Phaser.Scene {
     this.hints = [];
     this.tweens.timeScale = 1;
 
-    this.path = new PathData(this.map.path, this.map.cornerRadius);
-    this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, 'bg').setOrigin(0).setDepth(DEPTH.BG);
+    this.paths = this.map.paths.map((lane) => new PathData(lane, this.map.cornerRadius));
+    const signs = ensureMapBackground(this, this.map, this.paths);
+    this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, bgKey(this.map)).setOrigin(0).setDepth(DEPTH.BG);
     // screen-space vignette over the background only
     const vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(DEPTH.BG + 1);
     centerCamera(this, (view) => vignette.setDisplaySize(view.width, view.height));
-    this.createAmbience();
+    this.createAmbience(signs);
     this.createReactor();
 
     this.effects = new Effects(this);
-    this.economy = new EconomySystem(ECONOMY.startCredits);
-    this.enemies = new EnemySystem(this, this.path, this.map.roadWidth, this.effects, {
+    this.economy = new EconomySystem(this.map.startCredits);
+    this.enemies = new EnemySystem(this, this.paths, this.map.roadWidth, this.effects, {
       onKilled: (e) => {
         this.economy.earn(e.def.reward);
         this.effects.popup(e.x, e.y - 14, `+${e.def.reward}`);
@@ -109,7 +118,7 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
     this.towers = new TowerSystem(this, this.map.platforms, this.enemies, this.projectiles, this.effects);
     this.waves = new WaveSystem({
-      spawn: (type, hpScale) => this.enemies.spawn(type, hpScale),
+      spawn: (type, hpScale, lane) => this.enemies.spawn(type, hpScale * this.map.difficulty, lane),
       waveStarted: (index) => {
         sfx.play('waveStart');
         this.events.emit(GameEvents.waveStart, index);
@@ -120,7 +129,7 @@ export class GameScene extends Phaser.Scene {
           this.events.emit(GameEvents.waveBonus, def.clearBonus);
         }
       },
-    });
+    }, this.map.waves, this.paths.length);
 
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.RANGE);
     this.selectRing = this.add
@@ -163,8 +172,7 @@ export class GameScene extends Phaser.Scene {
   /* Setup                                                             */
   /* ---------------------------------------------------------------- */
 
-  private createAmbience(): void {
-    const signs = (this.registry.get('signs') as SignInfo[] | undefined) ?? [];
+  private createAmbience(signs: SignInfo[]): void {
     for (const s of signs) {
       const glow = this.add
         .image(s.x, s.y, 'fx_glow')
@@ -262,9 +270,11 @@ export class GameScene extends Phaser.Scene {
         case 'Digit2':
         case 'Digit3':
         case 'Digit4':
-        case 'Digit5': {
-          const types: TowerType[] = ['pulse', 'cannon', 'missile', 'tesla', 'laser'];
-          this.buildTower(types[Number(ev.code.slice(5)) - 1]);
+        case 'Digit5':
+        case 'Digit6': {
+          // number keys follow the order of the sector's build drawer
+          const type = this.map.towers[Number(ev.code.slice(5)) - 1];
+          if (type) this.buildTower(type);
           break;
         }
         default:
@@ -303,7 +313,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   buildTower(type: TowerType): boolean {
-    if (this.over || this.selection.kind !== 'platform') return false;
+    if (this.over || this.selection.kind !== 'platform' || !this.map.towers.includes(type)) return false;
     const index = this.selection.index;
     if (this.towers.at(index)) return false;
     const cost = TOWERS[type].levels[0].cost;
@@ -452,6 +462,7 @@ export class GameScene extends Phaser.Scene {
       sfx.play('victory');
       this.effects.ring(r.x, r.y, 200, COLORS.cyan, 900);
       this.effects.burst(r.x, r.y, COLORS.cyan, 30);
+      storage.recordStars(this.mapIndex, stars);
       storage.update({
         wins: storage.data.wins + 1,
         bestStars: Math.max(storage.data.bestStars, stars),
@@ -475,7 +486,8 @@ export class GameScene extends Phaser.Scene {
       earned: this.economy.earned,
       time: this.playTime,
       stars,
-      canRevive: !victory && !this.revived,
+      canRevive: !victory && !this.revived && poki.rewardedAvailable,
+      mapIndex: this.mapIndex,
     };
     this.time.delayedCall(1300, () => {
       this.scene.pause();

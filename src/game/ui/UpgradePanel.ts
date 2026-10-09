@@ -21,6 +21,8 @@ function perkLine(def: TowerDef, l: TowerLevel): string {
       return `Chains ${l.chainCount ?? 1} targets · 2x vs shields`;
     case 'beam':
       return `Warm-up ${(l.warmup ?? 0).toFixed(2)}s · pierces armor`;
+    case 'frost':
+      return `Slows ${Math.round((l.slow ?? 0) * 100)}% for ${(l.slowDuration ?? 0).toFixed(1)}s · frozen take +15% damage`;
   }
 }
 

@@ -39,6 +39,15 @@ class PokiAdapter {
     return this.ready;
   }
 
+  /**
+   * Rewarded ads only exist with a working SDK. Without it (ad blocker,
+   * standalone hosting) no reward may be offered, per Poki's rules. Dev builds
+   * simulate it so the revive flow can be tested locally.
+   */
+  get rewardedAvailable(): boolean {
+    return this.ready || import.meta.env.DEV;
+  }
+
   get available(): boolean {
     return this.sdk !== null;
   }
@@ -106,12 +115,12 @@ class PokiAdapter {
   }
 
   /**
-   * Rewarded break. Resolves true only if the video was watched. Without the
-   * SDK (standalone / local play) the reward is granted so the feature works.
+   * Rewarded break. Resolves true only if the video was watched. Without a
+   * ready SDK no reward is granted (dev builds simulate a successful ad).
    */
   async rewardedBreak(): Promise<boolean> {
-    if (!this.sdk) return true;
-    if (!this.ready || this.adPlaying) return false;
+    if (!this.sdk || !this.ready) return import.meta.env.DEV;
+    if (this.adPlaying) return false;
     this.gameplayStop();
     this.adPlaying = true;
     try {

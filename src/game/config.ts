@@ -18,6 +18,7 @@ export const COLORS = {
   green: 0x4dff88,
   red: 0xff526f,
   teal: 0x2ef2d0,
+  ice: 0xa9e8ff,
   gold: 0xffd34d,
   white: 0xffffff,
   text: 0xdce7ff,
@@ -69,6 +70,7 @@ export const WAVE_TIMING = {
 export const SCENES = {
   boot: 'BootScene',
   menu: 'MenuScene',
+  sectors: 'SectorScene',
   game: 'GameScene',
   ui: 'UIScene',
   result: 'ResultScene',

@@ -1,9 +1,9 @@
 import { COLORS } from '../config';
 
-export type TowerType = 'pulse' | 'cannon' | 'missile' | 'tesla' | 'laser';
+export type TowerType = 'pulse' | 'cannon' | 'missile' | 'tesla' | 'laser' | 'cryo';
 
 /** How a tower delivers damage. */
-export type AttackKind = 'bolt' | 'shell' | 'missile' | 'chain' | 'beam';
+export type AttackKind = 'bolt' | 'shell' | 'missile' | 'chain' | 'beam' | 'frost';
 
 export interface TowerLevel {
   /** Cost to build (level 1) or to upgrade into this level. */
@@ -19,6 +19,10 @@ export interface TowerLevel {
   chainRange?: number;
   /** Seconds a beam needs to charge before it deals damage. */
   warmup?: number;
+  /** Frost: fraction of speed removed (0.4 = 40% slower). */
+  slow?: number;
+  /** Frost: seconds the slow lasts after each pulse. */
+  slowDuration?: number;
 }
 
 export interface TowerDef {
@@ -36,7 +40,7 @@ export interface TowerDef {
   levels: [TowerLevel, TowerLevel, TowerLevel];
 }
 
-export const TOWER_ORDER: TowerType[] = ['pulse', 'cannon', 'missile', 'tesla', 'laser'];
+export const TOWER_ORDER: TowerType[] = ['pulse', 'cannon', 'missile', 'tesla', 'laser', 'cryo'];
 
 export const TOWERS: Record<TowerType, TowerDef> = {
   pulse: {
@@ -112,6 +116,21 @@ export const TOWERS: Record<TowerType, TowerDef> = {
       { cost: 150, damage: 52, fireInterval: 0, range: 150, warmup: 0.8 },
       { cost: 140, damage: 88, fireInterval: 0, range: 162, warmup: 0.65 },
       { cost: 220, damage: 140, fireInterval: 0, range: 178, warmup: 0.5 },
+    ],
+  },
+  cryo: {
+    type: 'cryo',
+    name: 'Cryo Tower',
+    description: 'Frost pulses slow machines; frozen ones take extra damage.',
+    color: COLORS.ice,
+    attack: 'frost',
+    shieldMultiplier: 1,
+    piercing: false,
+    turnRate: 0,
+    levels: [
+      { cost: 125, damage: 10, fireInterval: 1.1, range: 135, slow: 0.4, slowDuration: 2.0 },
+      { cost: 115, damage: 17, fireInterval: 1.0, range: 148, slow: 0.5, slowDuration: 2.3 },
+      { cost: 180, damage: 28, fireInterval: 0.85, range: 162, slow: 0.6, slowDuration: 2.6 },
     ],
   },
 };

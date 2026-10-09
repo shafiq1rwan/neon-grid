@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES, css } from '../config';
 import { centerCamera, viewBounds } from '../utils/View';
 import { ENEMIES } from '../data/enemies';
-import { newEnemiesInWave } from '../data/waves';
+import { newEnemiesInWave, newTowersInMap } from '../data/maps';
+import { TOWERS } from '../data/towers';
+import { iconKey } from '../rendering/TowerRenderer';
 import { sfx } from '../audio/SoundSystem';
 import { poki } from '../platform/PokiAdapter';
 import { enemyKey } from '../rendering/EnemyRenderer';
@@ -51,6 +53,7 @@ export class UIScene extends Phaser.Scene {
 
     this.menu = new TowerMenu(
       this,
+      this.gs.map.towers,
       (type) => this.gs.buildTower(type),
       () => this.gs.deselect(),
     );
@@ -62,6 +65,7 @@ export class UIScene extends Phaser.Scene {
     );
 
     this.createBanner();
+    this.showTowerUnlock();
     this.createPauseLayer();
     let lastW = 0;
     let lastH = 0;
@@ -98,7 +102,7 @@ export class UIScene extends Phaser.Scene {
       if (this.gs.isPaused && (ev.code === 'Escape' || ev.code === 'KeyP')) this.gs.resumeGame();
     });
 
-    if (!storage.data.tutorialDone) this.startTutorial();
+    if (!storage.data.tutorialDone && this.gs.map.tutorialPlatform !== undefined) this.startTutorial();
   }
 
   private listen<T extends unknown[]>(event: string, fn: (...args: T) => void): void {
@@ -109,10 +113,10 @@ export class UIScene extends Phaser.Scene {
 
   private startTutorial(): void {
     const g = this.gs;
-    const platform = g.map.platforms[1];
+    const platform = g.map.platforms[g.map.tutorialPlatform ?? 0];
     this.tutorial = new Tutorial(this, {
       platform,
-      entrance: { x: 0, y: g.map.path[0].y },
+      entrance: { x: 0, y: g.map.paths[0][0].y },
       reactor: g.map.reactor,
       waveButton: this.hud.waveBtnPos,
       pulseCard: () => this.menu.cardCenter('pulse'),
@@ -180,7 +184,7 @@ export class UIScene extends Phaser.Scene {
   private onWaveStart(index: number): void {
     const total = this.gs.waves.total;
     const isFinal = index === total - 1;
-    const fresh = newEnemiesInWave(index).filter((t) => t !== 'mini');
+    const fresh = newEnemiesInWave(this.gs.mapIndex, index).filter((t) => t !== 'mini');
     const introducesEnemy = fresh.length > 0;
     this.bannerTitle.setText(isFinal ? 'FINAL WAVE' : `WAVE ${index + 1} / ${total}`);
     this.bannerTitle.setColor(css(isFinal ? COLORS.red : COLORS.text));
@@ -222,6 +226,35 @@ export class UIScene extends Phaser.Scene {
       delay: introducesEnemy ? 2800 : 1200,
       duration: 200, onComplete: () => this.banner.setVisible(false),
     });
+  }
+
+  /** First visit to a sector that adds a tower: a short "NEW TOWER UNLOCKED" reveal. */
+  private showTowerUnlock(): void {
+    const index = this.gs.mapIndex;
+    if (index === 0 || storage.starsFor(index) > 0) return;
+    const fresh = newTowersInMap(index);
+    if (fresh.length === 0) return;
+    const def = TOWERS[fresh[0]];
+    const view = viewBounds(this);
+    const c = this.add.container(GAME_WIDTH / 2, view.top + 200).setDepth(35).setAlpha(0);
+    const w = 520;
+    const h = 150;
+    const g = this.add.graphics();
+    drawPanel(g, -w / 2, -h / 2, w, h, { color: def.color, fillAlpha: 0.97, radius: 14 });
+    g.fillStyle(def.color, 0.1);
+    g.fillCircle(-w / 2 + 80, 0, 58);
+    const icon = this.add.image(-w / 2 + 80, 2, iconKey(def.type, 1)).setScale(1.05);
+    const head = text(this, -w / 2 + 160, -h / 2 + 24, 'NEW TOWER UNLOCKED', 16, COLORS.gold);
+    const name = text(this, -w / 2 + 160, -h / 2 + 48, def.name, 30, def.color);
+    const desc = text(this, -w / 2 + 160, -h / 2 + 92, def.description, 17, COLORS.text, {
+      fontStyle: 'normal',
+      wordWrap: { width: w - 190 },
+    });
+    c.add([g, icon, head, name, desc]);
+    this.tweens.add({ targets: c, alpha: 1, y: c.y + 10, duration: 260, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: icon, scale: 1.2, duration: 500, yoyo: true, repeat: 3, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: c, alpha: 0, delay: 4200, duration: 350, onComplete: () => c.destroy() });
+    sfx.play('upgrade');
   }
 
   private toast(message: string): void {
@@ -299,7 +332,7 @@ export class UIScene extends Phaser.Scene {
   private showPause(show: boolean): void {
     this.updatePauseSound();
     if (show) {
-      this.pauseSummary.setText(`Wave ${this.gs.waves.displayNumber} / ${this.gs.waves.total}   \u00b7   Reactor ${Math.max(0, this.gs.hp)} HP`);
+      this.pauseSummary.setText(`Sector ${this.gs.mapIndex + 1}   ·   Wave ${this.gs.waves.displayNumber} / ${this.gs.waves.total}   \u00b7   Reactor ${Math.max(0, this.gs.hp)} HP`);
     }
     this.pauseLayer.setVisible(show);
     if (show) {

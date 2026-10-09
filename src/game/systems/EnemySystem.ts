@@ -7,6 +7,11 @@ import { sfx } from '../audio/SoundSystem';
 import type { Effects } from '../rendering/EffectsRenderer';
 import { rotateToward, type PathData, type PathSample } from '../utils/MathUtils';
 
+/** Icy tint for slowed machines. */
+const FROST_TINT = 0xa6e9ff;
+/** Damage multiplier against frost-slowed machines (Cryo Tower synergy). */
+const FROST_BRITTLE = 1.15;
+
 export interface EnemyCallbacks {
   onKilled(enemy: Enemy): void;
   onEscaped(enemy: Enemy): void;
@@ -21,7 +26,7 @@ export class EnemySystem {
 
   constructor(
     private readonly scene: Phaser.Scene,
-    private readonly path: PathData,
+    private readonly paths: PathData[],
     private readonly roadWidth: number,
     private readonly effects: Effects,
     private readonly callbacks: EnemyCallbacks,
@@ -33,12 +38,13 @@ export class EnemySystem {
     return this.list.length;
   }
 
-  spawn(type: EnemyType, hpScale: number, startDist = 0, offset?: number): Enemy {
+  spawn(type: EnemyType, hpScale: number, lane = 0, startDist = 0, offset?: number): Enemy {
     const def = ENEMIES[type];
-    const lane = this.roadWidth * 0.22;
-    const off = offset ?? (Math.random() * 2 - 1) * lane;
-    const e = new Enemy(this.scene, def, hpScale, startDist, off);
-    e.seg = this.path.sample(startDist, this.s, 0);
+    const spread = this.roadWidth * 0.22;
+    const off = offset ?? (Math.random() * 2 - 1) * spread;
+    const road = Math.min(lane, this.paths.length - 1);
+    const e = new Enemy(this.scene, def, hpScale, startDist, off, road);
+    e.seg = this.paths[road].sample(startDist, this.s, 0);
     e.x = this.s.x + this.s.nx * off;
     e.y = this.s.y + this.s.ny * off;
     e.angle = this.s.angle;
@@ -56,21 +62,32 @@ export class EnemySystem {
         this.list.splice(i, 1);
         continue;
       }
-      e.dist += e.def.speed * dt;
-      if (e.dist >= this.path.length) {
+      if (e.slowTimer > 0) {
+        e.slowTimer -= dt;
+        if (e.slowTimer <= 0) {
+          e.slowAmount = 0;
+          if (e.flashTimer <= 0) e.sprite.clearTint();
+        }
+      }
+      e.dist += e.def.speed * (1 - e.slowAmount) * dt;
+      const path = this.paths[e.lane];
+      if (e.dist >= path.length) {
         this.callbacks.onEscaped(e);
         e.destroy();
         this.list.splice(i, 1);
         continue;
       }
-      e.seg = this.path.sample(e.dist, s, e.seg);
+      e.seg = path.sample(e.dist, s, e.seg);
       e.x = s.x + s.nx * e.offset;
       e.y = s.y + s.ny * e.offset;
       e.angle = rotateToward(e.angle, s.angle, 7 * dt);
 
       if (e.flashTimer > 0) {
         e.flashTimer -= dt;
-        if (e.flashTimer <= 0) e.sprite.clearTint();
+        if (e.flashTimer <= 0) {
+          if (e.slowAmount > 0) e.sprite.setTint(FROST_TINT);
+          else e.sprite.clearTint();
+        }
       }
 
       if (e.def.type === 'runner') {
@@ -135,7 +152,7 @@ export class EnemySystem {
       const hpScale = e.maxHp / e.def.hp;
       for (let k = 0; k < spawn.count; k++) {
         const d = Math.max(0, e.dist - 6 - k * 14);
-        const child = this.spawn(spawn.type, hpScale, d, (k - (spawn.count - 1) / 2) * 9);
+        const child = this.spawn(spawn.type, hpScale, e.lane, d, (k - (spawn.count - 1) / 2) * 9);
         child.angle = e.angle;
       }
       this.effects.ring(e.x, e.y, 34, COLORS.red, 300);
@@ -144,13 +161,25 @@ export class EnemySystem {
     }
   }
 
+  /** Frost slow; bosses ignore part of it. Stronger slows replace weaker ones. */
+  applySlow(e: Enemy, amount: number, duration: number): void {
+    if (!e.alive) return;
+    const effective = amount * (1 - (e.def.slowResist ?? 0));
+    if (effective >= e.slowAmount || e.slowTimer < duration * 0.5) {
+      e.slowAmount = Math.max(effective, e.slowTimer > 0 ? e.slowAmount : 0);
+      e.slowTimer = duration;
+    }
+    if (e.flashTimer <= 0) e.sprite.setTint(FROST_TINT);
+  }
+
   /**
    * Apply damage. Shields absorb first (scaled by the source's shield
    * multiplier); armour reduces non-piercing hits. Returns true on kill.
    */
   damage(e: Enemy, amount: number, source: TowerDef, continuous = false): boolean {
     if (!e.alive || amount <= 0) return false;
-    let dmg = amount;
+    // frozen machines are brittle: every tower deals extra damage to them
+    let dmg = e.slowTimer > 0 ? amount * FROST_BRITTLE : amount;
     if (e.shield > 0) {
       const sd = dmg * source.shieldMultiplier;
       if (sd >= e.shield) {
@@ -172,13 +201,14 @@ export class EnemySystem {
         e.sprite.setTintFill(0xffffff);
         e.flashTimer = continuous ? 0.03 : 0.06;
       }
-      if (e.def.type === 'juggernaut' && !e.damagedLook && e.hp < e.maxHp * 0.5) {
+      const heavy = e.def.type === 'juggernaut' || e.def.type === 'titan';
+      if (heavy && !e.damagedLook && e.hp < e.maxHp * 0.5) {
         e.damagedLook = true;
-        e.sprite.setTexture('en_juggernaut_dmg');
-        this.effects.burst(e.x, e.y, COLORS.orange, 10);
+        e.sprite.setTexture(`en_${e.def.type}_dmg`);
+        this.effects.burst(e.x, e.y, e.def.color, 10);
         this.effects.puff(e.x, e.y, 3);
-      } else if (e.def.type === 'juggernaut' && !continuous) {
-        this.effects.burst(e.x, e.y, COLORS.orange, 3);
+      } else if (heavy && !continuous) {
+        this.effects.burst(e.x, e.y, e.def.color, 3);
       }
     }
     if (e.hp <= 0) {

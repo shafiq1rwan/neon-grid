@@ -1,6 +1,6 @@
 import { COLORS } from '../config';
 
-export type EnemyType = 'drone' | 'runner' | 'juggernaut' | 'specter' | 'spawner' | 'mini';
+export type EnemyType = 'drone' | 'runner' | 'juggernaut' | 'specter' | 'spawner' | 'mini' | 'titan';
 
 export interface EnemyDef {
   type: EnemyType;
@@ -20,6 +20,8 @@ export interface EnemyDef {
   /** Collision / visual radius. */
   radius: number;
   color: number;
+  /** Fraction of frost slow ignored (bosses shrug off some of it). */
+  slowResist?: number;
   spawn?: { type: EnemyType; count: number; interval: number };
 }
 
@@ -62,6 +64,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
     leakDamage: 3,
     radius: 20,
     color: COLORS.orange,
+    slowResist: 0.25,
   },
   specter: {
     type: 'specter',
@@ -102,5 +105,19 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
     leakDamage: 1,
     radius: 7,
     color: COLORS.red,
+  },
+  titan: {
+    type: 'titan',
+    name: 'Titan War Machine',
+    tip: 'Boss! Massive armor. Focus Cannons and Lasers on it.',
+    hp: 2600,
+    shield: 0,
+    armor: 8,
+    speed: 22,
+    reward: 220,
+    leakDamage: 10,
+    radius: 32,
+    color: COLORS.red,
+    slowResist: 0.5,
   },
 };
