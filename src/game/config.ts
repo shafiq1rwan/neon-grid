@@ -62,7 +62,9 @@ export const ECONOMY = {
 
 export const WAVE_TIMING = {
   /** Seconds before the first wave starts automatically. */
-  firstWaveCountdown: 35,
+  firstWaveCountdown: 25,
+  /** Once the first tower is built, wave 1 starts within this many seconds. */
+  afterFirstTower: 6,
   /** Seconds between the end of one wave's spawning and the next wave. */
   betweenWaves: 14,
 } as const;

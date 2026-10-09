@@ -33,9 +33,10 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] The best score line updates after a win or a loss.
 
 ### Tutorial (fresh save)
-- [ ] Platform highlight → build drawer → Pulse card pointer → road/reactor explanation → beacon pointer.
-- [ ] The wave countdown stays frozen until the tutorial finishes.
-- [ ] SKIP TUTORIAL ends it at any step, and it doesn't come back on the next run.
+- [ ] The hand pointer goes "Tap to build" → "Pick a tower" → "Start the wave!", and never blocks taps on anything else.
+- [ ] Tapping the beacon at any moment starts wave 1 and removes the hints.
+- [ ] Wave 1 starts within about 6 s of the first tower, or after 25 s if nothing is built.
+- [ ] The hints don't come back on the next run.
 
 ### Building and economy
 - [ ] All 5 towers can be built. Credits are deducted and a cost popup appears.

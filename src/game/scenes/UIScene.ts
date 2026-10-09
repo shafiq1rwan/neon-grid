@@ -81,7 +81,9 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.listen(GameEvents.selection, (sel: Selection) => this.onSelection(sel));
-    this.listen(GameEvents.towerBuilt, () => this.tutorial?.advance('road'));
+    this.listen(GameEvents.towerBuilt, () => this.tutorial?.advance('start'));
+    // hints end as soon as the action starts
+    this.listen(GameEvents.waveStart, () => this.tutorial?.finish());
     this.listen(GameEvents.waveStart, (index: number) => this.onWaveStart(index));
     this.listen(GameEvents.waveBonus, (amount: number) => this.toast(`WAVE BONUS +${amount}`));
     this.listen(GameEvents.paused, () => this.showPause(true));
@@ -116,14 +118,8 @@ export class UIScene extends Phaser.Scene {
     const platform = g.map.platforms[g.map.tutorialPlatform ?? 0];
     this.tutorial = new Tutorial(this, {
       platform,
-      entrance: { x: 0, y: g.map.paths[0][0].y },
-      reactor: g.map.reactor,
       waveButton: this.hud.waveBtnPos,
       pulseCard: () => this.menu.cardCenter('pulse'),
-      menuDockTop: () => this.menu.dockTop,
-      setHold: (hold) => {
-        g.waves.hold = hold;
-      },
       finish: () => {
         storage.update({ tutorialDone: true });
         this.tutorial = null;
@@ -132,10 +128,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private callWave(): void {
-    if (this.tutorial?.active) {
-      if (this.tutorial.step !== 'start') return;
-      this.tutorial.advance('done');
-    }
+    // always works, tutorial or not; the tutorial ends on the waveStart event
     this.gs.callNextWave();
   }
 

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD } from '../config';
+import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD, WAVE_TIMING } from '../config';
 import { MAPS, type MapDef } from '../data/maps';
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Tower } from '../entities/Tower';
@@ -325,6 +325,11 @@ export class GameScene extends Phaser.Scene {
     this.hints[index].setVisible(false);
     this.effects.popup(this.map.platforms[index].x, this.map.platforms[index].y - 30, `-${cost}`, '#ff9b32');
     this.deselect();
+    // players want action: once the first tower is down, wave 1 comes quickly
+    const w = this.waves;
+    if (w.state === 'prewave' && w.index < 0 && w.countdown > WAVE_TIMING.afterFirstTower) {
+      w.countdown = WAVE_TIMING.afterFirstTower;
+    }
     this.events.emit(GameEvents.towerBuilt, type);
     return true;
   }

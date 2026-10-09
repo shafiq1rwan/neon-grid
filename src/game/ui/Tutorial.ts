@@ -1,178 +1,143 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_WIDTH } from '../config';
-import { NeonButton, drawPanel, text } from './widgets';
+import { COLORS } from '../config';
+import { text } from './widgets';
 
-export type TutorialStep = 'platform' | 'pick' | 'road' | 'start' | 'done';
+export type TutorialStep = 'platform' | 'pick' | 'start' | 'done';
 
 export interface TutorialHost {
-  /** Platform the tutorial points at. */
+  /** Platform the first hint points at. */
   platform: { x: number; y: number };
-  entrance: { x: number; y: number };
-  reactor: { x: number; y: number };
   waveButton: { x: number; y: number };
   pulseCard(): { x: number; y: number };
-  menuDockTop(): boolean;
-  setHold(hold: boolean): void;
   finish(): void;
 }
 
-const MESSAGES: Record<Exclude<TutorialStep, 'done'>, string> = {
-  platform: 'Machines are coming for your reactor!\nTap the glowing platform to build a tower.',
-  pick: 'Pick the PULSE TOWER: cheap and fast.\nUnaffordable towers are greyed out.',
-  road: 'Enemies follow the ROAD to your REACTOR.\nEach one that escapes drains reactor HP.',
-  start: 'Earn credits by destroying machines, then build & upgrade.\nTap the beacon to START the first wave!',
+const LABELS: Record<Exclude<TutorialStep, 'done'>, string> = {
+  platform: 'Tap to build',
+  pick: 'Pick a tower',
+  start: 'Start the wave!',
 };
 
-/** Short, skippable first-run tutorial driven by game events. */
+/**
+ * First-run coaching that never blocks play: a bouncing hand and a few big
+ * words pointing at the next useful action. Players can ignore it entirely;
+ * it ends as soon as the first wave starts.
+ */
 export class Tutorial {
   step: TutorialStep = 'platform';
   private readonly root: Phaser.GameObjects.Container;
-  private readonly panel: Phaser.GameObjects.Graphics;
-  private readonly msg: Phaser.GameObjects.Text;
-  private readonly pointer: Phaser.GameObjects.Graphics;
-  private readonly ring: Phaser.GameObjects.Graphics;
-  private readonly nextBtn: NeonButton;
-  private readonly skipBtn: NeonButton;
+  private readonly ripple: Phaser.GameObjects.Graphics;
+  private readonly hand: Phaser.GameObjects.Graphics;
+  private readonly label: Phaser.GameObjects.Text;
   private t = 0;
 
   constructor(
     scene: Phaser.Scene,
     private readonly host: TutorialHost,
   ) {
-    this.root = scene.add.container(0, 0).setDepth(40);
-    this.ring = scene.add.graphics();
-    this.pointer = scene.add.graphics();
-    this.panel = scene.add.graphics();
-    this.msg = text(scene, 0, 0, '', 18, COLORS.text, { align: 'center', lineSpacing: 4 }).setOrigin(0.5);
-    this.nextBtn = new NeonButton(scene, 0, 0, 140, 44, {
-      label: 'GOT IT',
-      fontSize: 17,
-      color: COLORS.green,
-      onClick: () => this.advance('start'),
-    });
-    this.skipBtn = new NeonButton(scene, 0, 0, 150, 38, {
-      label: 'SKIP TUTORIAL',
-      fontSize: 13,
-      color: COLORS.textDim,
-      onClick: () => this.finish(),
-    });
-    this.root.add([this.ring, this.pointer, this.panel, this.msg, this.nextBtn, this.skipBtn]);
-    host.setHold(true);
-    this.layout();
+    this.ripple = scene.add.graphics();
+    this.hand = scene.add.graphics();
+    drawHand(this.hand);
+    this.label = text(scene, 0, 0, '', 30, COLORS.text, {
+      stroke: '#05080f',
+      strokeThickness: 7,
+    }).setOrigin(0.5);
+    // Hints must never swallow taps meant for the game.
+    this.root = scene.add.container(0, 0, [this.ripple, this.hand, this.label]).setDepth(40);
+    this.label.setText(LABELS.platform);
   }
 
   get active(): boolean {
     return this.step !== 'done';
   }
 
-  /** Progress the tutorial from a game event. */
+  /** Move to a later step (earlier steps are ignored). */
   advance(to: TutorialStep): void {
     if (this.step === 'done') return;
-    const order: TutorialStep[] = ['platform', 'pick', 'road', 'start', 'done'];
-    if (order.indexOf(to) <= order.indexOf(this.step) && to !== 'platform') return;
-    this.step = to;
+    const order: TutorialStep[] = ['platform', 'pick', 'start', 'done'];
+    if (order.indexOf(to) <= order.indexOf(this.step)) return;
     if (to === 'done') {
       this.finish();
       return;
     }
-    this.layout();
+    this.step = to;
+    this.t = 0;
+    this.label.setText(LABELS[to]);
   }
 
-  /** The player closed the build menu without building. */
+  /** The build menu was closed without building: point at the platform again. */
   menuClosed(): void {
-    if (this.step === 'pick') {
-      this.step = 'platform';
-      this.layout();
-    }
+    if (this.step !== 'pick') return;
+    this.step = 'platform';
+    this.label.setText(LABELS.platform);
   }
 
   finish(): void {
-    this.step = 'done';
-    this.host.setHold(false);
-    this.host.finish();
-    this.root.destroy();
-  }
-
-  private layout(): void {
+    if (this.root.active) this.root.destroy();
     if (this.step === 'done') return;
-    const step = this.step;
-    this.msg.setText(MESSAGES[step]);
-    const w = Math.max(520, this.msg.width + 60);
-    const h = this.msg.height + (step === 'road' ? 84 : 40);
-    // keep the bubble clear of the build drawer
-    let y: number;
-    if (step === 'pick') y = this.host.menuDockTop() ? 560 : 150;
-    else if (step === 'platform') y = this.host.platform.y > 360 ? 170 : 560;
-    else y = 150;
-    const x = GAME_WIDTH / 2;
-    this.panel.clear();
-    drawPanel(this.panel, x - w / 2, y - h / 2, w, h, { color: COLORS.green });
-    this.msg.setPosition(x, y - (step === 'road' ? 22 : 0));
-    this.nextBtn.setVisible(step === 'road').setPosition(x, y + h / 2 - 30);
-    this.skipBtn.setPosition(x + w / 2 - 80, y + h / 2 + 26);
+    this.step = 'done';
+    this.host.finish();
   }
 
   update(dt: number): void {
     if (this.step === 'done') return;
     this.t += dt;
-    const ring = this.ring;
-    const ptr = this.pointer;
-    ring.clear();
-    ptr.clear();
-    const pulse = 0.5 + 0.5 * Math.sin(this.t * 6);
-    const bounce = Math.sin(this.t * 6) * 6;
-
-    const highlight = (x: number, y: number, r: number) => {
-      ring.lineStyle(3, COLORS.green, 0.5 + pulse * 0.5);
-      ring.strokeCircle(x, y, r + pulse * 6);
-      ring.lineStyle(10, COLORS.green, 0.12);
-      ring.strokeCircle(x, y, r + 4 + pulse * 6);
-    };
-    const arrow = (x: number, y: number, fromAbove: boolean) => {
-      const dir = fromAbove ? -1 : 1;
-      const tipY = y + dir * (bounce + 4);
-      ptr.fillStyle(COLORS.green, 1);
-      ptr.fillTriangle(x, tipY, x - 13, tipY + dir * 20, x + 13, tipY + dir * 20);
-      ptr.fillRect(x - 5, tipY + dir * 20 + (dir < 0 ? -20 : 0), 10, 20);
-    };
-
+    let target: { x: number; y: number };
+    let lx = 0;
+    let ly = 0;
     switch (this.step) {
-      case 'platform': {
-        const p = this.host.platform;
-        highlight(p.x, p.y, 42);
-        arrow(p.x, p.y - 50, true);
+      case 'platform':
+        target = this.host.platform;
+        ly = -64;
         break;
-      }
-      case 'pick': {
-        const c = this.host.pulseCard();
-        ring.lineStyle(3, COLORS.green, 0.5 + pulse * 0.5);
-        ring.strokeRoundedRect(c.x - 120, c.y - 74, 240, 148, 10);
-        const top = this.host.menuDockTop();
-        arrow(c.x, top ? c.y + 82 : c.y - 82, !top);
+      case 'pick':
+        target = this.host.pulseCard();
+        // label on the side of the card away from the drawer edge
+        ly = target.y > 400 ? -110 : 96;
         break;
-      }
-      case 'road': {
-        const e = this.host.entrance;
-        const r = this.host.reactor;
-        highlight(e.x + 40, e.y, 34);
-        highlight(r.x, r.y, 60);
-        arrow(r.x, r.y - 70, true);
-        break;
-      }
-      case 'start': {
-        const b = this.host.waveButton;
-        highlight(b.x, b.y, 40);
-        arrow(b.x + 70, b.y, false);
-        // sideways arrow pointing left at the beacon
-        ptr.clear();
-        const tipX = b.x + 46 + bounce;
-        ptr.fillStyle(COLORS.green, 1);
-        ptr.fillTriangle(tipX, b.y, tipX + 20, b.y - 13, tipX + 20, b.y + 13);
-        ptr.fillRect(tipX + 20, b.y - 5, 22, 10);
-        break;
-      }
       default:
+        // beacon sits near the left edge: label to its right
+        target = this.host.waveButton;
+        lx = 170;
         break;
     }
+    // tap ripple on the target
+    const k = (this.t * 1.2) % 1;
+    this.ripple.clear();
+    this.ripple.lineStyle(4, COLORS.green, 1 - k);
+    this.ripple.strokeCircle(target.x, target.y, 18 + k * 34);
+    this.ripple.lineStyle(10, COLORS.green, 0.15 * (1 - k));
+    this.ripple.strokeCircle(target.x, target.y, 22 + k * 34);
+    // the hand taps down onto the target
+    const press = Math.abs(Math.sin(this.t * 4));
+    this.hand.setPosition(target.x + 10, target.y + 14 + press * 10);
+    this.label.setPosition(target.x + lx, target.y + ly);
+    this.label.setScale(1 + Math.sin(this.t * 5) * 0.04);
   }
+}
+
+/** A simple pointing hand (fingertip at 0,0). */
+function drawHand(g: Phaser.GameObjects.Graphics): void {
+  const skin = 0xffffff;
+  const edge = 0x05080f;
+  g.fillStyle(0x000000, 0.35);
+  g.fillRoundedRect(-4, 4, 18, 40, 8);
+  g.fillRoundedRect(-4, 30, 44, 34, 12);
+  // index finger
+  g.fillStyle(skin, 1);
+  g.lineStyle(3, edge, 1);
+  g.fillRoundedRect(-8, 0, 16, 40, 8);
+  g.strokeRoundedRect(-8, 0, 16, 40, 8);
+  // palm and folded fingers
+  g.fillRoundedRect(-8, 26, 42, 34, 12);
+  g.strokeRoundedRect(-8, 26, 42, 34, 12);
+  g.lineStyle(2, edge, 0.6);
+  g.lineBetween(10, 30, 10, 44);
+  g.lineBetween(22, 30, 22, 44);
+  // thumb
+  g.fillStyle(skin, 1);
+  g.lineStyle(3, edge, 1);
+  g.fillRoundedRect(-18, 34, 14, 22, 7);
+  g.strokeRoundedRect(-18, 34, 14, 22, 7);
+  g.setScale(0.9);
 }

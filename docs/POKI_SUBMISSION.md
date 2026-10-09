@@ -55,7 +55,7 @@ Neon Wasteland Defense
 > - Call waves early for bonus credits
 > - 1x / 2x game speed
 > - Earn up to 3 stars per sector by keeping your reactor healthy
-> - Quick, skippable tutorial; play in short sessions on desktop or mobile
+> - Jump straight in: quick visual hints, no reading required; play in short sessions on desktop or mobile
 
 ### How to play / controls
 
@@ -144,7 +144,7 @@ Mapped to Poki's [requirements & quality guidelines](https://developers.poki.com
 | Poki SDK is the only ad system; no IAP or ad-removal UI | ✅ |
 | No splash screens or outgoing links | ✅ |
 | Pause via Esc (or Space) on keyboard, with SDK events | ✅ `P`/`Esc` pause and resume (Space is "next wave") |
-| Skippable tutorial; visual, not text-heavy | ✅ Skippable. Uses highlights and arrows plus short one- or two-line hints. |
+| Skippable tutorial; visual, not text-heavy | ✅ Never blocks play: a hand pointer and 2–3 word hints that vanish when wave 1 starts |
 | Mobile controls on touch, keyboard hints on desktop | ✅ Tap-only UI; keyboard shortcuts listed in the menu |
 | Clean build (no debug tools) | ✅ The `window.__nwd` hook only exists in dev builds |
 | Fullscreen | ✅ The game's own fullscreen button is hidden on Poki, which handles fullscreen itself |

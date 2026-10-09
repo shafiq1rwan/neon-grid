@@ -24,7 +24,7 @@ The machines broke loose after a technological collapse. You control the last au
 | Reactor HP | 20 | `ECONOMY.startingHp` |
 | Starting credits | Per sector: 220 / 300 / 360 | `MapDef.startCredits` |
 | Sell refund | 70% of total investment | `ECONOMY.sellRefund` |
-| First wave countdown | 35 s (frozen during the tutorial) | `WAVE_TIMING.firstWaveCountdown` |
+| First wave countdown | 25 s, cut to 6 s once the first tower is built | `WAVE_TIMING.firstWaveCountdown`, `afterFirstTower` |
 | Gap between waves | 14 s after the previous wave finishes spawning | `WAVE_TIMING.betweenWaves` |
 | Early-call bonus | 2 credits per remaining countdown second | `ECONOMY.earlyCallBonusPerSecond` |
 | Victory | Wave 10 fully spawned **and** no enemies left | `GameScene.update` |
@@ -166,14 +166,15 @@ The clear bonus is paid as soon as a wave has finished spawning. A banner announ
 - **Upgrade panel:** current to next stats, perk line, Upgrade button with cost, Sell button with refund. The map shows the current range and, faintly, the next level's range.
 - **Pause, result and menu screens:** see `src/game/scenes/`.
 
-### Tutorial (first run only, skippable)
+### Tutorial (first run, Sector 1 only; never blocks)
 
-1. Highlight a platform: "Tap the glowing platform".
-2. Point at the Pulse card.
-3. Explain the road and the reactor (GOT IT).
-4. Point at the beacon: "START the first wave".
+Playtests showed players want to start immediately, so the tutorial is hints only: a bouncing hand pointer, a tap ripple and 2–3 big words. It doesn't pause anything and has no text boxes, buttons or Skip.
 
-The wave countdown is frozen until the tutorial ends or is skipped.
+1. Hand on a platform: **"Tap to build"**.
+2. Hand on the Pulse card: **"Pick a tower"**. If the menu is closed without building, it goes back to step 1.
+3. Hand on the beacon: **"Start the wave!"**
+
+The hints disappear (and the tutorial counts as done) as soon as wave 1 starts, whether from the beacon, the countdown or the Space key. The beacon always works. Wave 1 starts at most 6 seconds after the first tower is built.
 
 ## Scoring and progression
 

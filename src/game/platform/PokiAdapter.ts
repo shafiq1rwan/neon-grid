@@ -70,12 +70,16 @@ class PokiAdapter {
       return;
     }
     try {
-      // Never let a slow or blocked SDK keep the game from booting.
-      const timeout = new Promise<'timeout'>((resolve) => window.setTimeout(() => resolve('timeout'), 3000));
-      const result = await Promise.race([sdk.init().then(() => 'ok' as const), timeout]);
-      if (result === 'timeout') console.info('[Poki] SDK init timed out, continuing.');
-      else this.ready = true;
+      // Never let a slow or blocked SDK keep the game from booting, but if init
+      // finishes later (slow connection) still enable ads from then on.
       this.sdk = sdk;
+      const initDone = sdk.init().then(() => {
+        this.ready = true;
+      });
+      initDone.catch(() => console.info('[Poki] SDK init failed, continuing without ads.'));
+      const timeout = new Promise<'timeout'>((resolve) => window.setTimeout(() => resolve('timeout'), 3000));
+      const result = await Promise.race([initDone.then(() => 'ok' as const), timeout]);
+      if (result === 'timeout') console.info('[Poki] SDK still initialising, starting the game anyway.');
     } catch {
       // The docs say to load the game anyway (e.g. ad blocker); keep using the SDK object.
       console.info('[Poki] SDK init failed, continuing without ads.');
