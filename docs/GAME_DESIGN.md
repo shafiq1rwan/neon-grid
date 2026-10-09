@@ -159,12 +159,15 @@ The clear bonus is paid as soon as a wave has finished spawning. A banner announ
 
 ## Interface
 
-- **HUD (top left):** wave number, wave progress chevrons and bar, reactor HP, credits.
-- **Controls (top right):** sound, speed (1x/2x), pause.
-- **Wave beacon (near the road entrance):** shows the countdown ring and the early-call bonus.
-- **Build drawer:** 5 cards showing icon, name, cost, description and stat bars. Unaffordable cards are greyed out and their cost turns red. The drawer docks at the top or bottom, whichever is away from the selected platform.
-- **Upgrade panel:** current to next stats, perk line, Upgrade button with cost, Sell button with refund. The map shows the current range and, faintly, the next level's range.
-- **Pause, result and menu screens:** see `src/game/scenes/`.
+- **HUD (top left, pinned to the screen edge):** three columns (WAVE n/total with progress markers, REACTOR HP, CREDITS).
+- **Controls (top right):** fullscreen (outside Poki only), sound, speed (1x/2x), pause.
+- **Wave beacon (near the road entrance):** shows the countdown ring and the early-call bonus. It always starts the next wave when tapped.
+- **Wave banner (top edge):** "WAVE n / total", plus a NEW-enemy line with an icon and tip when a type first appears.
+- **Build drawer:** one card per tower the sector allows (4–6), showing name, icon, cost and a short role. Unaffordable cards are greyed out and their cost turns red. The drawer docks at the top or bottom, whichever is away from the selected platform.
+- **Upgrade panel:** stat columns (current → next), perk line, Upgrade button with cost, Sell button with refund. The map shows the current range and, faintly, the next level's range.
+- **Sector select:** a schematic preview, name, twist, wave count, best stars, a lock on each sector, and a "NEW TOWER" chip.
+- **Pause:** a run summary (sector, wave, reactor HP), Resume, Restart, Main Menu, sound.
+- **Result:** stars and stats. On victory: NEXT SECTOR / REPLAY / MENU, or CAMPAIGN COMPLETE after Sector 3. On defeat: RETRY plus 🎬 REVIVE (rewarded ad) side by side, and MENU.
 
 ### Tutorial (first run, Sector 1 only; never blocks)
 

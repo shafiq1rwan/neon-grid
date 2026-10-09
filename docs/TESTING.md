@@ -29,8 +29,16 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 
 ### Boot and menu
 - [ ] The loading label appears, then the menu, with no console errors.
-- [ ] PLAY, the tutorial toggle and the sound toggle all work; both toggles persist after a reload.
-- [ ] The best score line updates after a win or a loss.
+- [ ] PLAY, SOUND and HELP all work. HELP → REPLAY TUTORIAL resets the hints. Sound persists after a reload.
+- [ ] The campaign line under PLAY shows stars and sectors cleared after a win.
+
+### Campaign
+- [ ] Fresh save: PLAY goes straight into Sector 1. After clearing it, PLAY opens sector select.
+- [ ] Locked sectors refuse taps (shake + error sound). Cleared sectors show their best stars.
+- [ ] A victory shows NEXT SECTOR, which loads the next sector with its own start credits and towers.
+- [ ] The first visit to Sector 2 / 3 shows "NEW TOWER UNLOCKED" (Laser / Cryo).
+- [ ] Twin Gates spawns on both lanes. The Long Road's final wave includes the Titan.
+- [ ] Retry and Restart replay the same sector.
 
 ### Tutorial (fresh save)
 - [ ] The hand pointer goes "Tap to build" → "Pick a tower" → "Start the wave!", and never blocks taps on anything else.
@@ -39,7 +47,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] The hints don't come back on the next run.
 
 ### Building and economy
-- [ ] All 5 towers can be built. Credits are deducted and a cost popup appears.
+- [ ] Every tower allowed in the sector can be built (4 / 5 / 6 per sector), and towers not allowed can't. Credits are deducted and a cost popup appears.
 - [ ] Unaffordable cards are greyed out with a red cost; tapping one shakes it and plays an error sound.
 - [ ] Upgrades reach Lv3. The visuals change at each level. The button shows MAX LEVEL at Lv3.
 - [ ] Selling refunds 70% of the total investment, and the platform hint comes back.
@@ -49,6 +57,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Every tower rotates (except Tesla) and attacks the enemy furthest along the road.
 - [ ] Pulse fires bolts. Cannon recoils with a flash. Missiles splash with a shockwave ring. Tesla chains arcs. Laser charges, then holds a beam.
 - [ ] Shields absorb damage and shatter visibly; Tesla clearly melts them.
+- [ ] Cryo pulses tint machines icy blue and visibly slow them; the Titan and Juggernauts slow less.
 - [ ] The Juggernaut switches to its damaged texture below 50% HP.
 - [ ] Spawners glow, then release swarmlings that keep following the road.
 - [ ] Health bars appear only on damaged enemies.
@@ -64,7 +73,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 ### Controls and platform
 - [ ] 1x/2x speed affects movement, firing and effects. Pause freezes everything.
 - [ ] Switching tabs auto-pauses the game and silences audio.
-- [ ] Keyboard: Space, 1–5, U, S, F, P/Esc.
+- [ ] Keyboard: Space, 1–6 (drawer order), U, S, F, P/Esc.
 - [ ] Mobile landscape: taps hit platforms, cards and buttons; text is readable.
 - [ ] Mobile portrait shows the rotate prompt.
 - [ ] The game fills the whole screen at any aspect ratio (phone, tablet, ultrawide) and the battlefield stays fully visible; resizing and rotating re-fit it.

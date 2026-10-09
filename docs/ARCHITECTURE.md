@@ -5,10 +5,11 @@ Phaser 3.90 + TypeScript (strict) + Vite. There are no external art or audio ass
 ## Scenes
 
 ```
-BootScene ──> MenuScene ──> GameScene ──launches──> UIScene
-                 ^              │ (paused)
-                 │              └──launches on game over──> ResultScene
-                 └────────────── quit to menu ──────────────────┘
+BootScene ──> MenuScene ──(new player)──────────────> GameScene ──launches──> UIScene
+                 │  ^                                   ^  │ (paused)
+                 │  │                                   │  └──launches on game over──> ResultScene
+                 └──┼──(returning)──> SectorScene ──────┘        (Retry / Next Sector restart GameScene)
+                    └──────────── quit to menu ─────────────────────────┘
 ```
 
 Scene order is set in `main.ts` and controls draw order (UIScene draws over GameScene, ResultScene over both). Phaser's `input.globalTopOnly` stops a tap on UI panels from also reaching the battlefield.
@@ -67,12 +68,15 @@ src/game/rendering/
   CanvasKit.ts              Canvas2D helpers: prism extrusion, neon lines, cores, gradients
   TowerRenderer.ts          base / gun / icon textures per type × level
   EnemyRenderer.ts          enemy, shield bubble, spawner hatch textures
-  EnvironmentRenderer.ts    full 1280×720 background + reactor parts
+  EnvironmentRenderer.ts    per-map background (battlefield + VIEW_PAD scenery), reactor parts
   EffectsRenderer.ts        FX textures and the runtime `Effects` class
-src/game/ui/                widgets (NeonButton, panels, icons), HUD, TowerMenu, UpgradePanel, Tutorial
+src/game/scenes/            Boot, Menu, Sector (campaign select), Game, UI, Result
+src/game/ui/                widgets (NeonButton, panels, icons), HUD, TowerMenu, UpgradePanel, Tutorial (hints)
 src/game/audio/             SoundSystem (Web Audio synth, singleton `sfx`)
 src/game/platform/          PokiAdapter (singleton `poki`)
-src/game/utils/             MathUtils (PathData, RNG, angles), ObjectPool, Storage (singleton `storage`)
+src/game/utils/             MathUtils (PathData, RNG, angles), ObjectPool, Storage (singleton `storage`),
+                            View (EXPAND camera centring / viewBounds), Fullscreen (non-Poki fullscreen)
+scripts/package.mjs         zips dist/ into release/<name>-v<version>.zip
 ```
 
 ## Rendering strategy
@@ -107,11 +111,14 @@ Continuous values (credits, HP, wave progress, countdown) are not sent as events
 
 ### Add a tower
 
-1. Add the type to `TowerType` and an entry in `TOWERS` / `TOWER_ORDER` (`data/towers.ts`).
-2. Pick an `attack` kind. To add a new kind, handle it in `TowerSystem.updateTower`.
-3. Draw it in `TowerRenderer.drawGun` (and `drawFoundation` if needed), and add a muzzle length in `Tower.ts` (`MUZZLE`).
+1. Add the type to `TowerType` and an entry in `TOWERS` / `TOWER_ORDER` (`data/towers.ts`). Add role text to `ROLES` / `MOBILE_ROLES` in `TowerMenu.ts`.
+2. Pick an `attack` kind (`bolt`, `shell`, `missile`, `chain`, `beam`, `frost`). To add a new kind, handle it in `TowerSystem.updateTower`, and in `perkLine` / `statValues` for the UI.
+3. Art:
+   - Rotating turrets: draw the weapon in `TowerRenderer.drawGun` and add a muzzle length in `Tower.ts` (`MUZZLE`).
+   - Stationary towers (like Tesla and Cryo): bake a single base texture, and give them a branch in the `Tower` constructor, `pivotY` and `updateVisuals`.
 4. Add a firing sound to `SfxName` and to `SoundSystem.play`.
-5. If you add a sixth tower, recheck the card widths in `TowerMenu` (`CARD_W`).
+5. Add it to a sector's `towers` list in `data/maps.ts`. The sector that first lists it shows the "NEW TOWER UNLOCKED" reveal and the sector-card chip automatically.
+6. The build drawer sizes its cards to the sector's tower count. Check it on a phone if a sector offers more than 6.
 
 ### Add an enemy
 

@@ -6,6 +6,10 @@ A Phaser 3 + TypeScript (strict) + Vite tower defense game for Poki. There are n
 - `npm run dev`: dev server. Exposes `window.__nwd` (the Phaser game) for debugging.
 - `npm run build`: runs `tsc --noEmit`, then `vite build`. It must stay error-free.
 - `npm run typecheck`: types only.
+- `npm run package`: build + zip into `release/` for the Poki upload. Bump `version` in package.json first.
+
+## Current state
+See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the release routine. Keep it updated when status changes.
 
 ## Where things live
 - Balance and content: `src/game/data/*.ts` (campaign sectors live in `MAPS` in `maps.ts`, with wave lists in `waves.ts`) and `ECONOMY` / `WAVE_TIMING` in `src/game/config.ts`.
@@ -21,11 +25,18 @@ A Phaser 3 + TypeScript (strict) + Vite tower defense game for Poki. There are n
 - Container hit areas are centred. For children laid out from the top-left, add a centred `Zone` as the hit target (see `TowerMenu`).
 - Hot loops must not allocate. Use squared distances, pooled objects and the shared `Effects.gfx` for lines.
 - Keep the palette in `COLORS` (config.ts) and about 70% dark metal / 30% neon.
-- Ads only at natural breaks (Play, Retry, Restart) or the opt-in revive. Never during combat.
+- Ads only at natural breaks (Play, Retry, Restart, Next Sector) or the opt-in revive. Never during combat.
+- Rewarded revive must keep Poki's rules: 🎬 icon, not green, an equal-size Retry beside it, and no reward unless `rewardedBreak()` resolved true (Revive is hidden when `poki.rewardedAvailable` is false).
+- Campaign content is data: sectors in `MAPS` (paths/lanes, platforms, `towers` allowed, `difficulty`, `startCredits`, waves). Re-run a balance check after changing it (docs/BALANCING.md).
+- The tutorial is hints only and must never block or pause play (playtest finding). The START beacon must always work.
+- Keyboard: never `preventDefault` keys at window level, or Phaser ignores them. Use `input.keyboard.capture` in the game config.
+- `keepScaleInSync` in `main.ts` works around a Phaser 3.90 resize-on-rotation bug; keep it.
 
 ## Docs
+- `docs/STATUS.md`: start here. Status, Poki progress, backlog, new-PC setup.
 - `docs/GAME_DESIGN.md`: rules and full stat tables. Update it when data changes.
 - `docs/ARCHITECTURE.md`: scenes, systems, rendering, how to add towers, enemies and maps.
 - `docs/BALANCING.md`: tuning levers and bot validation results.
 - `docs/POKI_INTEGRATION.md`: SDK usage and submission checklist.
+- `docs/POKI_SUBMISSION.md`: listing copy, categories, thumbnail specs, Poki requirements checklist.
 - `docs/TESTING.md`: QA checklist and debug snippets.
