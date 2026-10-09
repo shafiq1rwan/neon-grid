@@ -50,8 +50,31 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, MenuScene, GameScene, UIScene, ResultScene],
 };
 
+/**
+ * Phaser 3.90 refreshes on `screen.orientation` change *before* re-reading the
+ * parent size, then records the new size without refreshing again — so after
+ * rotating a phone the canvas keeps its old (portrait) size. Re-measure and
+ * refresh a few times after any resize/rotation until the browser settles.
+ */
+function keepScaleInSync(game: Phaser.Game): void {
+  let timers: number[] = [];
+  const sync = () => {
+    game.scale.getParentBounds();
+    game.scale.refresh();
+  };
+  const schedule = () => {
+    for (const t of timers) window.clearTimeout(t);
+    timers = [0, 150, 400, 900].map((ms) => window.setTimeout(sync, ms));
+  };
+  window.addEventListener('resize', schedule);
+  window.addEventListener('orientationchange', schedule);
+  screen.orientation?.addEventListener?.('change', schedule);
+  window.visualViewport?.addEventListener('resize', schedule);
+}
+
 void poki.init().finally(() => {
   const game = new Phaser.Game(config);
+  keepScaleInSync(game);
   // Exposed in development only, for debugging and automated smoke tests.
   if (import.meta.env.DEV) (window as unknown as { __nwd: Phaser.Game }).__nwd = game;
 });
