@@ -1,0 +1,57 @@
+import Phaser from 'phaser';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH } from './game/config';
+import { sfx } from './game/audio/SoundSystem';
+import { poki } from './game/platform/PokiAdapter';
+import { storage } from './game/utils/Storage';
+import { BootScene } from './game/scenes/BootScene';
+import { GameScene } from './game/scenes/GameScene';
+import { MenuScene } from './game/scenes/MenuScene';
+import { ResultScene } from './game/scenes/ResultScene';
+import { UIScene } from './game/scenes/UIScene';
+
+sfx.setMuted(storage.data.muted);
+
+// Audio may only start after a user gesture.
+const unlock = () => sfx.unlock();
+window.addEventListener('pointerdown', unlock, { passive: true });
+window.addEventListener('keydown', unlock);
+window.addEventListener('touchend', unlock, { passive: true });
+
+// Silence audio during ads and while the tab is hidden.
+poki.setAudioHooks({ pause: () => sfx.suspend(), resume: () => sfx.resume() });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) sfx.suspend();
+  else if (!poki.isAdPlaying) sfx.resume();
+});
+
+// Keep the page from scrolling / zooming on mobile.
+window.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+window.addEventListener('keydown', (e) => {
+  if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+});
+
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  parent: 'game',
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  backgroundColor: COLORS.bg,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  render: {
+    antialias: true,
+    powerPreference: 'high-performance',
+  },
+  input: { activePointers: 2 },
+  disableContextMenu: true,
+  banner: false,
+  scene: [BootScene, MenuScene, GameScene, UIScene, ResultScene],
+};
+
+void poki.init().finally(() => {
+  const game = new Phaser.Game(config);
+  // Exposed in development only, for debugging and automated smoke tests.
+  if (import.meta.env.DEV) (window as unknown as { __nwd: Phaser.Game }).__nwd = game;
+});
