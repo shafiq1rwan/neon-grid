@@ -67,7 +67,7 @@ export class UIScene extends Phaser.Scene {
     let lastH = 0;
     centerCamera(this, (view) => {
       this.hud.layout(view);
-      this.banner.setY(view.top + 112 + this.bannerHeight / 2);
+      this.banner.setPosition(view.left + view.width / 2, view.top + 16 + this.bannerHeight / 2);
       // drawers are positioned when opened; close them if the screen changes shape
       if (view.width !== lastW || view.height !== lastH) {
         if (lastW !== 0) this.gs.deselect();
@@ -169,11 +169,11 @@ export class UIScene extends Phaser.Scene {
     this.banner = this.add.container(GAME_WIDTH / 2, 210).setVisible(false).setDepth(30);
     this.bannerBg = this.add.graphics();
     this.bannerTitle = text(this, 0, 0, '', 32, COLORS.text).setOrigin(0.5);
-    this.bannerEnemy = text(this, -232, -28, '', 20, COLORS.cyan).setVisible(false);
-    this.bannerSub = text(this, -232, 14, '', 18, COLORS.text, {
-      fontStyle: 'normal', wordWrap: { width: 528 }, lineSpacing: 3,
+    this.bannerEnemy = text(this, -132, -28, '', 18, COLORS.cyan).setVisible(false);
+    this.bannerSub = text(this, -132, 14, '', 18, COLORS.text, {
+      fontStyle: 'normal', wordWrap: { width: 312 }, lineSpacing: 3,
     }).setVisible(false);
-    this.bannerIcon = this.add.image(-272, 16, enemyKey('drone')).setVisible(false);
+    this.bannerIcon = this.add.image(-164, 16, enemyKey('drone')).setVisible(false);
     this.banner.add([this.bannerBg, this.bannerTitle, this.bannerEnemy, this.bannerIcon, this.bannerSub]);
   }
 
@@ -195,18 +195,20 @@ export class UIScene extends Phaser.Scene {
       this.bannerEnemy.setText(`NEW: ${def.name}`).setColor(css(def.color));
       this.bannerSub.setText(def.tip);
       this.bannerIcon.setTexture(enemyKey(def.type)).setScale(def.radius > 15 ? 0.65 : 1);
-      w = 640;
+      // Fit between the resource HUD and right-side controls at the top edge.
+      w = 400;
       // Let wrapped tips determine card height, preserving the bottom padding.
       h = Math.max(128, 74 + this.bannerSub.height + 14);
       this.bannerEnemy.setY(-h / 2 + 44);
       this.bannerSub.setY(-h / 2 + 74);
       this.bannerIcon.setY(-h / 2 + 80);
-      this.bannerTitle.setPosition(-296, -h / 2 + 12).setOrigin(0);
+      this.bannerTitle.setPosition(-180, -h / 2 + 12).setOrigin(0);
     } else {
       this.bannerTitle.setPosition(0, 0).setOrigin(0.5);
     }
     this.bannerHeight = h;
-    this.banner.setY(viewBounds(this).top + 112 + h / 2);
+    const view = viewBounds(this);
+    this.banner.setPosition(view.left + view.width / 2, view.top + 16 + h / 2);
     this.bannerBg.clear();
     drawPanel(this.bannerBg, -w / 2, -h / 2, w, h, {
       color: isFinal ? COLORS.red : 0x344963,
@@ -217,8 +219,8 @@ export class UIScene extends Phaser.Scene {
     this.tweens.add({ targets: this.banner, alpha: 1, duration: 200 });
     this.tweens.add({
       targets: this.banner, alpha: 0,
-      delay: introducesEnemy ? 6500 : 2400,
-      duration: 350, onComplete: () => this.banner.setVisible(false),
+      delay: introducesEnemy ? 2800 : 1200,
+      duration: 200, onComplete: () => this.banner.setVisible(false),
     });
   }
 
