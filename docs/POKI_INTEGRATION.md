@@ -61,6 +61,10 @@ Retry:         gameplayStop (game over) → commercialBreak → gameplayStart
 - **Result:** the reward is granted only when `rewardedBreak()` resolves `true`. Otherwise the button changes to "Ad unavailable".
 - **Standalone exception:** with no SDK at all, the revive is granted without an ad so the feature still works locally. Change `rewardedBreak()` in the adapter if a host requires otherwise.
 
+## Fullscreen
+
+Poki provides its own fullscreen control. The game's fullscreen button and the auto-fullscreen on PLAY only appear when the SDK isn't live (`poki.isLive` is false), for example on GitHub Pages.
+
 ## Submission checklist
 
 - [ ] `npm run build` passes, and `dist/` works when opened through a static server.

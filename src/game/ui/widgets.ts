@@ -225,6 +225,26 @@ export const Icons = {
     g.lineBetween(6, -6, 14, 6);
     g.lineBetween(14, -6, 6, 6);
   },
+  expand(g: Phaser.GameObjects.Graphics, c: number): void {
+    g.lineStyle(3.5, c, 1);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      g.beginPath();
+      g.moveTo(sx * 12, sy * 4);
+      g.lineTo(sx * 12, sy * 12);
+      g.lineTo(sx * 4, sy * 12);
+      g.strokePath();
+    }
+  },
+  collapse(g: Phaser.GameObjects.Graphics, c: number): void {
+    g.lineStyle(3.5, c, 1);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      g.beginPath();
+      g.moveTo(sx * 12, sy * 4);
+      g.lineTo(sx * 4, sy * 4);
+      g.lineTo(sx * 4, sy * 12);
+      g.strokePath();
+    }
+  },
   close(g: Phaser.GameObjects.Graphics, c: number): void {
     g.lineStyle(3, c, 1);
     g.lineBetween(-7, -7, 7, 7);

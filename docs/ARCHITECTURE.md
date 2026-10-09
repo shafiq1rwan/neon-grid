@@ -44,7 +44,8 @@ victory check
 - **EXPAND mode.** `main.ts` uses `Phaser.Scale.EXPAND`, so the whole 1280×720 battlefield is always visible. The view grows sideways on wide phones (about 1558×720 on a 19.5:9 phone) or vertically on tablets (1280×960 at 4:3) to fill the screen with no black bars.
 - **Centred cameras.** `centerCamera(scene)` in `utils/View.ts` centres every scene's camera on (640, 360), so world coordinates never change.
 - **Edge-pinned UI.** The HUD panel, the top-right buttons and the build/upgrade drawers are placed with `viewBounds()`.
-- **Background padding.** The background is baked with `VIEW_PAD` (220×140) of extra scenery around the map, and the road starts at x = −280 so enemies enter off-screen. A screen-space `vignette` sprite is stretched over whatever is visible.
+- **Background padding.** The background is baked with `VIEW_PAD` (380×140, enough for screens up to about 2.8:1) of extra scenery around the map, and the road starts at x = −440 so enemies enter off-screen. A screen-space `vignette` sprite is stretched over whatever is visible.
+- **Fullscreen.** `utils/Fullscreen.ts` enters browser fullscreen when PLAY is tapped on touch devices, and the HUD shows a fullscreen toggle. This hides the address bar so the battlefield gets the whole screen. It is disabled on Poki, which has its own fullscreen, and on iPhone Safari, which doesn't support it.
 - **Rotation fix.** `keepScaleInSync` in `main.ts` works around a Phaser 3.90 bug where rotating a phone left the canvas at its old size.
 
 ## Folder map

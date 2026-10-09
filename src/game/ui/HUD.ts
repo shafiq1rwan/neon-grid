@@ -3,6 +3,7 @@ import { COLORS, GAME_WIDTH, css } from '../config';
 import type { ViewBounds } from '../utils/View';
 import type { GameScene } from '../scenes/GameScene';
 import { sfx } from '../audio/SoundSystem';
+import { fullscreen } from '../utils/Fullscreen';
 import { Icons, NeonButton, drawPanel, text } from './widgets';
 
 /** Always-visible heads-up display: wave, reactor HP, credits and controls. */
@@ -14,6 +15,7 @@ export class HUD {
   private readonly progress: Phaser.GameObjects.Graphics;
   private readonly speedBtn: NeonButton;
   private readonly muteBtn: NeonButton;
+  private readonly fullBtn: NeonButton | null = null;
   readonly pauseBtn: NeonButton;
   private readonly waveBtn: Phaser.GameObjects.Container;
   private readonly waveRing: Phaser.GameObjects.Graphics;
@@ -29,6 +31,7 @@ export class HUD {
   private shownWave = '';
   private shownSpeed = 0;
   private shownMuted: boolean | null = null;
+  private shownFull: boolean | null = null;
   private creditTween: Phaser.Tweens.Tween | null = null;
 
   constructor(
@@ -72,6 +75,13 @@ export class HUD {
       onClick: handlers.onMute,
     });
     this.right = s.add.container(0, 0, [this.muteBtn, this.speedBtn, this.pauseBtn]);
+    if (fullscreen.supported) {
+      this.fullBtn = new NeonButton(s, GAME_WIDTH - 280, by, 64, 64, {
+        icon: Icons.expand,
+        onClick: () => fullscreen.toggle(),
+      });
+      this.right.add(this.fullBtn);
+    }
 
     // "call next wave" beacon near the road entrance
     const wp = game.map.waveButton;
@@ -152,6 +162,10 @@ export class HUD {
       this.shownSpeed = game.speed;
       this.speedBtn.setLabel(game.speed === 2 ? '2x' : '1x');
       this.speedBtn.setColor(game.speed === 2 ? COLORS.orange : COLORS.cyan);
+    }
+    if (this.fullBtn && fullscreen.active !== this.shownFull) {
+      this.shownFull = fullscreen.active;
+      this.fullBtn.setIcon(fullscreen.active ? Icons.collapse : Icons.expand);
     }
     const muted = sfx.isMuted();
     if (muted !== this.shownMuted) {

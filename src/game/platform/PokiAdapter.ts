@@ -34,6 +34,11 @@ class PokiAdapter {
   private adPlaying = false;
   private audio: AudioHooks = { pause: () => {}, resume: () => {} };
 
+  /** True when running on Poki with a working SDK. */
+  get isLive(): boolean {
+    return this.ready;
+  }
+
   get available(): boolean {
     return this.sdk !== null;
   }

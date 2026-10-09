@@ -3,11 +3,11 @@ import { COLORS, GAME_WIDTH, css } from '../config';
 import { viewBounds } from '../utils/View';
 import { TOWERS, TOWER_ORDER, type TowerDef, type TowerType } from '../data/towers';
 import { iconKey } from '../rendering/TowerRenderer';
-import { NeonButton, Icons, drawPanel, statBar, text } from './widgets';
+import { NeonButton, Icons, drawPanel, text } from './widgets';
 import { sfx } from '../audio/SoundSystem';
 
-export const DRAWER_H = 168;
-export const DRAWER_TOP_Y = 98;
+export const DRAWER_H = 224;
+export const DRAWER_TOP_Y = 112;
 
 /** Normalised 0..1 stat values for bars. */
 export function statValues(def: TowerDef, levelIndex: number): { damage: number; rate: number; range: number } {
@@ -31,11 +31,28 @@ interface Card {
   container: Phaser.GameObjects.Container;
   bg: Phaser.GameObjects.Graphics;
   cost: Phaser.GameObjects.Text;
+  icon: Phaser.GameObjects.Image;
+  coin: Phaser.GameObjects.Image;
+  description: Phaser.GameObjects.Text;
   affordable: boolean | null;
 }
 
 const CARD_W = 232;
 const CARD_H = 140;
+const ROLES: Record<TowerType, string> = {
+  pulse: 'Fast single target',
+  cannon: 'Breaks heavy armor',
+  missile: 'Hits enemy groups',
+  tesla: 'Chains through shields',
+  laser: 'Continuous armor piercing',
+};
+const MOBILE_ROLES: Record<TowerType, string> = {
+  pulse: 'Rapid fire',
+  cannon: 'Anti-armor',
+  missile: 'Splash damage',
+  tesla: 'Chain lightning',
+  laser: 'Piercing beam',
+};
 
 /** Bottom/top docked drawer listing all five towers for an empty platform. */
 export class TowerMenu {
@@ -53,23 +70,26 @@ export class TowerMenu {
     this.root = scene.add.container(20, 0).setVisible(false).setDepth(20);
 
     const bg = scene.add.graphics();
-    drawPanel(bg, 0, 0, W, DRAWER_H, { color: COLORS.cyan, fillAlpha: 0.94 });
+    drawPanel(bg, 0, 0, W, DRAWER_H, {
+      color: 0x344963, fillAlpha: 0.97, corners: false, glow: false, radius: 12,
+    });
     // swallow taps on the panel background
     const blocker = scene.add.zone(W / 2, DRAWER_H / 2, W, DRAWER_H).setInteractive();
     this.root.add([bg, blocker]);
-    this.root.add(text(scene, 26, 5, 'BUILD TOWER', 13, COLORS.cyan, { letterSpacing: 2 } as Phaser.Types.GameObjects.Text.TextStyle));
+    this.root.add(text(scene, 24, 32, 'BUILD TOWER', 20, COLORS.text).setOrigin(0, 0.5));
 
-    const close = new NeonButton(scene, W - 26, 18, 40, 30, {
+    const close = new NeonButton(scene, W - 43, 32, 54, 44, {
       icon: Icons.close,
       color: COLORS.textDim,
+      panelStyle: { corners: false, glow: false },
       onClick: () => this.onClose(),
     });
     this.root.add(close);
 
-    const gap = (W - 20 - CARD_W * 5) / 4;
+    const gap = (W - 32 - CARD_W * 5) / 4;
     TOWER_ORDER.forEach((type, i) => {
-      const cx = 10 + i * (CARD_W + gap);
-      this.cards.push(this.makeCard(type, cx, 22));
+      const cx = 16 + i * (CARD_W + gap);
+      this.cards.push(this.makeCard(type, cx, 64));
     });
   }
 
@@ -79,26 +99,13 @@ export class TowerMenu {
     const c = s.add.container(x, y);
     const bg = s.add.graphics();
     c.add(bg);
-    const icon = s.add.image(54, 60, iconKey(type, 1)).setScale(1.12);
-    const name = text(s, 104, 10, def.name, 17, def.color);
-    const desc = text(s, 104, 33, def.description, 12, COLORS.textDim, {
-      fontStyle: 'normal',
-      wordWrap: { width: CARD_W - 112 },
-      lineSpacing: -2,
-    });
-    const coin = s.add.image(24, 122, 'ui_coin').setScale(0.7);
-    const cost = text(s, 38, 122, `${def.levels[0].cost}`, 18, COLORS.gold).setOrigin(0, 0.5);
-
-    const bars = s.add.graphics();
-    const v = statValues(def, 0);
-    const labels = ['DMG', 'RATE', 'RNG'];
-    const vals = [v.damage, v.rate, v.range];
-    labels.forEach((label, k) => {
-      const by = 80 + k * 17;
-      c.add(text(s, 104, by - 5, label, 10, COLORS.textDim, { fontStyle: 'normal' }));
-      statBar(bars, 140, by, CARD_W - 152, vals[k], def.color);
-    });
-    c.add([icon, name, desc, coin, cost, bars]);
+    const icon = s.add.image(60, 76, iconKey(type, 1)).setScale(1);
+    const name = text(s, CARD_W / 2, 22, def.name.replace(' Tower', ''), 24, def.color).setOrigin(0.5);
+    const desc = text(s, CARD_W / 2, 118, ROLES[type], 15, COLORS.textDim,
+      { fontStyle: 'normal' }).setOrigin(0.5);
+    const coin = s.add.image(150, 78, 'ui_coin').setScale(0.75);
+    const cost = text(s, 176, 78, `${def.levels[0].cost}`, 26, COLORS.gold).setOrigin(0, 0.5);
+    c.add([icon, name, desc, coin, cost]);
 
     // Children are laid out from the card's top-left, so a centred zone is the hit area.
     const hit = s.add.zone(CARD_W / 2, CARD_H / 2, CARD_W, CARD_H).setInteractive({ useHandCursor: true });
@@ -125,7 +132,7 @@ export class TowerMenu {
       this.onPick(type);
     });
     this.root.add(c);
-    return { type, container: c, bg, cost, affordable: null };
+    return { type, container: c, bg, cost, icon, coin, description: desc, affordable: null };
   }
 
   private drawCard(card: Card): void {
@@ -135,13 +142,10 @@ export class TowerMenu {
     drawPanel(g, 0, 0, CARD_W, CARD_H, {
       color: card.affordable ? def.color : 0x2a3550,
       fill: 0x0f1729,
-      radius: 8,
-      corners: !!card.affordable,
+      radius: 10,
+      corners: false,
+      glow: false,
     });
-    if (card.affordable) {
-      g.fillStyle(def.color, 0.07);
-      g.fillCircle(54, 60, 44);
-    }
     card.container.setAlpha(1);
     for (const child of card.container.list) {
       if (child instanceof Phaser.GameObjects.Image) child.setAlpha(card.affordable ? 1 : 0.4);
@@ -162,6 +166,24 @@ export class TowerMenu {
 
   open(dockTop: boolean, credits: number): void {
     this.dockTop = dockTop;
+    // Use displayed pixels, since EXPAND keeps logical dimensions large on phones.
+    const compact = this.scene.scale.canvas.getBoundingClientRect().width < 1000
+      || window.matchMedia('(pointer: coarse)').matches;
+    for (const card of this.cards) {
+      card.description.setVisible(true)
+        .setText(compact ? MOBILE_ROLES[card.type] : ROLES[card.type])
+        .setFontSize(compact ? 22 : 15)
+        .setColor(css(compact ? COLORS.text : COLORS.textDim));
+      // Icon and price share a row, leaving the bottom row for a readable role.
+      card.icon.setPosition(60, 76)
+        .setScale(compact ? 0.9 : 1);
+      const costY = 78;
+      // Center the coin + price together, including two- and three-digit costs.
+      const groupWidth = 26 + card.cost.width;
+      const groupLeft = 177 - groupWidth / 2;
+      card.coin.setPosition(groupLeft + 9, costY);
+      card.cost.setPosition(groupLeft + 26, costY);
+    }
     const y = drawerY(this.scene, dockTop);
     this.refresh(credits);
     if (!this.visible) {

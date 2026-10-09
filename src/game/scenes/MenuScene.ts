@@ -8,6 +8,7 @@ import { enemyKey } from '../rendering/EnemyRenderer';
 import { iconKey } from '../rendering/TowerRenderer';
 import { PathData, type PathSample } from '../utils/MathUtils';
 import { storage } from '../utils/Storage';
+import { fullscreen } from '../utils/Fullscreen';
 import { centerCamera } from '../utils/View';
 import { Icons, NeonButton, drawPanel, text } from '../ui/widgets';
 
@@ -131,34 +132,73 @@ export class MenuScene extends Phaser.Scene {
     const dim = this.add.rectangle(-2000, -2000, GAME_WIDTH + 4000, 4720, 0x03050a, 0.85)
       .setOrigin(0).setInteractive();
     const frame = this.add.graphics();
-    drawPanel(frame, cx - 360, 122, 720, 490, { color: COLORS.cyan, fillAlpha: 1 });
-    c.add([dim, frame]);
-    c.add(text(this, cx, 164, 'HOW TO PLAY', 30, COLORS.cyan).setOrigin(0.5));
-    const tips = [
-      ['01  BUILD', 'Tap a glowing platform, then choose a tower.'],
-      ['02  UPGRADE', 'Tap a tower to upgrade it or sell it for credits.'],
-      ['03  DEFEND', 'Stop machines before they reach the reactor.'],
-      ['04  CALL WAVES', 'Tap the entrance beacon. Call early for bonus credits.'],
-    ];
-    tips.forEach(([label, detail], i) => {
-      c.add(text(this, cx - 310, 211 + i * 60, label, 17, COLORS.green));
-      c.add(text(this, cx - 310, 234 + i * 60, detail, 18, COLORS.text, { fontStyle: 'normal' }));
+    drawPanel(frame, cx - 500, 60, 1000, 600, {
+      color: 0x344963, fillAlpha: 1, radius: 18, corners: false, glow: false,
     });
-    c.add(text(this, cx, 471, 'KEYBOARD', 14, COLORS.textDim).setOrigin(0.5));
-    c.add(text(this, cx, 500, 'Space: wave   \u00b7   1-5: build   \u00b7   U: upgrade   \u00b7   S: sell', 17, COLORS.text)
-      .setOrigin(0.5));
-    c.add(text(this, cx, 526, 'F: speed   \u00b7   P / Esc: pause', 17, COLORS.text).setOrigin(0.5));
-    c.add(new NeonButton(this, cx - 145, 574, 260, 48, {
-      label: 'REPLAY TUTORIAL', fontSize: 16, color: COLORS.textDim,
+    c.add([dim, frame]);
+    c.add(text(this, cx - 460, 104, 'HOW TO PLAY', 32, COLORS.text).setOrigin(0, 0.5));
+    c.add(text(this, cx - 460, 146, 'Defend the reactor. Survive 10 waves.', 22, COLORS.textDim,
+      { fontStyle: 'normal' }).setOrigin(0, 0.5));
+
+    const tips = [
+      ['BUILD', 'Tap a platform.\nChoose a tower.'],
+      ['UPGRADE', 'Tap a tower.\nUpgrade or sell it.'],
+      ['DEFEND', 'Stop the machines.\nProtect the reactor.'],
+      ['CALL WAVES', 'Tap the entrance beacon.\nCall early for bonus credits.'],
+    ];
+    const details: Phaser.GameObjects.Text[] = [];
+    tips.forEach(([label, detail], i) => {
+      const x = cx - 460 + (i % 2) * 480;
+      const y = 188 + Math.floor(i / 2) * 164;
+      const card = this.add.graphics();
+      drawPanel(card, x, y, 440, 148, {
+        color: 0x28364f, fill: 0x111a2e, corners: false, glow: false, radius: 12,
+      });
+      c.add(card);
+      c.add(text(this, x + 24, y + 22, `${i + 1}`.padStart(2, '0'), 22, COLORS.cyan));
+      c.add(text(this, x + 70, y + 22, label, 24, COLORS.green));
+      const body = text(this, x + 24, y + 62, detail, 24, COLORS.text, {
+        fontStyle: 'normal', lineSpacing: 6, wordWrap: { width: 392 },
+      });
+      details.push(body);
+      c.add(body);
+    });
+
+    const keyboard = this.add.container(0, 0);
+    keyboard.add(text(this, cx, 524, 'KEYBOARD SHORTCUTS', 14, COLORS.textDim).setOrigin(0.5));
+    keyboard.add(text(this, cx, 550,
+      'Space: wave   \u00b7   1-5: build   \u00b7   U: upgrade   \u00b7   S: sell   \u00b7   F: speed   \u00b7   P / Esc: pause',
+      17, COLORS.text).setOrigin(0.5));
+    c.add(keyboard);
+    const replay = new NeonButton(this, cx - 235, 610, 450, 60, {
+      label: 'REPLAY TUTORIAL', fontSize: 22, color: COLORS.textDim,
+      panelStyle: { corners: false, glow: false, radius: 12 },
       onClick: () => { storage.update({ tutorialDone: false }); void this.play(); },
-    }));
-    c.add(new NeonButton(this, cx + 145, 574, 260, 48, {
-      label: 'GOT IT', fontSize: 18, color: COLORS.green,
+    });
+    const done = new NeonButton(this, cx + 235, 610, 450, 60, {
+      label: 'GOT IT', fontSize: 24, color: COLORS.green,
+      panelStyle: { corners: false, radius: 12 },
+      onClick: () => c.setVisible(false),
+    });
+    c.add([replay, done]);
+    c.add(new NeonButton(this, cx + 438, 108, 60, 56, {
+      icon: Icons.close, color: COLORS.textDim,
+      panelStyle: { corners: false, glow: false },
       onClick: () => c.setVisible(false),
     }));
-    c.add(new NeonButton(this, cx + 325, 153, 44, 44, {
-      icon: Icons.close, color: COLORS.textDim, onClick: () => c.setVisible(false),
-    }));
+
+    const layout = () => {
+      const compact = this.scale.canvas.getBoundingClientRect().width < 1000
+        || window.matchMedia('(pointer: coarse)').matches;
+      keyboard.setVisible(!compact);
+      details.forEach((body) => body.setFontSize(compact ? 26 : 24));
+      replay.setY(compact ? 580 : 610);
+      done.setY(compact ? 580 : 610);
+    };
+    layout();
+    this.scale.on(Phaser.Scale.Events.RESIZE, layout);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,
+      () => this.scale.off(Phaser.Scale.Events.RESIZE, layout));
     this.helpLayer = c;
   }
 
@@ -166,6 +206,8 @@ export class MenuScene extends Phaser.Scene {
     if (this.starting) return;
     this.starting = true;
     sfx.unlock();
+    // still inside the tap gesture, so the browser allows fullscreen
+    fullscreen.enterOnTouchDevices();
     await poki.commercialBreak();
     this.scene.start(SCENES.game);
   }

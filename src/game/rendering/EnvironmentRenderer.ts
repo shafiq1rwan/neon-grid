@@ -117,7 +117,7 @@ function drawGround(ctx: Ctx, rng: () => number): void {
   // concrete slab grid
   ctx.strokeStyle = 'rgba(70,90,130,0.09)';
   ctx.lineWidth = 1;
-  for (let x = -256; x <= GAME_WIDTH + 256; x += 64) {
+  for (let x = -384; x <= GAME_WIDTH + 384; x += 64) {
     ctx.beginPath();
     ctx.moveTo(x + 0.5, AREA.y);
     ctx.lineTo(x + 0.5, AREA.y + AREA.h);
@@ -274,7 +274,7 @@ function drawEntry(ctx: Ctx, start: Vec2): void {
 function drawRubbleField(ctx: Ctx, map: MapDef, path: PathData, rng: () => number, blockers: Vec2[]): void {
   const half = map.roadWidth / 2;
   let placed = 0;
-  for (let tries = 0; tries < 1500 && placed < 170; tries++) {
+  for (let tries = 0; tries < 2000 && placed < 220; tries++) {
     const x = rx(rng);
     const y = ry(rng);
     if (path.distanceTo(x, y) < half + 12) continue;
