@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES } from '../config';
 import { poki } from '../platform/PokiAdapter';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
+import { centerCamera } from '../utils/View';
 import type { GameScene, ResultData } from './GameScene';
 
 function starPoints(cx: number, cy: number, r: number): Phaser.Geom.Point[] {
@@ -24,11 +25,15 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: ResultData): void {
     this.busy = false;
+    centerCamera(this);
     const victory = data.victory;
     const accent = victory ? COLORS.cyan : COLORS.red;
     const cx = GAME_WIDTH / 2;
 
-    const dim = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050a, 0).setOrigin(0).setInteractive();
+    const dim = this.add
+      .rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x03050a, 0)
+      .setOrigin(0)
+      .setInteractive();
     this.tweens.add({ targets: dim, fillAlpha: 0.75, duration: 400 });
 
     const pw = 560;

@@ -42,7 +42,8 @@ export interface MapDef {
 export const SECTOR_7: MapDef = {
   name: 'Sector 7 — Reactor Row',
   path: [
-    { x: -50, y: 300 },
+    // starts beyond the widest visible area so machines never pop in on screen
+    { x: -280, y: 300 },
     { x: 230, y: 300 },
     { x: 230, y: 560 },
     { x: 520, y: 560 },
@@ -82,6 +83,19 @@ export const SECTOR_7: MapDef = {
     { x: 1112, y: 612, w: 160, d: 58, h: 46, ruined: true },
     { x: 1000, y: 600, w: 92, d: 52, h: 50 },
     { x: 430, y: 628, w: 112, d: 44, h: 40, ruined: true },
+    // outskirts, only visible on wider / taller screens
+    { x: -214, y: 70, w: 186, d: 80, h: 70, sign: 0x00e5ff },
+    { x: -206, y: 404, w: 170, d: 86, h: 76, ruined: true },
+    { x: -214, y: 610, w: 176, d: 60, h: 56, sign: 0xa78bfa },
+    { x: 1300, y: 18, w: 176, d: 78, h: 70, ruined: true },
+    { x: 1306, y: 380, w: 164, d: 70, h: 60, sign: 0xff3dae },
+    { x: 1296, y: 560, w: 184, d: 84, h: 70 },
+    { x: 20, y: -132, w: 160, d: 50, h: 56 },
+    { x: 560, y: -126, w: 150, d: 46, h: 50, ruined: true },
+    { x: 900, y: -134, w: 180, d: 56, h: 60, sign: 0xff9b32 },
+    { x: 110, y: 736, w: 170, d: 50, h: 50, ruined: true },
+    { x: 690, y: 740, w: 210, d: 50, h: 46, sign: 0x00e5ff },
+    { x: 1060, y: 736, w: 170, d: 52, h: 48 },
   ],
   props: [
     { kind: 'car', x: 300, y: 632, angle: 0.25 },
@@ -96,6 +110,12 @@ export const SECTOR_7: MapDef = {
     { kind: 'car', x: 54, y: 680, angle: 1.2 },
     { kind: 'crate', x: 300, y: 500, angle: 0.1 },
     { kind: 'barrier', x: 1110, y: 228, angle: -0.2 },
+    { kind: 'car', x: -120, y: 232, angle: 0.15 },
+    { kind: 'truck', x: -150, y: 376, angle: -0.05 },
+    { kind: 'tank', x: 1400, y: 300, angle: 0 },
+    { kind: 'pipes', x: 470, y: 770, angle: 0 },
+    { kind: 'car', x: 420, y: -40, angle: 2.8 },
+    { kind: 'crate', x: 1240, y: 760, angle: 0.4 },
   ],
   seed: 7331,
 };

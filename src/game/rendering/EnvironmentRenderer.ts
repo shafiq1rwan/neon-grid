@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_HEIGHT, GAME_WIDTH, css } from '../config';
+import { COLORS, GAME_HEIGHT, GAME_WIDTH, VIEW_PAD, css } from '../config';
 import type { BuildingDef, MapDef, PropDef, Vec2 } from '../data/maps';
 import { PathData, createRng, dist2 } from '../utils/MathUtils';
 import {
@@ -36,6 +36,16 @@ export interface SignInfo {
 
 export const PLATFORM_RADIUS = 36;
 
+/** World-space rectangle covered by the baked background (battlefield + padding). */
+const AREA = {
+  x: -VIEW_PAD.x,
+  y: -VIEW_PAD.y,
+  w: GAME_WIDTH + VIEW_PAD.x * 2,
+  h: GAME_HEIGHT + VIEW_PAD.y * 2,
+};
+const rx = (rng: () => number) => AREA.x + rng() * AREA.w;
+const ry = (rng: () => number) => AREA.y + rng() * AREA.h;
+
 /**
  * Bakes the whole static battlefield (ground, road, ruins, props, platforms)
  * into a single texture so it costs one sprite draw per frame.
@@ -44,7 +54,9 @@ export function generateEnvironment(scene: Phaser.Scene, map: MapDef, path: Path
   const signs: SignInfo[] = [];
   const rng = createRng(map.seed);
 
-  bakeTexture(scene, 'bg', GAME_WIDTH, GAME_HEIGHT, (ctx) => {
+  bakeTexture(scene, 'bg', AREA.w, AREA.h, (ctx) => {
+    // draw in world coordinates; the texture is placed at (AREA.x, AREA.y)
+    ctx.translate(-AREA.x, -AREA.y);
     drawGround(ctx, rng);
     drawRoad(ctx, map, path, rng);
     drawEntry(ctx, map.path[0]);
@@ -56,7 +68,15 @@ export function generateEnvironment(scene: Phaser.Scene, map: MapDef, path: Path
     for (const b of sorted) drawBuilding(ctx, b, rng, signs);
     for (const p of map.props) drawProp(ctx, p, rng);
     for (const p of map.platforms) drawPlatform(ctx, p.x, p.y, rng);
-    drawVignette(ctx);
+  });
+
+  // screen-space vignette, stretched over whatever area is visible
+  bakeTexture(scene, 'vignette', 256, 256, (ctx) => {
+    const g = ctx.createRadialGradient(128, 128, 70, 128, 128, 182);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
   });
 
   bakeTexture(scene, 'reactor_base', 160, 160, (ctx) => {
@@ -79,12 +99,12 @@ export function generateEnvironment(scene: Phaser.Scene, map: MapDef, path: Path
 
 function drawGround(ctx: Ctx, rng: () => number): void {
   ctx.fillStyle = css(COLORS.bg);
-  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  ctx.fillRect(AREA.x, AREA.y, AREA.w, AREA.h);
 
   // large weathered patches
-  for (let i = 0; i < 46; i++) {
-    const x = rng() * GAME_WIDTH;
-    const y = rng() * GAME_HEIGHT;
+  for (let i = 0; i < 70; i++) {
+    const x = rx(rng);
+    const y = ry(rng);
     const r = 40 + rng() * 120;
     const light = rng() < 0.45;
     ctx.fillStyle = radial(ctx, x, y, r, [
@@ -97,29 +117,29 @@ function drawGround(ctx: Ctx, rng: () => number): void {
   // concrete slab grid
   ctx.strokeStyle = 'rgba(70,90,130,0.09)';
   ctx.lineWidth = 1;
-  for (let x = 0; x <= GAME_WIDTH; x += 64) {
+  for (let x = -256; x <= GAME_WIDTH + 256; x += 64) {
     ctx.beginPath();
-    ctx.moveTo(x + 0.5, 0);
-    ctx.lineTo(x + 0.5, GAME_HEIGHT);
+    ctx.moveTo(x + 0.5, AREA.y);
+    ctx.lineTo(x + 0.5, AREA.y + AREA.h);
     ctx.stroke();
   }
-  for (let y = 0; y <= GAME_HEIGHT; y += 64) {
+  for (let y = -192; y <= GAME_HEIGHT + 192; y += 64) {
     ctx.beginPath();
-    ctx.moveTo(0, y + 0.5);
-    ctx.lineTo(GAME_WIDTH, y + 0.5);
+    ctx.moveTo(AREA.x, y + 0.5);
+    ctx.lineTo(AREA.x + AREA.w, y + 0.5);
     ctx.stroke();
   }
 
   // speckle grit
-  for (let i = 0; i < 1400; i++) {
-    const x = rng() * GAME_WIDTH;
-    const y = rng() * GAME_HEIGHT;
+  for (let i = 0; i < 2300; i++) {
+    const x = rx(rng);
+    const y = ry(rng);
     ctx.fillStyle = rng() < 0.5 ? 'rgba(90,110,150,0.12)' : 'rgba(0,0,0,0.3)';
     ctx.fillRect(x, y, 1 + rng() * 1.5, 1 + rng() * 1.5);
   }
 
   // ground cracks
-  for (let i = 0; i < 26; i++) crack(ctx, rng() * GAME_WIDTH, rng() * GAME_HEIGHT, 30 + rng() * 60, rng, 'rgba(0,0,0,0.55)');
+  for (let i = 0; i < 40; i++) crack(ctx, rx(rng), ry(rng), 30 + rng() * 60, rng, 'rgba(0,0,0,0.55)');
 }
 
 function crack(ctx: Ctx, x: number, y: number, len: number, rng: () => number, color: string): void {
@@ -254,9 +274,9 @@ function drawEntry(ctx: Ctx, start: Vec2): void {
 function drawRubbleField(ctx: Ctx, map: MapDef, path: PathData, rng: () => number, blockers: Vec2[]): void {
   const half = map.roadWidth / 2;
   let placed = 0;
-  for (let tries = 0; tries < 900 && placed < 110; tries++) {
-    const x = rng() * GAME_WIDTH;
-    const y = rng() * GAME_HEIGHT;
+  for (let tries = 0; tries < 1500 && placed < 170; tries++) {
+    const x = rx(rng);
+    const y = ry(rng);
     if (path.distanceTo(x, y) < half + 12) continue;
     let ok = true;
     for (const b of blockers) if (dist2(x, y, b.x, b.y) < 52 * 52) ok = false;
@@ -657,12 +677,4 @@ function drawReactorRing(ctx: Ctx): void {
   ctx.arc(0, 0, 50, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
-}
-
-function drawVignette(ctx: Ctx): void {
-  const g = ctx.createRadialGradient(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_HEIGHT * 0.45, GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH * 0.75);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, 'rgba(0,0,0,0.55)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 }

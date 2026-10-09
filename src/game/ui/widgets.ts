@@ -76,6 +76,8 @@ export interface ButtonOptions {
   icon?: (g: Phaser.GameObjects.Graphics, color: number) => void;
   onClick: () => void;
   sound?: boolean;
+  /** Optional panel appearance for controls with a quieter visual hierarchy. */
+  panelStyle?: PanelStyle;
 }
 
 /** Touch-friendly neon button. Fires on release over the button. */
@@ -173,6 +175,7 @@ export class NeonButton extends Phaser.GameObjects.Container {
       fill: this.opts.fill ?? 0x111a2e,
       radius: Math.min(10, this.h / 3),
       corners: this.w > 70,
+      ...this.opts.panelStyle,
     });
     this.label?.setColor(this.enabled ? css(COLORS.text) : '#5a6680');
     this.redrawIcon();

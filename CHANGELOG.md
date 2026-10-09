@@ -17,7 +17,7 @@ First complete release.
 - Web Audio synthesized sound effects with mute.
 - Saves to LocalStorage: settings, tutorial completion, best stars, best wave, wins.
 - Poki SDK adapter: loading, gameplay events, commercial breaks, rewarded revive.
-- Mouse, touch and keyboard controls; responsive 16:9 scaling; portrait rotate prompt.
+- Mouse, touch and keyboard controls; full-screen responsive scaling (EXPAND); portrait rotate prompt.
 
 ### Balance
 - Tuned with scripted-player runs (see `docs/BALANCING.md`).

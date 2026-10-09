@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTH, ECONOMY, SCENES } from '../config';
+import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD } from '../config';
 import { SECTOR_7, type MapDef } from '../data/maps';
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Tower } from '../entities/Tower';
@@ -15,6 +15,7 @@ import { TowerSystem } from '../systems/TowerSystem';
 import { WaveSystem } from '../systems/WaveSystem';
 import { PathData } from '../utils/MathUtils';
 import { storage } from '../utils/Storage';
+import { centerCamera } from '../utils/View';
 
 export type Selection = { kind: 'none' } | { kind: 'platform'; index: number } | { kind: 'tower'; index: number };
 
@@ -89,7 +90,10 @@ export class GameScene extends Phaser.Scene {
     this.tweens.timeScale = 1;
 
     this.path = new PathData(this.map.path, this.map.cornerRadius);
-    this.add.image(0, 0, 'bg').setOrigin(0).setDepth(DEPTH.BG);
+    this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, 'bg').setOrigin(0).setDepth(DEPTH.BG);
+    // screen-space vignette over the background only
+    const vignette = this.add.image(0, 0, 'vignette').setOrigin(0).setScrollFactor(0).setDepth(DEPTH.BG + 1);
+    centerCamera(this, (view) => vignette.setDisplaySize(view.width, view.height));
     this.createAmbience();
     this.createReactor();
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES, css } from '../config';
+import { centerCamera } from '../utils/View';
 import { ENEMIES } from '../data/enemies';
 import { newEnemiesInWave } from '../data/waves';
 import { sfx } from '../audio/SoundSystem';
@@ -22,6 +23,7 @@ export class UIScene extends Phaser.Scene {
   private tutorial: Tutorial | null = null;
   private pauseLayer!: Phaser.GameObjects.Container;
   private pauseSound!: NeonButton;
+  private pauseSummary!: Phaser.GameObjects.Text;
   private banner!: Phaser.GameObjects.Container;
   private bannerTitle!: Phaser.GameObjects.Text;
   private bannerSub!: Phaser.GameObjects.Text;
@@ -59,6 +61,17 @@ export class UIScene extends Phaser.Scene {
 
     this.createBanner();
     this.createPauseLayer();
+    let lastW = 0;
+    let lastH = 0;
+    centerCamera(this, (view) => {
+      this.hud.layout(view);
+      // drawers are positioned when opened; close them if the screen changes shape
+      if (view.width !== lastW || view.height !== lastH) {
+        if (lastW !== 0) this.gs.deselect();
+        lastW = view.width;
+        lastH = view.height;
+      }
+    });
 
     this.listen(GameEvents.selection, (sel: Selection) => this.onSelection(sel));
     this.listen(GameEvents.towerBuilt, () => this.tutorial?.advance('road'));
@@ -198,10 +211,11 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toast(message: string): void {
-    const t = text(this, 170, 112, message, 16, COLORS.gold, { stroke: '#05080f', strokeThickness: 4 })
+    const at = this.hud.creditsAnchor;
+    const t = text(this, at.x, at.y, message, 16, COLORS.gold, { stroke: '#05080f', strokeThickness: 4 })
       .setOrigin(0.5)
       .setAlpha(0);
-    this.tweens.add({ targets: t, alpha: 1, y: 106, duration: 200 });
+    this.tweens.add({ targets: t, alpha: 1, y: at.y - 6, duration: 200 });
     this.tweens.add({ targets: t, alpha: 0, delay: 1800, duration: 300, onComplete: () => t.destroy() });
     sfx.play('coin');
   }
@@ -209,45 +223,58 @@ export class UIScene extends Phaser.Scene {
   private createPauseLayer(): void {
     const c = this.add.container(0, 0).setDepth(50).setVisible(false);
     const dim = this.add
-      .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x03050a, 0.72)
+      .rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x03050a, 0.72)
       .setOrigin(0)
       .setInteractive();
     const g = this.add.graphics();
-    const pw = 400;
-    const ph = 360;
+    const pw = 480;
+    const ph = 376;
     const px = (GAME_WIDTH - pw) / 2;
     const py = (GAME_HEIGHT - ph) / 2;
-    drawPanel(g, px, py, pw, ph, { color: COLORS.cyan });
-    const title = text(this, GAME_WIDTH / 2, py + 44, 'PAUSED', 34, COLORS.cyan).setOrigin(0.5);
+    drawPanel(g, px, py, pw, ph, {
+      color: 0x344963, fillAlpha: 1, radius: 18, glow: false, corners: false,
+    });
+    g.lineStyle(1, 0x344963, 0.65);
+    g.lineBetween(px + 36, py + 278, px + pw - 36, py + 278);
+    const title = text(this, GAME_WIDTH / 2, py + 48, 'PAUSED', 32, COLORS.text).setOrigin(0.5);
     const cx = GAME_WIDTH / 2;
-    const resume = new NeonButton(this, cx, py + 116, 280, 56, {
+    this.pauseSummary = text(this, cx, py + 86, '', 17, COLORS.textDim, { fontStyle: 'normal' })
+      .setOrigin(0.5);
+    const resume = new NeonButton(this, cx, py + 150, 408, 68, {
       label: 'RESUME',
-      fontSize: 22,
+      fontSize: 25,
       color: COLORS.green,
+      panelStyle: { corners: false, radius: 12 },
       onClick: () => this.gs.resumeGame(),
     });
-    const restart = new NeonButton(this, cx, py + 184, 280, 50, {
+    const secondaryStyle = { corners: false, glow: false, radius: 10 };
+    const restart = new NeonButton(this, cx - 106, py + 228, 196, 52, {
       label: 'RESTART',
-      fontSize: 19,
-      color: COLORS.orange,
+      fontSize: 17,
+      color: COLORS.textDim,
+      panelStyle: secondaryStyle,
       onClick: () => void this.restart(),
     });
-    const menu = new NeonButton(this, cx, py + 246, 280, 50, {
+    const menu = new NeonButton(this, cx + 106, py + 228, 196, 52, {
       label: 'MAIN MENU',
-      fontSize: 19,
-      color: COLORS.purple,
+      fontSize: 17,
+      color: COLORS.textDim,
+      panelStyle: secondaryStyle,
       onClick: () => this.quitToMenu(),
     });
-    this.pauseSound = new NeonButton(this, cx, py + 308, 280, 44, {
+    this.pauseSound = new NeonButton(this, cx - 108, py + 322, 192, 44, {
       label: '',
       fontSize: 16,
       color: COLORS.textDim,
+      panelStyle: secondaryStyle,
       onClick: () => {
         this.toggleMute();
         this.updatePauseSound();
       },
     });
-    c.add([dim, g, title, resume, restart, menu, this.pauseSound]);
+    const hint = text(this, cx + 108, py + 322, 'P / Esc to resume', 16, COLORS.textDim,
+      { fontStyle: 'normal' }).setOrigin(0.5);
+    c.add([dim, g, title, this.pauseSummary, resume, restart, menu, this.pauseSound, hint]);
     this.pauseLayer = c;
   }
 
@@ -257,6 +284,9 @@ export class UIScene extends Phaser.Scene {
 
   private showPause(show: boolean): void {
     this.updatePauseSound();
+    if (show) {
+      this.pauseSummary.setText(`Wave ${this.gs.waves.displayNumber} / ${this.gs.waves.total}   \u00b7   Reactor ${Math.max(0, this.gs.hp)} HP`);
+    }
     this.pauseLayer.setVisible(show);
     if (show) {
       this.menu.close();

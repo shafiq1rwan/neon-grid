@@ -1,6 +1,12 @@
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
+/**
+ * Extra scenery baked around the battlefield for wider/taller screens
+ * (covers up to ~21.5:9 phones and 4:3 tablets).
+ */
+export const VIEW_PAD = { x: 220, y: 140 } as const;
+
 export const COLORS = {
   bg: 0x0b1020,
   metal: 0x19243a,

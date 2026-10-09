@@ -36,8 +36,12 @@ const config: Phaser.Types.Core.GameConfig = {
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: COLORS.bg,
+  // EXPAND keeps the whole 1280x720 battlefield visible and grows the view to
+  // fill wider (phones) or taller (tablets) screens. Scenery is baked VIEW_PAD
+  // beyond the battlefield; anything past that is plain background colour.
+  // (No scale min/max: in EXPAND they would also clamp the on-screen CSS size.)
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.EXPAND,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   render: {

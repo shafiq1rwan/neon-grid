@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_WIDTH, css } from '../config';
+import type { ViewBounds } from '../utils/View';
 import type { GameScene } from '../scenes/GameScene';
 import { sfx } from '../audio/SoundSystem';
 import { Icons, NeonButton, drawPanel, text } from './widgets';
@@ -19,6 +20,9 @@ export class HUD {
   private readonly waveLabel: Phaser.GameObjects.Text;
   private readonly waveSub: Phaser.GameObjects.Text;
   readonly waveBtnPos: { x: number; y: number };
+  /** Left panel and right buttons are pinned to the visible screen edges. */
+  private readonly left: Phaser.GameObjects.Container;
+  private readonly right: Phaser.GameObjects.Container;
 
   private shownHp = -1;
   private shownCredits = -1;
@@ -34,30 +38,40 @@ export class HUD {
   ) {
     const s = scene;
     const g = s.add.graphics();
-    drawPanel(g, 12, 12, 316, 80, { color: COLORS.cyan });
+    drawPanel(g, 20, 16, 412, 80, {
+      color: 0x344963, fillAlpha: 0.96, corners: false, glow: false, radius: 12,
+    });
+    g.lineStyle(1, 0x344963, 0.6);
+    g.lineBetween(150, 34, 150, 78);
+    g.lineBetween(278, 34, 278, 78);
     this.progress = s.add.graphics();
-    text(s, 28, 19, 'WAVE', 14, COLORS.textDim, { letterSpacing: 2 } as Phaser.Types.GameObjects.Text.TextStyle);
-    this.waveText = text(s, 80, 12, '1/10', 24, COLORS.text);
+    const waveLabel = text(s, 40, 30, 'WAVE', 13, COLORS.textDim);
+    this.waveText = text(s, 40, 62, '1/10', 25, COLORS.text).setOrigin(0, 0.5);
 
-    this.heart = s.add.image(38, 70, 'ui_heart').setScale(0.85);
-    this.hpText = text(s, 56, 70, '20', 24, COLORS.text).setOrigin(0, 0.5);
-    s.add.image(150, 70, 'ui_coin').setScale(0.85);
-    this.creditText = text(s, 168, 70, '0', 24, COLORS.gold).setOrigin(0, 0.5);
+    const reactorLabel = text(s, 170, 30, 'REACTOR', 13, COLORS.textDim);
+    const creditsLabel = text(s, 298, 30, 'CREDITS', 13, COLORS.textDim);
+    this.heart = s.add.image(180, 66, 'ui_heart').setScale(0.75);
+    this.hpText = text(s, 204, 66, '20', 25, COLORS.text).setOrigin(0, 0.5);
+    const coin = s.add.image(308, 66, 'ui_coin').setScale(0.75);
+    this.creditText = text(s, 332, 66, '0', 25, COLORS.gold).setOrigin(0, 0.5);
+    this.left = s.add.container(0, 0, [g, this.progress, waveLabel, reactorLabel, creditsLabel,
+      this.waveText, this.heart, this.hpText, coin, this.creditText]);
 
-    const by = 44;
-    this.pauseBtn = new NeonButton(s, GAME_WIDTH - 46, by, 62, 54, {
+    const by = 48;
+    this.pauseBtn = new NeonButton(s, GAME_WIDTH - 52, by, 64, 64, {
       icon: Icons.pause,
       onClick: handlers.onPause,
     });
-    this.speedBtn = new NeonButton(s, GAME_WIDTH - 116, by, 62, 54, {
+    this.speedBtn = new NeonButton(s, GAME_WIDTH - 128, by, 64, 64, {
       label: '1x',
       fontSize: 24,
       onClick: handlers.onSpeed,
     });
-    this.muteBtn = new NeonButton(s, GAME_WIDTH - 186, by, 62, 54, {
+    this.muteBtn = new NeonButton(s, GAME_WIDTH - 204, by, 64, 64, {
       icon: Icons.sound,
       onClick: handlers.onMute,
     });
+    this.right = s.add.container(0, 0, [this.muteBtn, this.speedBtn, this.pauseBtn]);
 
     // "call next wave" beacon near the road entrance
     const wp = game.map.waveButton;
@@ -91,6 +105,17 @@ export class HUD {
     });
   }
 
+  /** Pin the HUD to the visible screen edges (the view can be wider/taller than 1280×720). */
+  layout(view: ViewBounds): void {
+    this.left.setPosition(view.left, view.top);
+    this.right.setPosition(view.right - GAME_WIDTH, view.top);
+  }
+
+  /** Screen position just below the credits counter (for toasts). */
+  get creditsAnchor(): { x: number; y: number } {
+    return { x: this.left.x + 350, y: this.left.y + 116 };
+  }
+
   update(time: number): void {
     const game = this.game;
     const waves = game.waves;
@@ -103,7 +128,7 @@ export class HUD {
 
     if (game.hp !== this.shownHp) {
       if (this.shownHp > 0 && game.hp < this.shownHp) {
-        this.scene.tweens.add({ targets: this.heart, scale: { from: 1.3, to: 0.85 }, duration: 260 });
+        this.scene.tweens.add({ targets: this.heart, scale: { from: 1.15, to: 0.75 }, duration: 260 });
         this.hpText.setColor('#ff526f');
         this.scene.time.delayedCall(260, () => this.hpText.setColor(css(COLORS.text)));
       }
@@ -134,30 +159,18 @@ export class HUD {
       this.muteBtn.setIcon(muted ? Icons.mute : Icons.sound);
     }
 
-    // wave progress bar + chevrons
+    // Small wave markers stay inside the wave column, away from resource values.
     const p = this.progress;
     p.clear();
-    const cx0 = 168;
+    const cx0 = 40;
     for (let i = 0; i < waves.total; i++) {
       const done = i < waves.index || (i === waves.index && waves.state !== 'spawning');
       const current = i === waves.index && waves.state === 'spawning';
       const color = done ? COLORS.cyan : current ? COLORS.pink : 0x2a3550;
-      const x = cx0 + i * 14;
-      p.lineStyle(3, color, current ? 0.6 + 0.4 * Math.sin(time * 0.01) : 1);
-      p.beginPath();
-      p.moveTo(x, 20);
-      p.lineTo(x + 6, 27);
-      p.lineTo(x, 34);
-      p.strokePath();
+      const x = cx0 + i * 9;
+      p.fillStyle(color, current ? 0.6 + 0.4 * Math.sin(time * 0.01) : 1);
+      p.fillRoundedRect(x, 84, 6, 3, 1);
     }
-    let frac = 0;
-    if (waves.state === 'spawning') frac = waves.spawned / Math.max(1, waves.totalInWave);
-    else if (waves.state === 'complete') frac = 1;
-    else frac = 1 - waves.countdown / Math.max(1, waves.countdownMax);
-    p.fillStyle(0x05080f, 1);
-    p.fillRoundedRect(28, 44, 284, 6, 3);
-    p.fillStyle(waves.state === 'spawning' ? COLORS.pink : COLORS.cyan, 1);
-    p.fillRoundedRect(28, 44, Math.max(6, 284 * frac), 6, 3);
 
     // wave call beacon
     const show = waves.canCallNext && !game.over;

@@ -111,7 +111,7 @@ export class UpgradePanel {
     this.tower = tower;
     this.lastCredits = -1;
     this.rebuild(credits);
-    const y = drawerY(dockTop, H);
+    const y = drawerY(this.scene, dockTop, H);
     if (!wasVisible) {
       this.root.setVisible(true).setAlpha(0);
       this.root.y = y + (dockTop ? -20 : 20);

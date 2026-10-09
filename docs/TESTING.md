@@ -66,7 +66,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Keyboard: Space, 1–5, U, S, F, P/Esc.
 - [ ] Mobile landscape: taps hit platforms, cards and buttons; text is readable.
 - [ ] Mobile portrait shows the rotate prompt.
-- [ ] Window resizing keeps the 16:9 battlefield centred and fully visible.
+- [ ] The game fills the whole screen at any aspect ratio (phone, tablet, ultrawide) and the battlefield stays fully visible; resizing and rotating re-fit it.
 
 ### Performance
 - [ ] Holds about 60 FPS during wave 10 on a mid-range laptop at 2x speed.

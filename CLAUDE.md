@@ -15,7 +15,7 @@ A Phaser 3 + TypeScript (strict) + Vite tower defense game for Poki. There are n
 - Platform: all Poki calls go through `src/game/platform/PokiAdapter.ts`, never `window.PokiSDK` directly.
 
 ## Conventions
-- Logical resolution is 1280×720 with `Scale.FIT`. UI and world share coordinates (no camera scroll).
+- The battlefield is 1280×720 in world coordinates. Phaser `Scale.EXPAND` grows the view to fill wider or taller screens, and every camera is centred on the battlefield (`utils/View.ts`). Pin edge UI with `viewBounds()`, never with `0` or `GAME_WIDTH`. The background is baked with `VIEW_PAD` of extra scenery.
 - Scene instances are reused: reset every field in `create()`, and remove external listeners on `SHUTDOWN`.
 - Don't call the field `game` inside a Scene subclass; it shadows `Phaser.Scene.game`. UIScene uses `gs`.
 - Container hit areas are centred. For children laid out from the top-left, add a centred `Zone` as the hit target (see `TowerMenu`).

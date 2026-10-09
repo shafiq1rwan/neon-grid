@@ -108,7 +108,7 @@ The clear bonus is paid as soon as a wave has finished spawning. A banner announ
 
 ## Map: Sector 7, Reactor Row
 
-- One winding road with 8 rounded turns. Enemies enter through a broken gate on the left and travel to the reactor on the right (about 2,300 px of road).
+- One winding road with 8 rounded turns. Enemies enter through a broken gate on the left and travel to the reactor on the right (about 2,500 px of road; it starts off-screen).
 - 10 fixed platforms, each beside 1 to 3 road segments. The central platforms (index 1 and 5) cover the most road.
 - Decoration: ruined buildings with flickering neon signs, wrecked vehicles, streetlights (some broken), rubble, pipes, tanks and barriers. All of it is baked into one background texture and kept dark so combat stays readable.
 

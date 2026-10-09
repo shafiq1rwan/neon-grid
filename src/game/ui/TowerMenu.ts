@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_HEIGHT, GAME_WIDTH, css } from '../config';
+import { COLORS, GAME_WIDTH, css } from '../config';
+import { viewBounds } from '../utils/View';
 import { TOWERS, TOWER_ORDER, type TowerDef, type TowerType } from '../data/towers';
 import { iconKey } from '../rendering/TowerRenderer';
 import { NeonButton, Icons, drawPanel, statBar, text } from './widgets';
@@ -19,8 +20,10 @@ export function statValues(def: TowerDef, levelIndex: number): { damage: number;
   };
 }
 
-export function drawerY(dockTop: boolean, h = DRAWER_H): number {
-  return dockTop ? DRAWER_TOP_Y : GAME_HEIGHT - h - 10;
+/** Drawer top edge: just under the HUD, or flush with the visible bottom edge. */
+export function drawerY(scene: Phaser.Scene, dockTop: boolean, h = DRAWER_H): number {
+  const view = viewBounds(scene);
+  return dockTop ? view.top + DRAWER_TOP_Y : view.bottom - h - 10;
 }
 
 interface Card {
@@ -159,7 +162,7 @@ export class TowerMenu {
 
   open(dockTop: boolean, credits: number): void {
     this.dockTop = dockTop;
-    const y = drawerY(dockTop);
+    const y = drawerY(this.scene, dockTop);
     this.refresh(credits);
     if (!this.visible) {
       this.root.setVisible(true).setAlpha(0);
@@ -185,6 +188,6 @@ export class TowerMenu {
   /** World-space centre of a tower card (for tutorial pointers). */
   cardCenter(type: TowerType): { x: number; y: number } {
     const card = this.cards.find((c) => c.type === type)!;
-    return { x: this.root.x + card.container.x + CARD_W / 2, y: drawerY(this.dockTop) + card.container.y + CARD_H / 2 };
+    return { x: this.root.x + card.container.x + CARD_W / 2, y: drawerY(this.scene, this.dockTop) + card.container.y + CARD_H / 2 };
   }
 }

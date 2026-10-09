@@ -7,6 +7,7 @@ import { generateEnemyTextures } from '../rendering/EnemyRenderer';
 import { generateEnvironment } from '../rendering/EnvironmentRenderer';
 import { generateTowerTextures } from '../rendering/TowerRenderer';
 import { PathData } from '../utils/MathUtils';
+import { centerCamera } from '../utils/View';
 import { text } from '../ui/widgets';
 
 /**
@@ -20,6 +21,7 @@ export class BootScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    centerCamera(this);
     const label = text(this, GAME_WIDTH / 2, GAME_HEIGHT / 2, 'INITIALISING DEFENSE GRID…', 20, COLORS.cyan).setOrigin(0.5);
     this.tweens.add({ targets: label, alpha: 0.4, duration: 400, yoyo: true, repeat: -1 });
 
