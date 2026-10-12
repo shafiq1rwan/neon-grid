@@ -5,6 +5,7 @@ import type { TowerDef } from '../data/towers';
 import { Enemy } from '../entities/Enemy';
 import { sfx } from '../audio/SoundSystem';
 import type { Effects } from '../rendering/EffectsRenderer';
+import { TANK_TEXTURES } from '../rendering/EnemyRenderer';
 import { rotateToward, type PathData, type PathSample } from '../utils/MathUtils';
 
 /** Icy tint for slowed machines. */
@@ -62,6 +63,7 @@ export class EnemySystem {
         this.list.splice(i, 1);
         continue;
       }
+      e.impactTimer = Math.max(0, e.impactTimer - dt);
       if (e.slowTimer > 0) {
         e.slowTimer -= dt;
         if (e.slowTimer <= 0) {
@@ -99,9 +101,28 @@ export class EnemySystem {
       }
 
       if (e.def.spawn) this.updateSpawner(e, dt);
+      if (e.def.type === 'juggernaut' || e.def.type === 'titan') this.updateTank(e, dt);
       this.place(e, dt);
     }
     this.drawBars();
+  }
+
+  private updateTank(e: Enemy, dt: number): void {
+    const size = e.def.type === 'titan' ? 1.6 : 1;
+    const rearX = e.x - Math.cos(e.angle) * 22 * size;
+    const rearY = e.y - 3 - Math.sin(e.angle) * 22 * size;
+    e.exhaustTimer -= dt;
+    if (e.exhaustTimer <= 0) {
+      e.exhaustTimer = 0.24;
+      this.effects.engineExhaust(rearX, rearY, false);
+    }
+    if (e.damagedLook) {
+      e.damageSmokeTimer -= dt;
+      if (e.damageSmokeTimer <= 0) {
+        e.damageSmokeTimer = e.hp < e.maxHp * 0.25 ? 0.16 : 0.32;
+        this.effects.engineExhaust(rearX, rearY, true);
+      }
+    }
   }
 
   private place(e: Enemy, _dt: number): void {
@@ -118,8 +139,14 @@ export class EnemySystem {
         bob = Math.sin(t * 3) * 2.5;
         break;
       case 'juggernaut':
-        scale = 1 + Math.sin(t * 14) * 0.012;
+      case 'titan': {
+        const size = e.def.type === 'titan' ? 1.6 : 1;
+        const frame = Math.floor(e.dist / (1.5 * size)) % 4;
+        const key = TANK_TEXTURES[e.def.type][e.damagedLook ? 1 : 0][frame];
+        if (e.sprite.texture.key !== key) e.sprite.setTexture(key);
+        bob = Math.sin(e.dist * 0.4 / size) * 0.35;
         break;
+      }
       case 'spawner':
         bob = Math.sin(t * 2) * 1.2;
         break;
@@ -207,8 +234,10 @@ export class EnemySystem {
         e.sprite.setTexture(`en_${e.def.type}_dmg`);
         this.effects.burst(e.x, e.y, e.def.color, 10);
         this.effects.puff(e.x, e.y, 3);
-      } else if (heavy && !continuous) {
-        this.effects.burst(e.x, e.y, e.def.color, 3);
+      }
+      if (heavy && e.hp > 0 && e.impactTimer <= 0) {
+        e.impactTimer = continuous ? 0.14 : 0.07;
+        this.effects.armorHit(e.x, e.y - 3, source.piercing);
       }
     }
     if (e.hp <= 0) {
@@ -238,16 +267,19 @@ export class EnemySystem {
     e.alive = false;
     this.kills++;
     const big = e.def.radius >= 18;
-    this.effects.burst(e.x, e.y, e.def.color, big ? 26 : 12);
-    this.effects.burst(e.x, e.y, 0xffffff, big ? 8 : 3);
-    this.effects.flash(e.x, e.y, e.def.color, big ? 1.6 : 0.8, 160);
-    if (big) {
-      this.effects.ring(e.x, e.y, 60, e.def.color, 450);
-      this.effects.puff(e.x, e.y, 4);
-      sfx.play('bigKill');
+    const tank = e.def.type === 'juggernaut' || e.def.type === 'titan';
+    if (tank) {
+      this.effects.tankDestruction(e.x, e.y, e.def.color, e.def.type === 'titan');
     } else {
-      sfx.play('kill');
+      this.effects.burst(e.x, e.y, e.def.color, big ? 26 : 12);
+      this.effects.burst(e.x, e.y, 0xffffff, big ? 8 : 3);
+      this.effects.flash(e.x, e.y, e.def.color, big ? 1.6 : 0.8, 160);
+      if (big) {
+        this.effects.ring(e.x, e.y, 60, e.def.color, 450);
+        this.effects.puff(e.x, e.y, 4);
+      }
     }
+    sfx.play(big ? 'bigKill' : 'kill');
     this.callbacks.onKilled(e);
     e.destroy();
   }

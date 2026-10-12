@@ -8,6 +8,10 @@ import { bakeTexture, circle, fillPoly, fillRR, glow, radial, shade, type Ctx } 
 /* ------------------------------------------------------------------ */
 
 export function generateEffectTextures(scene: Phaser.Scene): void {
+  bakeTexture(scene, 'fx_armor_fragment', 12, 10, (ctx) => {
+    fillPoly(ctx, [1, 2, 8, 1, 11, 5, 7, 9, 2, 7], '#667181', '#b3bdc9', 1);
+    fillPoly(ctx, [2, 3, 8, 2, 7, 5, 3, 6], '#303947');
+  });
   bakeTexture(scene, 'fx_glow', 64, 64, (ctx) => {
     ctx.fillStyle = radial(ctx, 32, 32, 32, [
       [0, 'rgba(255,255,255,1)'],
@@ -189,6 +193,9 @@ export class Effects {
   private readonly sparkEmitters = new Map<number, Phaser.GameObjects.Particles.ParticleEmitter>();
   private readonly trailEmitters = new Map<number, Phaser.GameObjects.Particles.ParticleEmitter>();
   private readonly smoke: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly exhaust: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly damageSmoke: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly fragments: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly ringPool: ObjectPool<Phaser.GameObjects.Image>;
   private readonly flashPool: ObjectPool<Phaser.GameObjects.Image>;
   private readonly textPool: ObjectPool<Phaser.GameObjects.Text>;
@@ -198,6 +205,23 @@ export class Effects {
 
   constructor(private readonly scene: Phaser.Scene) {
     this.gfx = scene.add.graphics().setDepth(DEPTH.EFFECT).setBlendMode(Phaser.BlendModes.ADD);
+    this.exhaust = scene.add.particles(0, 0, 'fx_smoke', {
+      lifespan: 500, speed: { min: 3, max: 9 },
+      scale: { start: 0.18, end: 0.6 }, alpha: { start: 0.24, end: 0 },
+      tint: 0x8795a8, emitting: false, maxParticles: 80,
+    }).setDepth(DEPTH.ENEMY_SHADOW + 0.1);
+    this.damageSmoke = scene.add.particles(0, 0, 'fx_smoke', {
+      lifespan: { min: 600, max: 1000 }, speedX: { min: -8, max: 8 },
+      speedY: { min: -28, max: -14 },
+      scale: { start: 0.35, end: 1.1 }, alpha: { start: 0.65, end: 0 },
+      tint: 0x646b78, emitting: false, maxParticles: 100,
+    }).setDepth(DEPTH.EFFECT - 1);
+    this.fragments = scene.add.particles(0, 0, 'fx_armor_fragment', {
+      lifespan: { min: 420, max: 750 }, speed: { min: 55, max: 145 },
+      rotate: { min: 0, max: 360 }, gravityY: 100,
+      scale: { start: 0.9, end: 0.35 }, alpha: { start: 1, end: 0 },
+      emitting: false, maxParticles: 80,
+    }).setDepth(DEPTH.EFFECT);
     this.smoke = scene.add
       .particles(0, 0, 'fx_smoke', {
         lifespan: { min: 500, max: 900 },
@@ -277,6 +301,9 @@ export class Effects {
   setTimeScale(scale: number): void {
     this.timeScale = scale;
     this.smoke.timeScale = scale;
+    this.exhaust.timeScale = scale;
+    this.damageSmoke.timeScale = scale;
+    this.fragments.timeScale = scale;
     for (const e of this.sparkEmitters.values()) e.timeScale = scale;
     for (const e of this.trailEmitters.values()) e.timeScale = scale;
   }
@@ -291,6 +318,23 @@ export class Effects {
 
   puff(x: number, y: number, count = 2): void {
     this.smoke.explode(count, x, y);
+  }
+
+  engineExhaust(x: number, y: number, damaged: boolean): void {
+    (damaged ? this.damageSmoke : this.exhaust).emitParticleAt(x, y, 1);
+  }
+
+  armorHit(x: number, y: number, piercing: boolean): void {
+    this.burst(x, y, piercing ? COLORS.orange : 0xffe2a3, piercing ? 5 : 3);
+    this.flash(x, y, piercing ? COLORS.orange : 0xfff0cc, piercing ? 0.55 : 0.25, 75);
+  }
+
+  tankDestruction(x: number, y: number, color: number, boss: boolean): void {
+    this.explosion(x, y, boss ? 85 : 52, color);
+    this.fragments.explode(boss ? 14 : 8, x, y);
+    this.damageSmoke.explode(boss ? 7 : 4, x, y);
+    // A short white core reads as a heavy impact without obscuring the battlefield.
+    this.flash(x, y, 0xffeed1, boss ? 1.1 : 0.65, 90);
   }
 
   ring(x: number, y: number, radius: number, color: number, duration = 380): void {

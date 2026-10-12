@@ -33,6 +33,9 @@ export const TOWER_TEX = 128;
 /** Tesla pylons are tall, so their base texture is taller with a lower anchor. */
 export const TESLA_TEX_H = 176;
 export const TESLA_ANCHOR_Y = 124;
+/** Extra headroom for upgraded Cryo crystals and their glow. */
+export const CRYO_TEX_H = 160;
+export const CRYO_ANCHOR_Y = 100;
 /** Offset from tower centre to the weapon pivot. */
 export const GUN_OFFSET_Y = -6;
 
@@ -51,6 +54,34 @@ export function gunKey(type: TowerType, level: number): string {
 }
 export function iconKey(type: TowerType, level: number): string {
   return `tw_${type}_${level}_icon`;
+}
+
+export function weaponScale(level: number): number {
+  return 1 + (level - 1) * 0.09;
+}
+
+/** Keep projectile origins tied to the geometry baked below. */
+export function muzzleDistance(type: TowerType, level: number): number {
+  let distance = 0;
+  switch (type) {
+    case 'pulse': distance = pulseBarrelLength(level) + 3.5; break;
+    case 'cannon': distance = cannonBarrelLength(level) + 12; break;
+    case 'missile': distance = 17.5; break;
+    case 'laser': distance = laserBarrelLength(level) + 6.5; break;
+  }
+  return distance * weaponScale(level);
+}
+
+function pulseBarrelLength(level: number): number {
+  return level === 1 ? 26 : level === 2 ? 31 : 35;
+}
+
+function cannonBarrelLength(level: number): number {
+  return level === 1 ? 22 : level === 2 ? 30 : 32;
+}
+
+function laserBarrelLength(level: number): number {
+  return 26 + (level - 1) * 4;
 }
 
 /** Height of the cryo crystal's centre above the tower centre for a level. */
@@ -73,8 +104,8 @@ export function generateTowerTextures(scene: Phaser.Scene): void {
           drawTesla(ctx, level, color);
         });
       } else if (type === 'cryo') {
-        bakeTexture(scene, baseKey(type, level), TOWER_TEX, TOWER_TEX, (ctx) => {
-          ctx.translate(TOWER_TEX / 2, TOWER_TEX / 2);
+        bakeTexture(scene, baseKey(type, level), TOWER_TEX, CRYO_TEX_H, (ctx) => {
+          ctx.translate(TOWER_TEX / 2, CRYO_ANCHOR_Y);
           drawCryo(ctx, level, color);
         });
       } else {
@@ -90,11 +121,11 @@ export function generateTowerTextures(scene: Phaser.Scene): void {
       }
       bakeTexture(scene, iconKey(type, level), TOWER_TEX, TOWER_TEX, (ctx) => {
         if (type === 'cryo') {
-          ctx.translate(TOWER_TEX / 2, TOWER_TEX / 2 + 16);
-          ctx.scale(0.92, 0.92);
+          ctx.translate(TOWER_TEX / 2, 88);
+          ctx.scale(0.82, 0.82);
           drawCryo(ctx, level, color);
         } else if (type === 'tesla') {
-          ctx.translate(TOWER_TEX / 2, TOWER_TEX * 0.8);
+          ctx.translate(TOWER_TEX / 2, 88);
           ctx.scale(0.78, 0.78);
           drawTesla(ctx, level, color);
           drawTeslaOrbAt(ctx, 0, teslaTopY(level) - 6, 9 + level, color);
@@ -197,6 +228,12 @@ function drawFoundation(ctx: Ctx, level: number, color: number): void {
       neonDot(ctx, px, py - 7, 2, color, 8);
     }
   }
+
+  // One, two, or three broad front indicators also identify level at a glance.
+  for (let k = 0; k < level; k++) {
+    const x = (k - (level - 1) / 2) * 7;
+    fillRR(ctx, x - 2.3, fy - 2.5, 4.6, 5, 1, css(shade(color, 0.85)), '#07101c', 0.8);
+  }
 }
 
 function drawMountRing(ctx: Ctx, level: number, color: number): void {
@@ -214,7 +251,7 @@ function drawMountRing(ctx: Ctx, level: number, color: number): void {
 /* ------------------------------------------------------------------ */
 
 function drawGun(ctx: Ctx, type: TowerType, level: number, color: number): void {
-  const s = 1 + (level - 1) * 0.09;
+  const s = weaponScale(level);
   ctx.save();
   ctx.scale(s, s);
   switch (type) {
@@ -247,7 +284,7 @@ function housing(ctx: Ctx, pts: number[], x: number, y: number, w: number, h: nu
 
 function drawPulseGun(ctx: Ctx, level: number, c: number): void {
   const ext = level >= 2 ? 5 : 0;
-  const len = 26 + ext + (level === 3 ? 3 : 0);
+  const len = pulseBarrelLength(level);
 
   // side rails
   if (level >= 2) {
@@ -257,10 +294,13 @@ function drawPulseGun(ctx: Ctx, level: number, c: number): void {
     }
   }
   // capacitor pods
-  if (level === 3) {
-    for (const y of [-14, 14]) {
-      circle(ctx, -4, y, 6, metalGradient(ctx, -10, y - 6, 12, 12, RAISED), EDGE, 1.1);
-      energyCore(ctx, -4, y, 2.6, c);
+  if (level >= 2) {
+    const podY = level === 3 ? 19 : 15;
+    const podR = level === 3 ? 7 : 5;
+    for (const y of [-podY, podY]) {
+      fillRR(ctx, -8, Math.min(0, y), 7, Math.abs(y), 2, css(DARK), EDGE_DIM);
+      circle(ctx, -4, y, podR, metalGradient(ctx, -11, y - podR, 14, podR * 2, RAISED), EDGE, 1.1);
+      energyCore(ctx, -4, y, level === 3 ? 4 : 2.5, c);
     }
   }
 
@@ -276,8 +316,9 @@ function drawPulseGun(ctx: Ctx, level: number, c: number): void {
     }
   }
   // muzzle emitter
-  fillRR(ctx, len, -5.5, 6, 11, 2, metalGradient(ctx, len, -6, 6, 12, RAISED), EDGE);
-  neonDot(ctx, len + 3.5, 0, 2.4, c, 9);
+  const muzzleHalf = level === 3 ? 8 : level === 2 ? 6.5 : 5.5;
+  fillRR(ctx, len, -muzzleHalf, 6, muzzleHalf * 2, 2, metalGradient(ctx, len, -muzzleHalf, 6, muzzleHalf * 2, RAISED), EDGE);
+  neonDot(ctx, len + 3.5, 0, 2.4 + (level - 1) * 0.5, c, 7);
 
   // housing
   const hw = level === 1 ? 0 : 2;
@@ -290,7 +331,7 @@ function drawPulseGun(ctx: Ctx, level: number, c: number): void {
   fillPoly(ctx, [-11, -7, 3, -7, 7, -3, 7, 3, 3, 7, -11, 7], css(shade(RAISED, 0.8)), EDGE_DIM, 0.8);
   line(ctx, -15 - hw, -11 - hw + 1, 4, -11 - hw + 1, 'rgba(160,190,230,0.45)', 0.8);
   vents(ctx, -18 - hw, -5, 4, 10, 3);
-  energyCore(ctx, -2, 0, 3.8, c);
+  energyCore(ctx, -2, 0, 3.8 + (level - 1) * 0.8, c);
   bolt(ctx, -13 - hw, -8.5 - hw, 1.1);
   bolt(ctx, -13 - hw, 8.5 + hw, 1.1);
   bolt(ctx, 5, -8.5 - hw, 1.1);
@@ -302,15 +343,15 @@ function drawPulseGun(ctx: Ctx, level: number, c: number): void {
 }
 
 function drawCannonGun(ctx: Ctx, level: number, c: number): void {
-  const barrels = level === 3 ? [-7, 7] : [0];
-  const len = level === 1 ? 22 : 26;
-  const bw = level === 3 ? 9 : level === 2 ? 13 : 12;
+  const barrels = level === 3 ? [-8, 8] : [0];
+  const len = cannonBarrelLength(level);
+  const bw = level === 3 ? 10 : level === 2 ? 16 : 12;
 
   for (const by of barrels) {
     fillRR(ctx, 6, by - bw / 2, len, bw, 2.5, metalGradient(ctx, 6, by - bw / 2, len, bw, DARK, 2.4, 0.8), EDGE);
     // reinforcement bands
     for (let k = 0; k < 3; k++) {
-      const bx = 10 + k * 6;
+      const bx = 10 + k * (len - 8) / 3;
       line(ctx, bx, by - bw / 2 + 1, bx, by + bw / 2 - 1, 'rgba(0,0,0,0.6)', 1.3);
     }
     neonLine(ctx, 9, by - bw / 2 + 1.6, 6 + len - 3, by - bw / 2 + 1.6, c, 0.9, 4);
@@ -333,7 +374,7 @@ function drawCannonGun(ctx: Ctx, level: number, c: number): void {
   }
 
   // heavy armoured housing
-  const e = level === 1 ? 0 : 2;
+  const e = (level - 1) * 3;
   const pts = [
     -17 - e, -14 - e, 6, -14 - e, 13 + e, -8, 13 + e, 8, 6, 14 + e, -17 - e, 14 + e, -20 - e, 10,
     -20 - e, -10,
@@ -343,8 +384,8 @@ function drawCannonGun(ctx: Ctx, level: number, c: number): void {
   fillPoly(ctx, [4, -10, 12 + e, -6, 12 + e, 6, 4, 10], css(shade(RAISED, 1.2)), EDGE, 1);
   // side skirts
   if (level >= 2) {
-    fillRR(ctx, -16, -19 - e + 2, 20, 4.5, 1.5, css(shade(RAISED, 0.9)), EDGE);
-    fillRR(ctx, -16, 15 + e - 2, 20, 4.5, 1.5, css(shade(RAISED, 0.9)), EDGE);
+    fillRR(ctx, -17, -19 - e + 2, 24, 6, 1.5, css(shade(RAISED, 1.3)), EDGE);
+    fillRR(ctx, -17, 15 + e - 2, 24, 6, 1.5, css(shade(RAISED, 1.3)), EDGE);
   }
   // pink vents
   for (const y of [-10, 10]) {
@@ -352,7 +393,7 @@ function drawCannonGun(ctx: Ctx, level: number, c: number): void {
   }
   // hatch with energy core
   circle(ctx, -6, 0, 6.5, css(DARK), EDGE, 1);
-  energyCore(ctx, -6, 0, 4, c);
+  energyCore(ctx, -6, 0, 4 + (level - 1) * 0.7, c);
   vents(ctx, -19 - e, -6, 4, 12, 3);
   bolt(ctx, -15, -11, 1.2);
   bolt(ctx, -15, 11, 1.2);
@@ -361,8 +402,8 @@ function drawCannonGun(ctx: Ctx, level: number, c: number): void {
 }
 
 function drawMissileGun(ctx: Ctx, level: number, c: number): void {
-  const rows = level === 1 ? [-6, 6] : level === 2 ? [-10, 0, 10] : [-15, -5, 5, 15];
-  const half = rows.length * 5 + 4;
+  const rows = level === 1 ? [-6, 6] : level === 2 ? [-11, 0, 11] : [-21, -10, 10, 21];
+  const half = level === 3 ? 28 : rows.length * 5 + 4;
 
   // side armour plates
   if (level >= 2) {
@@ -373,8 +414,20 @@ function drawMissileGun(ctx: Ctx, level: number, c: number): void {
   }
 
   // launcher box
-  const box = [-18, -half, 12, -half, 16, -half + 4, 16, half - 4, 12, half, -18, half];
-  housing(ctx, box, -18, -half, 34, half * 2);
+  if (level === 3) {
+    // Two separated banks make the final launcher unmistakably wider.
+    fillRR(ctx, -12, -half, 14, half * 2, 2, css(DARK), EDGE_DIM);
+    for (const sign of [-1, 1]) {
+      ctx.save();
+      ctx.scale(1, sign);
+      const box = [-20, 5, 12, 5, 17, 10, 17, 23, 12, 28, -20, 28];
+      housing(ctx, box, -20, 5, 37, 23);
+      ctx.restore();
+    }
+  } else {
+    const box = [-18, -half, 12, -half, 16, -half + 4, 16, half - 4, 12, half, -18, half];
+    housing(ctx, box, -18, -half, 34, half * 2);
+  }
 
   // missile tubes with warheads
   for (const y of rows) {
@@ -400,7 +453,7 @@ function drawMissileGun(ctx: Ctx, level: number, c: number): void {
   }
   if (level === 3) {
     // extra shoulder pods
-    for (const sy of [-half - 9, half + 4]) {
+    for (const sy of [-half - 8, half + 3]) {
       fillRR(ctx, -14, sy, 14, 5, 2, css(DARK), EDGE);
       neonDot(ctx, 0, sy + 2.5, 1.5, c, 5);
     }
@@ -408,13 +461,14 @@ function drawMissileGun(ctx: Ctx, level: number, c: number): void {
 }
 
 function drawLaserGun(ctx: Ctx, level: number, c: number): void {
-  const len = 26 + (level - 1) * 4;
+  const len = laserBarrelLength(level);
 
   // cooling fins along the barrel
   if (level >= 2) {
-    for (let k = 0; k < 3; k++) {
+    for (let k = 0; k < (level === 3 ? 4 : 3); k++) {
       const fx = 10 + k * 5;
-      fillRR(ctx, fx, -8, 2.5, 16, 1, css(shade(RAISED, 0.85)), EDGE_DIM, 0.8);
+      const half = level === 3 ? 13 : 9;
+      fillRR(ctx, fx, -half, 3.5, half * 2, 1, css(shade(RAISED, 1.3)), EDGE, 0.8);
     }
   }
   // barrel
@@ -426,8 +480,8 @@ function drawLaserGun(ctx: Ctx, level: number, c: number): void {
   if (level === 3) {
     ctx.save();
     for (const sgn of [-1, 1]) {
-      fillPoly(ctx, [lx - 4, sgn * 6, lx + 8, sgn * 4, lx + 6, sgn * 9, lx - 6, sgn * 11], css(RAISED), EDGE);
-      neonDot(ctx, lx + 6, sgn * 6, 1.3, c, 5);
+      fillPoly(ctx, [lx - 7, sgn * 8, lx + 7, sgn * 6, lx + 5, sgn * 14, lx - 9, sgn * 17], css(shade(RAISED, 1.4)), EDGE);
+      neonLine(ctx, lx - 4, sgn * 12, lx + 4, sgn * 9, c, 1.5, 4);
     }
     ctx.restore();
   }
@@ -465,7 +519,7 @@ function drawLaserGun(ctx: Ctx, level: number, c: number): void {
     neonLine(ctx, -14, -11 - e + 2, 0, -11 - e + 2, c, 1.1, 5);
     neonLine(ctx, -14, 11 + e - 2, 0, 11 + e - 2, c, 1.1, 5);
   }
-  energyCore(ctx, -4, 0, 3.6, c);
+  energyCore(ctx, -4, 0, 3.6 + (level - 1) * 0.9, c);
   bolt(ctx, -14, -8, 1.1);
   bolt(ctx, -14, 8, 1.1);
 }
@@ -480,15 +534,18 @@ function drawTesla(ctx: Ctx, level: number, c: number): void {
 
   // satellite pylons at level 2+
   if (level >= 2) {
-    const sats = level === 3 ? [-21, 21] : [-19, 19];
-    const sh = level === 3 ? 22 : 13;
+    const sats = level === 3 ? [-24, 24] : [-20, 20];
+    const sh = level === 3 ? 42 : 27;
     for (const sx of sats) {
-      fillRR(ctx, sx - 3, -sh - 2, 6, sh + 2, 1.5, metalGradient(ctx, sx - 3, -sh, 6, sh, RAISED), EDGE);
+      fillRR(ctx, sx - 4, -sh - 2, 8, sh + 2, 1.5, metalGradient(ctx, sx - 4, -sh, 8, sh, RAISED), EDGE);
       ctx.save();
       glow(ctx, c, 5);
       ellipse(ctx, sx, -sh * 0.55, 5, 2, undefined, css(c), 1.2);
       ctx.restore();
-      neonDot(ctx, sx, -sh - 3, level === 3 ? 2.6 : 1.8, c, 8);
+      energyCore(ctx, sx, -sh - 3, level === 3 ? 4 : 2.8, c);
+      if (level === 3) {
+        line(ctx, sx, -sh + 3, sx * 0.4, top + 8, css(shade(c, 0.6)), 1.5);
+      }
     }
   }
 
@@ -499,7 +556,7 @@ function drawTesla(ctx: Ctx, level: number, c: number): void {
   }
 
   // central column
-  const cw = 13;
+  const cw = 13 + (level - 1) * 3;
   const colGrad = ctx.createLinearGradient(-cw / 2, 0, cw / 2, 0);
   colGrad.addColorStop(0, css(shade(RAISED, 1.7)));
   colGrad.addColorStop(0.45, css(RAISED));
@@ -612,10 +669,13 @@ function drawCryo(ctx: Ctx, level: number, c: number): void {
     ctx.restore();
   };
   if (level === 3) {
-    crystal(-8, cy + 6, 7, 3.5, -0.45);
-    crystal(8, cy + 6, 7, 3.5, 0.45);
+    crystal(-14, cy + 5, 13, 5, -0.5);
+    crystal(14, cy + 5, 13, 5, 0.5);
+  } else if (level === 2) {
+    crystal(-10, cy + 7, 9, 4, -0.45);
+    crystal(10, cy + 7, 9, 4, 0.45);
   }
-  crystal(0, cy, 9 + level * 1.5, 4.5 + level * 0.6, 0);
+  crystal(0, cy, 8 + level * 3.5, 4 + level * 1.1, 0);
   if (level >= 2) {
     // frost halo ring around the crystal
     ctx.save();

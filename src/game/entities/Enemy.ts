@@ -34,6 +34,9 @@ export class Enemy {
   slowTimer = 0;
   spawnTimer = 0;
   trailTimer = 0;
+  exhaustTimer = 0;
+  damageSmokeTimer = 0;
+  impactTimer = 0;
   readonly phase = Math.random() * Math.PI * 2;
   damagedLook = false;
 

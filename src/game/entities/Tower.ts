@@ -3,17 +3,17 @@ import { DEPTH } from '../config';
 import { totalInvestment, type TowerDef, type TowerLevel } from '../data/towers';
 import {
   GUN_OFFSET_Y,
+  CRYO_ANCHOR_Y,
+  CRYO_TEX_H,
   TESLA_ANCHOR_Y,
   TESLA_TEX_H,
   baseKey,
   cryoCoreY,
   gunKey,
+  muzzleDistance,
   teslaTopY,
 } from '../rendering/TowerRenderer';
 import type { Enemy } from './Enemy';
-
-/** Distance from the weapon pivot to the muzzle at level 1. */
-const MUZZLE: Record<string, number> = { pulse: 34, cannon: 36, missile: 18, laser: 36, tesla: 0, cryo: 0 };
 
 export class Tower {
   readonly base: Phaser.GameObjects.Image;
@@ -59,7 +59,7 @@ export class Tower {
         .setAlpha(0.5);
     } else if (def.type === 'cryo') {
       // stationary emitter: glow sits on the frost crystal
-      this.base.setOrigin(0.5, 0.5);
+      this.base.setOrigin(0.5, CRYO_ANCHOR_Y / CRYO_TEX_H);
       this.coreGlow = scene.add
         .image(x, y + cryoCoreY(1), 'fx_glow')
         .setDepth(depth + 0.001)
@@ -112,7 +112,7 @@ export class Tower {
       out.y = this.pivotY;
       return;
     }
-    const len = MUZZLE[this.def.type] * (1 + (this.level - 1) * 0.09) + (this.def.type === 'laser' ? (this.level - 1) * 4 : 0);
+    const len = muzzleDistance(this.def.type, this.level);
     const c = Math.cos(this.aim);
     const s = Math.sin(this.aim);
     out.x = this.x + c * len - s * lateral;

@@ -91,8 +91,8 @@ Choose from the options the form offers. These are the closest fits:
 ### Static thumbnail (required for the player fit test) ✅
 - **File:** `output/marketing/poki-thumbnail.png`, 1254 × 1254, full-bleed, no text.
 - **Poki's rule:** a square at least 628 × 628, with no borders, padding or letterboxing. The file already meets this.
-- **Content:** the Pulse turret firing at a Juggernaut, a Tesla tower arcing drones, and the reactor. No text, no Poki logo. The colors stay away from Poki's background `#83FFE7`.
-- **Watch-out:** the thumbnail is more detailed and painterly than the in-game vector art. Poki asks that thumbnails match the game. If test results suggest a mismatch, regenerate it closer to the in-game look.
+- **Content:** a large cyan Pulse turret firing at an orange Juggernaut on a simple curved road. Two bold subjects, a quiet navy background, and no text or logos. Redesigned on 2026-10-12 for clearer readability at small sizes.
+- **Style:** simplified geometric game illustration with restrained neon glow. The artwork still has more depth than the in-game vector art; assess its match during player testing.
 
 ### Animated thumbnail (needed during Soft Release, before global release) ⏳
 Poki's spec: **1080 × 1080 or larger, 1:1, at least 50 fps, 4–6 s, muted, .mp4, at most 100 MB**. It should focus on gameplay with minimal text: 2–3 scenes of about 1–2 s each, starting from the static artwork, with simplified UI and no cursor.

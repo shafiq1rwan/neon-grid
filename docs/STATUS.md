@@ -31,6 +31,10 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 
 ## What the game contains (v1.0.1)
 
+- **Local art update (2026-10-12):** revised Juggernaut/Titan chassis and damaged textures for clearer silhouettes. Production build and browser texture checks pass; preview at `output/tank-design-preview.png`.
+- **Local combat polish (2026-10-12):** animated treads, exhaust, damage smoke, armor-hit sparks, and tank destruction debris. Build and browser checks pass for frost slowdown, pause/resume, 2x effects, kill rewards, particle caps, and restart cleanup. Gameplay preview at `output/tank-polish-gameplay.png`.
+- **Local tower polish (2026-10-12):** stronger upgrade silhouettes for all six towers, front level indicators, aligned muzzle origins, and more texture headroom for Cryo. Browser checks pass for all 18 levels, upgrade costs, texture swaps, rotated muzzle positions, and unclipped icons. Comparison at `output/tower-upgrades-preview.png`.
+
 - **Campaign:** 3 sectors, 32 waves, about 20 minutes in total.
   - Reactor Row: 10 waves, 4 towers, plus the tutorial.
   - Twin Gates: 10 waves, two lanes, unlocks Laser.

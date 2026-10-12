@@ -40,6 +40,14 @@ export function enemyKey(type: EnemyType): string {
 
 const EDGE = css(0x5a4660);
 
+// Four baked tread positions; movement selects a frame by distance travelled.
+export const TANK_TEXTURES = Object.fromEntries(
+  (['juggernaut', 'titan'] as const).map((type) => [type,
+    [false, true].map((damaged) => Array.from({ length: 4 }, (_, frame) =>
+      `en_${type}${damaged ? '_dmg' : ''}${frame ? `_track${frame}` : ''}`)),
+  ]),
+) as Record<'juggernaut' | 'titan', string[][]>;
+
 export function generateEnemyTextures(scene: Phaser.Scene): void {
   const make = (key: string, size: number, draw: (ctx: Ctx) => void): void =>
     bakeTexture(scene, key, size, size, (ctx) => {
@@ -50,10 +58,16 @@ export function generateEnemyTextures(scene: Phaser.Scene): void {
   make(enemyKey('drone'), ENEMY_TEX_SIZE.drone, (ctx) => drawDrone(ctx, 1, COLORS.red));
   make(enemyKey('mini'), ENEMY_TEX_SIZE.mini, (ctx) => drawDrone(ctx, 0.62, COLORS.red));
   make(enemyKey('runner'), ENEMY_TEX_SIZE.runner, (ctx) => drawRunner(ctx));
-  make(enemyKey('juggernaut'), ENEMY_TEX_SIZE.juggernaut, (ctx) => drawJuggernaut(ctx, false));
-  make('en_juggernaut_dmg', ENEMY_TEX_SIZE.juggernaut, (ctx) => drawJuggernaut(ctx, true));
-  make(enemyKey('titan'), ENEMY_TEX_SIZE.titan, (ctx) => drawTitan(ctx, false));
-  make('en_titan_dmg', ENEMY_TEX_SIZE.titan, (ctx) => drawTitan(ctx, true));
+  for (const type of ['juggernaut', 'titan'] as const) {
+    for (let damage = 0; damage < 2; damage++) {
+      for (let frame = 0; frame < 4; frame++) {
+        make(TANK_TEXTURES[type][damage][frame], ENEMY_TEX_SIZE[type], (ctx) => {
+          if (type === 'titan') drawTitan(ctx, damage === 1, frame * 1.5);
+          else drawJuggernaut(ctx, damage === 1, COLORS.orange, 0x6b3812, frame * 1.5);
+        });
+      }
+    }
+  }
   make(enemyKey('specter'), ENEMY_TEX_SIZE.specter, (ctx) => drawSpecter(ctx));
   make(enemyKey('spawner'), ENEMY_TEX_SIZE.spawner, (ctx) => drawSpawner(ctx));
   make('spawner_hatch', 40, (ctx) => drawHatchGlow(ctx));
@@ -136,7 +150,7 @@ function drawRunner(ctx: Ctx): void {
 }
 
 /** Boss: a scaled-up war machine in red armour with twin side cannons. */
-function drawTitan(ctx: Ctx, damaged: boolean): void {
+function drawTitan(ctx: Ctx, damaged: boolean, trackOffset = 0): void {
   ctx.save();
   ctx.scale(1.6, 1.6);
   // twin side cannons under the hull
@@ -144,7 +158,7 @@ function drawTitan(ctx: Ctx, damaged: boolean): void {
     fillRR(ctx, 4, sy - 2.5, 26, 5, 2, css(0x1b1214), css(0x5a2a30), 1);
     neonDot(ctx, 30, sy, 1.6, COLORS.red, 6);
   }
-  drawJuggernaut(ctx, damaged, COLORS.red, 0x4a1420);
+  drawJuggernaut(ctx, damaged, COLORS.red, 0x4a1420, trackOffset);
   // command spires
   for (const sx of [-12, -4]) {
     fillPoly(ctx, [sx - 3, -4, sx, -10, sx + 3, -4], css(0x2a1218), css(COLORS.red), 0.8);
@@ -153,38 +167,51 @@ function drawTitan(ctx: Ctx, damaged: boolean): void {
   ctx.restore();
 }
 
-function drawJuggernaut(ctx: Ctx, damaged: boolean, c: number = COLORS.orange, armor = 0x6b3812): void {
-  // drop shadow
-  fillRR(ctx, -21, -19, 44, 42, 6, 'rgba(0,0,0,0.5)');
-  // treads
-  for (const ty of [-20, 12]) {
-    fillRR(ctx, -22, ty, 44, 9, 3, css(0x15171d), css(0x3a3f4b), 1);
-    for (let k = 0; k < 9; k++) {
-      const tx = -20 + k * 5;
-      line(ctx, tx, ty + 1, tx, ty + 8, 'rgba(110,115,130,0.55)', 1.2);
+function drawJuggernaut(ctx: Ctx, damaged: boolean, c: number = COLORS.orange, armor = 0x6b3812, trackOffset = 0): void {
+  // Broad, exposed track pods make the silhouette readable at gameplay scale.
+  fillRR(ctx, -24, -21, 51, 46, 7, 'rgba(0,0,0,0.5)');
+  for (const ty of [-23, 13]) {
+    fillRR(ctx, -25, ty, 49, 11, 4, '#090d15', '#586170', 1.2);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-23, ty + 1, 45, 9);
+    ctx.clip();
+    for (let k = -1; k < 9; k++) {
+      const tx = -21 + k * 6 - trackOffset;
+      fillRR(ctx, tx, ty + 2, 3.5, 7, 0.7, '#343d4b');
+      line(ctx, tx, ty + 2, tx + 3, ty + 2, '#748093', 0.8);
     }
+    ctx.restore();
+    // A single armor rail leaves the outer tread visible.
+    const railY = ty < 0 ? ty + 7 : ty;
+    fillRR(ctx, -18, railY, 34, 4, 1.5, css(shade(armor, 1.4)), css(shade(c, 0.65)), 0.8);
+    neonLine(ctx, 17, ty + 3, 17, ty + 8, c, 1.5, 3);
   }
-  // hull
-  const hull = [20, -12, 24, -6, 24, 6, 20, 12, -18, 12, -21, 8, -21, -8, -18, -12];
-  fillPoly(ctx, hull, metalGradient(ctx, -21, -12, 45, 24, armor, 1.7, 0.6), css(shade(c, 0.8)), 1.3);
-  // armour plates
-  fillPoly(ctx, [10, -9, 21, -5, 21, 5, 10, 9], css(shade(armor, 1.35)), css(shade(c, 0.6)), 1);
-  for (const py of [-10, 6]) {
-    fillRR(ctx, -16, py, 22, 4, 1, css(shade(armor, 1.15)), css(shade(c, 0.5)), 0.8);
-    bolt(ctx, -14, py + 2, 0.9);
-    bolt(ctx, 4, py + 2, 0.9);
-  }
-  vents(ctx, -20, -5, 4, 10, 3);
-  // dome turret
-  circle(ctx, -2, 0, 8.5, metalGradient(ctx, -10, -8, 16, 16, shade(armor, 1.2), 1.7, 0.7), css(shade(c, 0.7)), 1.2);
-  fillRR(ctx, 4, -2, 12, 4, 1.5, css(0x22140a), css(shade(c, 0.6)), 1);
-  ctx.save();
-  glow(ctx, c, 8);
-  fillRR(ctx, -5, -1.2, 8, 2.4, 1, css(c));
-  ctx.restore();
-  neonLine(ctx, 22, -5, 22, 5, c, 1.4, 6);
-  neonDot(ctx, -19, -10, 1.2, c, 5);
-  neonDot(ctx, -19, 10, 1.2, c, 5);
+
+  // Low wedge hull with a bright front glacis and a recessed rear engine deck.
+  const hull = [-23, -10, -17, -16, 14, -16, 25, -8, 25, 8, 14, 16, -17, 16, -23, 10];
+  fillPoly(ctx, hull, metalGradient(ctx, -23, -16, 48, 32, armor, 1.65, 0.65), '#0a101b', 2);
+  line(ctx, -17, -15, 14, -15, css(shade(c, 0.85)), 1.2);
+  fillPoly(ctx, [13, -13, 23, -7, 23, 7, 13, 13, 16, 0], css(shade(armor, 1.8)), css(shade(c, 0.6)), 0.8);
+  fillRR(ctx, -21, -8, 8, 16, 2, '#161c26', '#55525a', 0.8);
+  vents(ctx, -20, -6, 6, 12, 4);
+  neonLine(ctx, 21, -9, 24, -6, c, 1.8, 4);
+  neonLine(ctx, 21, 9, 24, 6, c, 1.8, 4);
+
+  // Raised angular turret, with a barrel that clearly extends past the hull.
+  circle(ctx, -2, 1, 12, '#10151f', '#5b5050', 1);
+  fillRR(ctx, 4, -3, 27, 6, 1, '#202a38', '#788393', 1);
+  line(ctx, 9, -1.5, 29, -1.5, css(shade(c, 0.85)), 1.2);
+  fillPoly(ctx, [28, -4, 34, -3, 34, 3, 28, 4], '#394353', '#9298a0', 1);
+  line(ctx, 33, -2, 33, 2, '#080d16', 2);
+  const turret = [-13, -7, -8, -11, 5, -11, 12, -5, 12, 5, 5, 11, -8, 11, -13, 7];
+  fillPoly(ctx, turret, metalGradient(ctx, -13, -11, 25, 22, armor, 2.1, 0.85), '#111722', 1.6);
+  line(ctx, -8, -10, 4, -10, css(shade(c, 1.15)), 1.2);
+  fillPoly(ctx, [-10, 5, 5, 5, 10, 2, 10, 5, 4, 9, -7, 9], css(shade(armor, 0.65)));
+  circle(ctx, -3, -1, 5.5, '#151b25', css(shade(c, 0.65)), 1);
+  energyCore(ctx, -3, -1, 3.4, c);
+  neonDot(ctx, -20, -12, 1.2, c, 3);
+  neonDot(ctx, -20, 12, 1.2, c, 3);
 
   if (damaged) {
     // torn armour with exposed glowing internals and cracks

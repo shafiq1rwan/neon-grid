@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Strengthened all six towers' upgrade silhouettes: larger Pulse capacitors, heavier Cannon armor and twin barrels, split Missile racks, wider Laser focusing hardware, taller Tesla side pylons, and larger Cryo crystal clusters. Added front level indicators, aligned projectile origins with weapon geometry, and fixed Tesla icon clipping.
+- Revised the in-game Juggernaut tank with broader exposed tracks, a wedge hull, an angular turret, and a longer cannon. The Titan inherits the updated chassis, with both damaged variants retained.
+- Added distance-driven tread animation, engine exhaust, and smoke that thickens below 25% tank health. Armor hits produce distinct sparks, and destroyed tanks shed armor fragments; the Titan has a larger blast. Effects respect pause and game speed, with capped smoke and debris particles.
+
 ## 1.0.1 — 2026-10-09
 
 ### Added

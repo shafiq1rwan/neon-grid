@@ -48,6 +48,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 
 ### Building and economy
 - [ ] Every tower allowed in the sector can be built (4 / 5 / 6 per sector), and towers not allowed can't. Credits are deducted and a cost popup appears.
+- [ ] All six towers have distinguishable Lv1/Lv2/Lv3 silhouettes and front level indicators. Icons show complete foundations; Cryo crystals remain aligned with their glow after upgrades.
 - [ ] Unaffordable cards are greyed out with a red cost; tapping one shakes it and plays an error sound.
 - [ ] Upgrades reach Lv3. The visuals change at each level. The button shows MAX LEVEL at Lv3.
 - [ ] Selling refunds 70% of the total investment, and the platform hint comes back.
@@ -59,6 +60,8 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Shields absorb damage and shatter visibly; Tesla clearly melts them.
 - [ ] Cryo pulses tint machines icy blue and visibly slow them; the Titan and Juggernauts slow less.
 - [ ] The Juggernaut switches to its damaged texture below 50% HP.
+- [ ] Juggernaut/Titan treads animate with travel distance and slow with frost. Exhaust trails the rear; damage smoke appears below 50% HP and thickens below 25%.
+- [ ] Tank armor hits spark; tank destruction throws fragments, with a larger Titan blast. Pause freezes these effects; 2x accelerates them; restart leaves no duplicate emitters.
 - [ ] Spawners glow, then release swarmlings that keep following the road.
 - [ ] Health bars appear only on damaged enemies.
 - [ ] Enemies reaching the reactor cost HP, with a red flash and a small screen shake.
