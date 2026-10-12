@@ -141,7 +141,7 @@ export class HUD {
   /** Pin the HUD to the visible screen edges (the view can be wider/taller than 1280×720). */
   layout(view: ViewBounds): void {
     this.left.setPosition(view.left, view.top);
-    this.right.setPosition(view.right - GAME_WIDTH, view.top);
+    this.right.setScale(1).setPosition(view.right - GAME_WIDTH, view.top);
   }
 
   /** Pop when a charge is gained; shake red when a hack is denied. */

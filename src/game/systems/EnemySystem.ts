@@ -295,7 +295,7 @@ export class EnemySystem {
 
   /**
    * Turn a machine to our side: it walks back down the road and detonates
-   * when it touches the horde (see docs/kiv.md). `duration` lets hacked
+   * when it touches the horde (see docs/GAME_DESIGN.md → Hacking). `duration` lets hacked
    * spawners pass their remaining time to their swarmlings.
    */
   hack(e: Enemy, perfect: boolean, duration?: number): void {

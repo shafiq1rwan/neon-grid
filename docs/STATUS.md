@@ -34,6 +34,9 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 - **Local art update (2026-10-12):** revised Juggernaut/Titan chassis and damaged textures for clearer silhouettes. Production build and browser texture checks pass; preview at `output/tank-design-preview.png`.
 - **Local combat polish (2026-10-12):** animated treads, exhaust, damage smoke, armor-hit sparks, and tank destruction debris. Build and browser checks pass for frost slowdown, pause/resume, 2x effects, kill rewards, particle caps, and restart cleanup. Gameplay preview at `output/tank-polish-gameplay.png`.
 - **Local tower polish (2026-10-12):** stronger upgrade silhouettes for all six towers, front level indicators, aligned muzzle origins, and more texture headroom for Cryo. Browser checks pass for all 18 levels, upgrade costs, texture swaps, rotated muzzle positions, and unclipped icons. Comparison at `output/tower-upgrades-preview.png`.
+- **Local mobile polish (2026-10-12):** compact proportional drawers, all sector towers (4/5/6) in one catalogue row, tower-specific current/next comparisons, and equal action-button padding/spacing. Restored the previous HUD scale after fixed pixel sizing crowded small screens. All six card actions pass at 374×447, 844×390, and 1280×720. Preview: `output/tower-catalogue-374.png`.
+- **Desktop spacing correction (2026-10-12):** centered build-card stacks, measured stat rows, and matching 424×66px action buttons at 1280×720. Verified 8px top/bottom button padding and 12px action spacing across all tower levels. Preview: `output/mobile-upgrade-1280.png`.
+- **Compact desktop catalogue (2026-10-12):** reduced to 1100×228px at 1280×720, keeping all six towers visible. Build, label-fit, and card-action checks pass on desktop and phone layouts. Preview: `output/tower-catalogue-1280.png`.
 
 - **Campaign:** 3 sectors, 32 waves, about 20 minutes in total.
   - Reactor Row: 10 waves, 4 towers, plus the tutorial.
@@ -56,7 +59,7 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | v1.0.0 uploaded, first playtest | ✅ Done. Finding: about 5 players quit during the old blocking tutorial; they wanted to start immediately |
 | Fix: hint-only tutorial, START always works, wave 1 starts about 6 s after the first tower | ✅ v1.0.1 |
 | v1.0.1 **fit test** | ✅ **Passed**: 500 gameplays, average playtime **4m 56s** (took about 8 h to complete) |
-| v1.1.0 with **Hacking** (signature mechanic, see [kiv.md](kiv.md)) | ⏳ Built and bot-balanced. Next: upload and run a new fit test; keep v1.0.1 as the safe build |
+| v1.1.0 with **Hacking** (signature mechanic, see [GAME_DESIGN.md → Hacking](GAME_DESIGN.md)) | ⏳ Built and bot-balanced. Next: upload and run a new fit test; keep v1.0.1 as the safe build |
 | Animated thumbnail (1080², 4–6 s, ≥ 50 fps, muted .mp4) | ⏳ Needed during Soft Release, before global release. Shot list in POKI_SUBMISSION.md §4 |
 | Web Fit Test → Final review | Not started |
 
@@ -67,7 +70,10 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 
 ## Backlog (prioritised)
 
-0. **Fit-test v1.1.0 (Hacking).** Check that playtime stays at or above 4m 56s, and that playtest recordings show players hacking within the first minute.
+0. **Fit-test v1.1.0 (Hacking).** Success means:
+   - the test passes, with average playtime at or above the v1.0.1 baseline of **4m 56s**,
+   - playtest recordings show players hacking within their first minute,
+   - no single hack wipes a whole late wave, and players who never hack can still clear every sector.
 
 1. **Cut dead time between waves.** About half of a sector's time at 1x is countdown.
    - Gap between waves 14 s → about 8 s (`WAVE_TIMING.betweenWaves`).
@@ -75,11 +81,11 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
    - Remember the 2x speed choice across waves and sectors.
    - Keeps sectors at roughly 4–5.5 min, still above the 3-minute target.
 2. **Make "call wave early" more visible:** a pulsing "+N credits" on the beacon and a one-time hint after wave 1.
-3. **Active ability** (e.g. an orbital strike or EMP with a cooldown) so players have something to do between builds.
+3. **Overcharge** (a second active choice, cheap to build). An OVERCHARGE button in a tower's upgrade panel gives 5 s of double fire rate, then the tower overheats and is offline for 6 s (orange glow and smoke). Worth doing if playtests still show idle time between waves. Hacking already covers the old "active ability" idea.
 4. **A mini-boss mid-sector** (around wave 5) to break up the middle of each sector.
 5. **Animated thumbnail** for Poki (see above).
 6. **Thumbnail style:** the current one is more painterly than the in-game vector art. Regenerate it closer to the game if playtest or fit-test feedback suggests a mismatch.
-7. **Mobile text:** the small role text on build cards is hard to read on phones (names, costs and icons are fine).
+7. **Mobile UI playtest:** verify the compact tower catalogue and build/upgrade drawers on physical phones. Browser touch and layout checks pass.
 8. **Bundle size:** Phaser is about 340 KB gzipped of the about 380 KB zip. Only worth trimming if load times become an issue.
 
 ## Known caveats
