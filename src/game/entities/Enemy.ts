@@ -37,6 +37,16 @@ export class Enemy {
   exhaustTimer = 0;
   damageSmokeTimer = 0;
   impactTimer = 0;
+  /** Hacked machines walk back down the road and detonate on contact. */
+  hacked = false;
+  hackTimer = 0;
+  hackPerfect = false;
+  /** Short glitch flicker right after being hacked. */
+  glitchTimer = 0;
+  /** Cyan signal icon floating above a hacked machine. */
+  hackMark: Phaser.GameObjects.Image | null = null;
+  /** Cyan halo that makes hacked machines read as ours at a glance. */
+  hackGlow: Phaser.GameObjects.Image | null = null;
   readonly phase = Math.random() * Math.PI * 2;
   damagedLook = false;
 
@@ -90,7 +100,11 @@ export class Enemy {
     this.shadow.destroy();
     this.shieldSprite?.destroy();
     this.hatch?.destroy();
+    this.hackMark?.destroy();
+    this.hackGlow?.destroy();
     this.shieldSprite = null;
     this.hatch = null;
+    this.hackMark = null;
+    this.hackGlow = null;
   }
 }

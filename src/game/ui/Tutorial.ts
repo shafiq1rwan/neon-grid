@@ -117,7 +117,7 @@ export class Tutorial {
 }
 
 /** A simple pointing hand (fingertip at 0,0). */
-function drawHand(g: Phaser.GameObjects.Graphics): void {
+export function drawHand(g: Phaser.GameObjects.Graphics): void {
   const skin = 0xffffff;
   const edge = 0x05080f;
   g.fillStyle(0x000000, 0.35);

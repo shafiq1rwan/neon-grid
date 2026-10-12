@@ -66,6 +66,16 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Health bars appear only on damaged enemies.
 - [ ] Enemies reaching the reactor cost HP, with a red flash and a small screen shake.
 
+### Hacking
+- [ ] Fresh hint state: after wave 1 starts, "Tap to hack!" points at the leading on-screen machine; the first lock shows "Tap again when the rings meet!"; the hint never returns after the first hack, or after 10 s on screen without a hack.
+- [ ] Tapping a machine with a charge starts the lock: bullet time, closing ring, reactor data beam. The "TAP!" cue appears only in the window and stays clear of the HUD.
+- [ ] A tap in the window gives PERFECT HACK (big text, white ring, flash); no tap gives a normal "HACKED".
+- [ ] A hacked machine is cyan with a glow and a fuse bar, walks back, and detonates on contact. Blast kills pay credits.
+- [ ] Hacked Spawners release hacked swarmlings. The Titan shows FIREWALL and keeps the charge. A Juggernaut with only 1 charge shows "NEEDS 2 CHARGES".
+- [ ] No charges: "NO CHARGE" and the HACK pill shakes. Earning a charge: the pill pops and "+1 HACK" appears.
+- [ ] A tap just after an auto-resolve doesn't open the build drawer. Pause during a lock freezes it. Game over during a lock refunds the charge.
+- [ ] Works with touch on a phone-sized screen, and at 2x speed (the lock timing doesn't speed up).
+
 ### Waves and endings
 - [ ] Wave banners appear, including NEW-enemy intros on waves 3, 5, 7 and 9, and FINAL WAVE on wave 10.
 - [ ] The countdown ring and early bonus show on the beacon.

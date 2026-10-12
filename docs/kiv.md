@@ -1,6 +1,14 @@
 # KIV: Signature Mechanic "Hack the Machines"
 
-_Status: design sketch, **not started**. Kept in view for after the v1.0.1 fit-test pass (500 plays, 4m 56s average). Build it as its own version and run a full new fit test; keep v1.0.1 as the safe build in the meantime._
+_Status: **built in v1.1.0** using input option 4 (**timing lock**). The live rules and tuning are in [GAME_DESIGN.md → Hacking](GAME_DESIGN.md) and [BALANCING.md](BALANCING.md); they supersede the proposed numbers below. Next: a new fit test, with v1.0.1 as the safe build._
+
+**Decisions taken:**
+- **Name:** Hack.
+- **Credits:** hacked machines give 0 credits; blast kills pay normally.
+- **Titan:** immune, and the charge is refunded.
+- **Input:** tap enemies directly, then a timing lock with a PERFECT window and bullet time.
+- **Availability:** from Sector 1.
+- **Added during balancing:** a Juggernaut hack costs 2 charges.
 
 ## Why
 

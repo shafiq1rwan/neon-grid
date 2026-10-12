@@ -69,6 +69,36 @@ export const WAVE_TIMING = {
   betweenWaves: 14,
 } as const;
 
+/** Signature mechanic: hacking corrupted machines (see docs/kiv.md). */
+export const HACK = {
+  startCharges: 1,
+  maxCharges: 3,
+  /** Kills needed to earn a charge (every third wave start also gives one). */
+  killsPerCharge: 28,
+  /** Charges a Juggernaut hack costs (a deliberate big play). */
+  heavyCost: 2,
+  /** Real seconds for the lock-on ring to close. */
+  lockTime: 0.85,
+  /** Lock progress (0..1) from which a second tap is a PERFECT hack. */
+  perfectFrom: 0.72,
+  /** Real seconds after the ring closes that still count as PERFECT. */
+  perfectGrace: 0.12,
+  /** World speed while locking on (bullet time). */
+  timeWarp: 0.3,
+  /** Seconds a hacked machine stays hacked before it short-circuits. */
+  duration: 8,
+  perfectBonusDuration: 2,
+  blastRadius: 72,
+  /** Blast damage = hacked machine's max HP × this … */
+  blastHpMult: 1.25,
+  /** … capped at this × the enemy's HP scale. */
+  blastCap: 380,
+  perfectDamage: 1.45,
+  perfectRadius: 1.25,
+  /** Extra contact distance before a hacked machine detonates. */
+  contactPad: 14,
+} as const;
+
 export const SCENES = {
   boot: 'BootScene',
   menu: 'MenuScene',

@@ -12,6 +12,21 @@ export function generateEffectTextures(scene: Phaser.Scene): void {
     fillPoly(ctx, [1, 2, 8, 1, 11, 5, 7, 9, 2, 7], '#667181', '#b3bdc9', 1);
     fillPoly(ctx, [2, 3, 8, 2, 7, 5, 3, 6], '#303947');
   });
+  // signal icon floating above hacked machines
+  bakeTexture(scene, 'hack_mark', 30, 30, (ctx) => {
+    ctx.translate(15, 15);
+    ctx.save();
+    glow(ctx, COLORS.cyan, 8);
+    fillPoly(ctx, [0, -7, 6, 0, 0, 7, -6, 0], css(COLORS.cyan), '#e8fdff', 1.2);
+    ctx.restore();
+    ctx.strokeStyle = css(COLORS.cyan, 0.85);
+    ctx.lineWidth = 1.6;
+    for (const r of [10, 13.5]) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r, -Math.PI * 0.8, -Math.PI * 0.2);
+      ctx.stroke();
+    }
+  });
   bakeTexture(scene, 'fx_glow', 64, 64, (ctx) => {
     ctx.fillStyle = radial(ctx, 32, 32, 32, [
       [0, 'rgba(255,255,255,1)'],
@@ -375,6 +390,20 @@ export class Effects {
     this.burst(x, y, color, 14);
     this.burst(x, y, 0xffffff, 4);
     this.puff(x, y, 3);
+  }
+
+  /** Detonation of a hacked machine: cyan shockwave with a digital white core. */
+  hackBlast(x: number, y: number, radius: number, perfect: boolean): void {
+    this.ring(x, y, radius, COLORS.cyan, 460);
+    this.ring(x, y, radius * 0.55, 0xffffff, 300);
+    this.flash(x, y, COLORS.cyan, radius / 26, 200);
+    this.burst(x, y, COLORS.cyan, perfect ? 30 : 20);
+    this.burst(x, y, 0xffffff, perfect ? 10 : 6);
+    this.puff(x, y, 2);
+    if (perfect) {
+      this.scene.time.delayedCall(90, () => this.ring(x, y, radius * 1.35, COLORS.cyan, 520));
+      this.flash(x, y, 0xffffff, radius / 40, 140);
+    }
   }
 
   popup(x: number, y: number, text: string, color = '#ffd34d'): void {

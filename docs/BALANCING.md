@@ -32,7 +32,24 @@ Simulated with a scripted player at 6x simulation speed:
 | Mixed, no upgrades | Defeat on wave 8 |
 | Pulse only with upgrades | Victory, 14 HP (Juggernaut leaks on waves 7–8) |
 
-### Campaign bot validation
+### Hacking validation (v1.1.0)
+
+The bot's "hacker" strategy hacks the highest-HP hackable machine whenever it has the charges, and taps inside the PERFECT window. It's a perfect-play upper bound.
+
+| Sector (difficulty) | No hacking (mixed + upgrades) | Perfect hacker | Hacks / perfects |
+| --- | --- | --- | --- |
+| 1 Reactor Row (1.19) | Victory, 13 HP | Victory, 18 HP | 19 / 14 |
+| 2 Twin Gates (1.4) | Victory, 10 HP | Victory, 20 HP | 20 / 15 |
+| 3 The Long Road (1.84) | Victory, 5 HP | Victory, 14 HP | 17 / 15 |
+
+**What it took to get here:**
+- The first tuning had a charge every 12 kills plus one every wave start, and a 600 × HP-scale blast cap. The hacker went flawless on every sector with about 35–40 hacks.
+- Hacking is effectively a "remove the leaker" button, so the number of charges matters more than blast size.
+- The final tuning: 28 kills per charge, a charge every 3rd wave, Juggernauts cost 2, a 380 cap, and +8% sector difficulty.
+
+**Levers:** everything is in `HACK` in `config.ts`, plus the per-sector `difficulty`. Players who never hack must still be able to win every sector.
+
+### Campaign bot validation (before hacking, v1.0.1)
 
 | Sector | Mixed with upgrades | Mixed, no upgrades | Game time (mixed) |
 | --- | --- | --- | --- |
@@ -48,6 +65,7 @@ Runs vary a little because of the random lateral lane offsets.
 
 ## Levers, from coarse to fine
 
+0. **Hack supply (`HACK` in config.ts).** `killsPerCharge`, wave-start charges, `heavyCost` and `blastCap` swing every sector at once.
 1. **Sector `difficulty` (maps.ts).** Scales the whole sector. Change it first when a sector is too easy or too hard overall.
 2. **Wave `hpScale`.** The difficulty curve within a sector. Change neighbouring waves together so you don't create spikes.
 3. **Economy** (rewards, `clearBonus`, `startCredits`). Very sensitive because it snowballs into upgrades. During tuning, about +20% rewards turned a loss on wave 10 into a flawless win.

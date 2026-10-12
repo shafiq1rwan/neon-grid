@@ -12,7 +12,7 @@ export const Targeting = {
     let bestDist = -1;
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
-      if (!e.alive) continue;
+      if (!e.alive || e.hacked) continue;
       const dx = e.x - x;
       const dy = e.y - y;
       const pad = e.def.radius;
@@ -26,7 +26,7 @@ export const Targeting = {
   },
 
   inRange(e: Enemy, x: number, y: number, range: number): boolean {
-    if (!e.alive) return false;
+    if (!e.alive || e.hacked) return false;
     const dx = e.x - x;
     const dy = e.y - y;
     const r = range + e.def.radius;
@@ -46,7 +46,7 @@ export const Targeting = {
     let bestD = r2;
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
-      if (!e.alive || exclude.includes(e)) continue;
+      if (!e.alive || e.hacked || exclude.includes(e)) continue;
       const dx = e.x - x;
       const dy = e.y - y;
       const d = dx * dx + dy * dy;
@@ -63,7 +63,7 @@ export const Targeting = {
     out.length = 0;
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
-      if (!e.alive) continue;
+      if (!e.alive || e.hacked) continue;
       const r = radius + e.def.radius * 0.5;
       const dx = e.x - x;
       const dy = e.y - y;

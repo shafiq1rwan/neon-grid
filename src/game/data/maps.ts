@@ -62,7 +62,7 @@ export const SECTOR_7: MapDef = {
   subtitle: 'One winding road. Learn the ropes.',
   waves: WAVES_SECTOR_1,
   towers: ['pulse', 'cannon', 'missile', 'tesla'],
-  difficulty: 1.1,
+  difficulty: 1.19,
   startCredits: 220,
   tutorialPlatform: 1,
   paths: [[
@@ -174,7 +174,7 @@ export const TWIN_GATES: MapDef = {
   subtitle: 'Two entrances. Machines attack on two lanes.',
   waves: WAVES_SECTOR_2,
   towers: ['pulse', 'cannon', 'missile', 'tesla', 'laser'],
-  difficulty: 1.3,
+  difficulty: 1.4,
   startCredits: 300,
   paths: [
     [{ x: -440, y: 170 }, { x: 330, y: 170 }, ...TWIN_TRUNK],
@@ -206,7 +206,7 @@ export const LONG_ROAD: MapDef = {
   subtitle: 'A long serpentine highway. The Titan awaits.',
   waves: WAVES_SECTOR_3,
   towers: ['pulse', 'cannon', 'missile', 'tesla', 'laser', 'cryo'],
-  difficulty: 1.7,
+  difficulty: 1.84,
   startCredits: 360,
   paths: [
     [

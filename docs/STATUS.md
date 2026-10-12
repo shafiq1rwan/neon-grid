@@ -2,7 +2,7 @@
 
 Where the project stands, what's in flight and what to do next. Read this first when picking the project up on a new machine (or in a new AI-assistant session).
 
-_Last updated: 2026-10-09 · version **1.0.1** (commit `d69637b`)_
+_Last updated: 2026-10-12 · version **1.1.0** (hacking added; not yet fit-tested)_
 
 ## Set up on a new PC
 
@@ -55,7 +55,8 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | SDK integration verified in Poki Inspector | ✅ "SDK initialized" detected (it can take a few seconds on a slow connection) |
 | v1.0.0 uploaded, first playtest | ✅ Done. Finding: about 5 players quit during the old blocking tutorial; they wanted to start immediately |
 | Fix: hint-only tutorial, START always works, wave 1 starts about 6 s after the first tower | ✅ v1.0.1 |
-| v1.0.1 playtest with the **Tower Defense** audience | ⏳ Waiting; the narrow audience fills slowly |
+| v1.0.1 **fit test** | ✅ **Passed**: 500 gameplays, average playtime **4m 56s** (took about 8 h to complete) |
+| v1.1.0 with **Hacking** (signature mechanic, see [kiv.md](kiv.md)) | ⏳ Built and bot-balanced. Next: upload and run a new fit test; keep v1.0.1 as the safe build |
 | Animated thumbnail (1080², 4–6 s, ≥ 50 fps, muted .mp4) | ⏳ Needed during Soft Release, before global release. Shot list in POKI_SUBMISSION.md §4 |
 | Web Fit Test → Final review | Not started |
 
@@ -65,6 +66,8 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 - any repeated taps or long pauses, which point to confusing UI.
 
 ## Backlog (prioritised)
+
+0. **Fit-test v1.1.0 (Hacking).** Check that playtime stays at or above 4m 56s, and that playtest recordings show players hacking within the first minute.
 
 1. **Cut dead time between waves.** About half of a sector's time at 1x is countdown.
    - Gap between waves 14 s → about 8 s (`WAVE_TIMING.betweenWaves`).

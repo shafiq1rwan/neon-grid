@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, GAME_WIDTH, css } from '../config';
+import { COLORS, GAME_WIDTH, HACK, css } from '../config';
 import type { ViewBounds } from '../utils/View';
 import type { GameScene } from '../scenes/GameScene';
 import { sfx } from '../audio/SoundSystem';
@@ -25,6 +25,12 @@ export class HUD {
   /** Left panel and right buttons are pinned to the visible screen edges. */
   private readonly left: Phaser.GameObjects.Container;
   private readonly right: Phaser.GameObjects.Container;
+  /** Hack charges pill under the stats panel. */
+  private readonly hackPill: Phaser.GameObjects.Container;
+  private readonly hackPips: Phaser.GameObjects.Graphics;
+  private readonly hackBar: Phaser.GameObjects.Graphics;
+  private shownCharges = -1;
+  private shownChargeFrac = -1;
 
   private shownHp = -1;
   private shownCredits = -1;
@@ -37,7 +43,13 @@ export class HUD {
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly game: GameScene,
-    handlers: { onPause: () => void; onSpeed: () => void; onMute: () => void; onCallWave: () => void },
+    handlers: {
+      onPause: () => void;
+      onSpeed: () => void;
+      onMute: () => void;
+      onCallWave: () => void;
+      onHackTip: () => void;
+    },
   ) {
     const s = scene;
     const g = s.add.graphics();
@@ -59,6 +71,17 @@ export class HUD {
     this.creditText = text(s, 332, 66, '0', 25, COLORS.gold).setOrigin(0, 0.5);
     this.left = s.add.container(0, 0, [g, this.progress, waveLabel, reactorLabel, creditsLabel,
       this.waveText, this.heart, this.hpText, coin, this.creditText]);
+
+    // HACK charges: pips fill as charges are earned, the bar shows progress to the next
+    const pillBg = s.add.graphics();
+    drawPanel(pillBg, -98, -22, 196, 44, { color: COLORS.cyan, fillAlpha: 0.94, corners: false, radius: 12 });
+    const hackLabel = text(s, -82, -1, 'HACK', 16, COLORS.cyan).setOrigin(0, 0.5);
+    this.hackPips = s.add.graphics();
+    this.hackBar = s.add.graphics();
+    const pillHit = s.add.zone(0, 0, 196, 44).setInteractive({ useHandCursor: true });
+    pillHit.on('pointerup', () => handlers.onHackTip());
+    this.hackPill = s.add.container(20 + 98, 104 + 22, [pillBg, hackLabel, this.hackPips, this.hackBar, pillHit]);
+    this.left.add(this.hackPill);
 
     const by = 48;
     this.pauseBtn = new NeonButton(s, GAME_WIDTH - 52, by, 64, 64, {
@@ -121,6 +144,23 @@ export class HUD {
     this.right.setPosition(view.right - GAME_WIDTH, view.top);
   }
 
+  /** Pop when a charge is gained; shake red when a hack is denied. */
+  pulseHack(gained: boolean): void {
+    const pill = this.hackPill;
+    this.scene.tweens.killTweensOf(pill);
+    pill.setScale(1).setX(20 + 98);
+    if (gained) {
+      this.scene.tweens.add({ targets: pill, scale: { from: 1.22, to: 1 }, duration: 320, ease: 'Back.easeOut' });
+    } else {
+      this.scene.tweens.add({ targets: pill, x: pill.x + 7, duration: 45, yoyo: true, repeat: 3 });
+    }
+  }
+
+  /** Screen position of the hack pill (for popups). */
+  get hackAnchor(): { x: number; y: number } {
+    return { x: this.left.x + this.hackPill.x, y: this.left.y + this.hackPill.y };
+  }
+
   /** Screen position just below the credits counter (for toasts). */
   get creditsAnchor(): { x: number; y: number } {
     return { x: this.left.x + 350, y: this.left.y + 116 };
@@ -129,6 +169,41 @@ export class HUD {
   update(time: number): void {
     const game = this.game;
     const waves = game.waves;
+
+    const charges = game.hack.charges;
+    const frac = game.hack.chargeFraction;
+    if (charges !== this.shownCharges) {
+      this.shownCharges = charges;
+      const g = this.hackPips;
+      g.clear();
+      for (let i = 0; i < HACK.maxCharges; i++) {
+        const x = 2 + i * 30;
+        const on = i < charges;
+        const pts = [
+          new Phaser.Geom.Point(x, -11),
+          new Phaser.Geom.Point(x + 9, -2),
+          new Phaser.Geom.Point(x, 7),
+          new Phaser.Geom.Point(x - 9, -2),
+        ];
+        if (on) {
+          g.fillStyle(COLORS.cyan, 0.25);
+          g.fillCircle(x, -2, 13);
+        }
+        g.fillStyle(on ? COLORS.cyan : 0x1a2338, 1);
+        g.fillPoints(pts, true);
+        g.lineStyle(1.5, on ? 0xe8fdff : 0x2f4061, 1);
+        g.strokePoints(pts, true);
+      }
+    }
+    if (Math.abs(frac - this.shownChargeFrac) > 0.001) {
+      this.shownChargeFrac = frac;
+      const b = this.hackBar;
+      b.clear();
+      b.fillStyle(0x05080f, 1);
+      b.fillRoundedRect(-82, 12, 164, 4, 2);
+      b.fillStyle(charges >= HACK.maxCharges ? COLORS.cyan : 0x6fbfd0, 1);
+      b.fillRoundedRect(-82, 12, Math.max(4, 164 * frac), 4, 2);
+    }
 
     const waveStr = `${waves.displayNumber}/${waves.total}`;
     if (waveStr !== this.shownWave) {

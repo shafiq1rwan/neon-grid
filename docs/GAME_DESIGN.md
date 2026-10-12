@@ -92,6 +92,42 @@ Each sector adds one tower, introduced with a "NEW TOWER UNLOCKED" reveal on the
 
 Tesla stays in Sector 1 because Shielded Specters arrive there and Tesla is their counter. The build drawer and the `1`–`6` keys only offer the sector's towers.
 
+## Hacking (signature mechanic)
+
+**Pitch:** "Hack the invasion": reprogram corrupted machines and send them back to blow up their own army.
+
+### How it works (timing lock)
+
+1. **Tap a machine** on the road while you have a charge.
+   - The game drops into **bullet time** (30% world speed).
+   - A **lock-on ring** closes in on the target, with a data beam streaming from the reactor.
+2. **Tap again** while the closing ring is inside the bright band. A **"TAP!"** cue shows the window. That's a **PERFECT HACK**: a bigger and longer blast.
+3. If you don't tap, the ring closes and the machine is **hacked normally**. Nobody gets stuck.
+
+A hacked machine:
+- turns cyan, with a glow, a signal icon and a fuse bar,
+- turns around and walks **back down the road**,
+- **detonates** when it touches any enemy machine.
+
+| Rule | Value |
+| --- | --- |
+| Charges | Start with 1, max 3 |
+| Earning charges | +1 per 28 kills; +1 at the start of every 3rd wave |
+| Cost | 1 charge; **Juggernaut costs 2**; the **Titan is immune** ("FIREWALL", no charge used) |
+| Lock-on | 0.85 s of real time (it ignores 2x speed). The PERFECT window runs from 72% of the lock until 0.12 s after it closes |
+| Hacked duration | 8 s (PERFECT: 10 s), then it short-circuits harmlessly. It also never damages the reactor |
+| Blast | 72 px radius. Damage = 1.25 × the machine's max HP, capped at 380 × its HP scale. Ignores armor, 2x vs shields. Full damage in the inner half, 65% at the edge |
+| PERFECT | ×1.45 damage, ×1.25 radius, +2 s duration |
+| Type twists | Juggernaut: ×1.3 radius. Specter: EMP blast (3x vs shields). Swarm Spawner: its swarmlings spawn already hacked. Swarmling: ×0.7 radius |
+| Credits | The hacked machine gives none; machines killed by the blast pay normally |
+
+Towers, chain lightning, missile splash and frost all ignore hacked machines. A late tap just after an auto-resolve is swallowed for 0.4 s, so it can't open a build menu by accident.
+
+**UI:**
+- **HACK pill** under the stats panel: three charge diamonds and a progress bar to the next charge. It pops when a charge is earned and shakes when a hack is denied. Tapping it shows a tip.
+- **Feedback popups:** "HACKED" / "PERFECT HACK!", "NO CHARGE" / "NEEDS 2 CHARGES", "FIREWALL".
+- **One-time hint** (it never blocks): a hand on the leading on-screen machine with **"Tap to hack!"**, then **"Tap again when the rings meet!"** during the first lock. It retires after the first hack, or after it has been on screen for 10 seconds without one, and never returns. Stored as `hackTipDone`.
+
 ## Enemies
 
 Base values below. Each wave multiplies HP and shield by its `hpScale`.
@@ -106,7 +142,7 @@ Base values below. Each wave multiplies HP and shield by its `hpScale`.
 | Swarmling (spawned) | 22 | — | — | 82 | 2 | 1 | Starts at the spawner's position and follows the rest of the road |
 | **Titan War Machine** (boss) | 2600 | — | 8 | 22 | 220 | 10 | Sector 3 finale. A huge red war machine with twin cannons; looks damaged below 50% HP |
 
-Each sector also has a `difficulty` multiplier on enemy HP and shields (1.1 / 1.3 / 1.7).
+Each sector also has a `difficulty` multiplier on enemy HP and shields (1.19 / 1.4 / 1.84). It was raised about 8% when hacking was added.
 
 Slow resistance: the Juggernaut ignores 25% of frost slow and the Titan 50%.
 

@@ -12,6 +12,7 @@ import { storage } from '../utils/Storage';
 import { HUD } from '../ui/HUD';
 import { TowerMenu } from '../ui/TowerMenu';
 import { Tutorial } from '../ui/Tutorial';
+import { HackHint } from '../ui/HackHint';
 import { UpgradePanel } from '../ui/UpgradePanel';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
 import { GameEvents, type GameScene, type Selection } from './GameScene';
@@ -23,6 +24,7 @@ export class UIScene extends Phaser.Scene {
   private menu!: TowerMenu;
   private panel!: UpgradePanel;
   private tutorial: Tutorial | null = null;
+  private hackHint: HackHint | null = null;
   private pauseLayer!: Phaser.GameObjects.Container;
   private pauseSound!: NeonButton;
   private pauseSummary!: Phaser.GameObjects.Text;
@@ -49,6 +51,7 @@ export class UIScene extends Phaser.Scene {
       onSpeed: () => this.gs.toggleSpeed(),
       onMute: () => this.toggleMute(),
       onCallWave: () => this.callWave(),
+      onHackTip: () => this.toast('TAP A MACHINE ON THE ROAD TO HACK IT', false),
     });
 
     this.menu = new TowerMenu(
@@ -86,6 +89,20 @@ export class UIScene extends Phaser.Scene {
     this.listen(GameEvents.waveStart, () => this.tutorial?.finish());
     this.listen(GameEvents.waveStart, (index: number) => this.onWaveStart(index));
     this.listen(GameEvents.waveBonus, (amount: number) => this.toast(`WAVE BONUS +${amount}`));
+    this.listen(GameEvents.hackCharge, () => {
+      this.hud.pulseHack(true);
+      const a = this.hud.hackAnchor;
+      this.floatText(a.x + 120, a.y, '+1 HACK', '#7ff6ff');
+    });
+    this.listen(GameEvents.hackDenied, (reason: string) => {
+      if (reason === 'charge') this.hud.pulseHack(false);
+    });
+    this.listen(GameEvents.hacked, () => {
+      if (!this.hackHint) return;
+      storage.update({ hackTipDone: true });
+      this.hackHint.destroy();
+      this.hackHint = null;
+    });
     this.listen(GameEvents.paused, () => this.showPause(true));
     this.listen(GameEvents.resumed, () => this.showPause(false));
     this.listen(GameEvents.gameOver, () => {
@@ -105,6 +122,7 @@ export class UIScene extends Phaser.Scene {
     });
 
     if (!storage.data.tutorialDone && this.gs.map.tutorialPlatform !== undefined) this.startTutorial();
+    this.hackHint = storage.data.hackTipDone ? null : new HackHint(this);
   }
 
   private listen<T extends unknown[]>(event: string, fn: (...args: T) => void): void {
@@ -250,14 +268,14 @@ export class UIScene extends Phaser.Scene {
     sfx.play('upgrade');
   }
 
-  private toast(message: string): void {
+  private toast(message: string, coinSound = true): void {
     const at = this.hud.creditsAnchor;
     const t = text(this, at.x, at.y, message, 16, COLORS.gold, { stroke: '#05080f', strokeThickness: 4 })
       .setOrigin(0.5)
       .setAlpha(0);
     this.tweens.add({ targets: t, alpha: 1, y: at.y - 6, duration: 200 });
     this.tweens.add({ targets: t, alpha: 0, delay: 1800, duration: 300, onComplete: () => t.destroy() });
-    sfx.play('coin');
+    if (coinSound) sfx.play('coin');
   }
 
   private createPauseLayer(): void {
@@ -353,5 +371,51 @@ export class UIScene extends Phaser.Scene {
     this.menu.refresh(credits);
     this.panel.refresh(credits);
     if (!this.gs.isPaused) this.tutorial?.update(delta / 1000);
+    this.updateHackHint(delta / 1000);
+  }
+
+  /** Show the one-time hack hint on the leading machine once the action starts. */
+  private updateHackHint(dt: number): void {
+    const hint = this.hackHint;
+    if (!hint) return;
+    const gs = this.gs;
+    if (gs.over || gs.isPaused || this.tutorial?.active || gs.waves.index < 0) {
+      hint.hide();
+      return;
+    }
+    const hack = gs.hack;
+    const view = viewBounds(this);
+    if (hack.target) {
+      hint.show({ x: hack.target.x, y: hack.target.y }, true, dt, view);
+      return;
+    }
+    if (hack.charges < 1) {
+      hint.hide();
+      return;
+    }
+    // leading machine that is on screen and hackable
+    let best = null as (typeof gs.enemies.list)[number] | null;
+    for (const e of gs.enemies.list) {
+      // only machines fully on screen, so the hand and label stay readable
+      if (!e.alive || e.hacked || e.def.type === 'titan' || e.x < view.left + 90 || e.x > view.right - 90) continue;
+      if (!best || e.dist > best.dist) best = e;
+    }
+    if (best) hint.show({ x: best.x, y: best.y }, false, dt, view);
+    else hint.hide();
+    // don't nag: after 10 s on screen without a hack, retire the hint for good
+    if (hint.shownTime >= 10) {
+      storage.update({ hackTipDone: true });
+      hint.retire();
+      this.hackHint = null;
+    }
+  }
+
+  private floatText(x: number, y: number, message: string, color: string): void {
+    const t = text(this, x, y, message, 18, COLORS.text, { stroke: '#05080f', strokeThickness: 5 })
+      .setColor(color)
+      .setOrigin(0, 0.5)
+      .setAlpha(0);
+    this.tweens.add({ targets: t, alpha: 1, x: x + 8, duration: 180 });
+    this.tweens.add({ targets: t, alpha: 0, delay: 1100, duration: 300, onComplete: () => t.destroy() });
   }
 }

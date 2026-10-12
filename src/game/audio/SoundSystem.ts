@@ -25,7 +25,13 @@ export type SfxName =
   | 'victory'
   | 'defeat'
   | 'coin'
-  | 'frost';
+  | 'frost'
+  | 'hackLock'
+  | 'hack'
+  | 'hackPerfect'
+  | 'hackBlast'
+  | 'hackCharge'
+  | 'hackDeny';
 
 /** Minimum milliseconds between two plays of the same sound. */
 const THROTTLE: Partial<Record<SfxName, number>> = {
@@ -40,6 +46,8 @@ const THROTTLE: Partial<Record<SfxName, number>> = {
   shieldBreak: 80,
   coin: 60,
   frost: 90,
+  hackBlast: 70,
+  hackCharge: 120,
 };
 
 class SoundSystem {
@@ -177,6 +185,35 @@ class SoundSystem {
         this.noiseBurst(t, 0.35, 4000, 'highpass', 0.14);
         this.tone('sine', 1900, 900, t, 0.3, 0.05);
         this.tone('triangle', 2600, 2200, t + 0.04, 0.2, 0.03);
+        break;
+      case 'hackLock':
+        // rising scan sweep while the ring closes
+        this.tone('sine', 300, 1500, t, 0.8, 0.05);
+        this.tone('square', 600, 3000, t, 0.8, 0.012);
+        break;
+      case 'hack':
+        // quick data chirps
+        [1400, 900, 1800, 1200, 2200].forEach((f, i) => this.tone('square', f, f * 0.9, t + i * 0.035, 0.05, 0.035));
+        this.tone('sine', 220, 660, t, 0.2, 0.06);
+        break;
+      case 'hackPerfect':
+        [880, 1109, 1319, 1760].forEach((f, i) => this.tone('triangle', f, f, t + i * 0.045, 0.32, 0.1));
+        [2600, 3200, 2900].forEach((f, i) => this.tone('square', f, f * 0.95, t + 0.02 + i * 0.03, 0.05, 0.03));
+        this.noiseBurst(t, 0.25, 5000, 'highpass', 0.1);
+        break;
+      case 'hackBlast':
+        this.noiseBurst(t, 0.45, 900, 'lowpass', 0.5, 90);
+        this.tone('sine', 140, 35, t, 0.4, 0.4);
+        // digital crunch on top of the boom
+        this.tone('square', 1200, 80, t, 0.18, 0.08);
+        break;
+      case 'hackCharge':
+        this.tone('triangle', 1320, 1320, t, 0.1, 0.08);
+        this.tone('triangle', 1980, 1980, t + 0.07, 0.16, 0.08);
+        break;
+      case 'hackDeny':
+        this.tone('square', 320, 160, t, 0.16, 0.08);
+        this.tone('square', 300, 150, t + 0.08, 0.16, 0.06);
         break;
       case 'coin':
         this.tone('triangle', 1318, 1760, t, 0.07, 0.05);

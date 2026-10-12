@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTH } from '../config';
+import { COLORS, DEPTH, HACK } from '../config';
 import { ENEMIES, type EnemyType } from '../data/enemies';
 import type { TowerDef } from '../data/towers';
 import { Enemy } from '../entities/Enemy';
@@ -7,11 +7,21 @@ import { sfx } from '../audio/SoundSystem';
 import type { Effects } from '../rendering/EffectsRenderer';
 import { TANK_TEXTURES } from '../rendering/EnemyRenderer';
 import { rotateToward, type PathData, type PathSample } from '../utils/MathUtils';
+import { Targeting } from './TargetingSystem';
 
 /** Icy tint for slowed machines. */
 const FROST_TINT = 0xa6e9ff;
 /** Damage multiplier against frost-slowed machines (Cryo Tower synergy). */
 const FROST_BRITTLE = 1.15;
+/** Tint for hacked machines. */
+const HACK_TINT = 0x7ff6ff;
+
+/** What a hit needs to know about its source (towers, hack blasts). */
+export type DamageSource = Pick<TowerDef, 'shieldMultiplier' | 'piercing'>;
+/** Hack blasts ignore armour and tear through shields. */
+const HACK_BLAST: DamageSource = { shieldMultiplier: 2, piercing: true };
+/** Hacked Specters detonate as an EMP that is brutal against shields. */
+const HACK_EMP: DamageSource = { shieldMultiplier: 3, piercing: true };
 
 export interface EnemyCallbacks {
   onKilled(enemy: Enemy): void;
@@ -21,6 +31,7 @@ export interface EnemyCallbacks {
 export class EnemySystem {
   readonly list: Enemy[] = [];
   private readonly bars: Phaser.GameObjects.Graphics;
+  private readonly blastBuf: Enemy[] = [];
   private readonly s: PathSample = { x: 0, y: 0, angle: 0, nx: 0, ny: 0 };
   private time = 0;
   kills = 0;
@@ -64,6 +75,14 @@ export class EnemySystem {
         continue;
       }
       e.impactTimer = Math.max(0, e.impactTimer - dt);
+      if (e.hacked) {
+        this.updateHacked(e, dt);
+        if (!e.alive) continue;
+        if (e.def.spawn) this.updateSpawner(e, dt);
+        if (e.def.type === 'juggernaut' || e.def.type === 'titan') this.updateTank(e, dt);
+        this.place(e, dt);
+        continue;
+      }
       if (e.slowTimer > 0) {
         e.slowTimer -= dt;
         if (e.slowTimer <= 0) {
@@ -87,7 +106,8 @@ export class EnemySystem {
       if (e.flashTimer > 0) {
         e.flashTimer -= dt;
         if (e.flashTimer <= 0) {
-          if (e.slowAmount > 0) e.sprite.setTint(FROST_TINT);
+          if (e.hacked) e.sprite.setTint(HACK_TINT);
+          else if (e.slowAmount > 0) e.sprite.setTint(FROST_TINT);
           else e.sprite.clearTint();
         }
       }
@@ -154,7 +174,30 @@ export class EnemySystem {
         break;
     }
     const depth = DEPTH.ENEMY + e.y / 10000;
-    e.sprite.setPosition(e.x, e.y + bob - 3).setRotation(e.angle).setScale(scale).setDepth(depth);
+    let jx = 0;
+    let jy = 0;
+    if (e.glitchTimer > 0) {
+      // digital glitch: jitter and flicker between white and cyan
+      jx = (Math.random() - 0.5) * 6;
+      jy = (Math.random() - 0.5) * 4;
+      // light-cyan flashes rather than pure white, so big tanks don't become white blocks
+      if (Math.random() < 0.35) e.sprite.setTintFill(0xc8fbff);
+      else e.sprite.setTint(HACK_TINT);
+    }
+    e.sprite.setPosition(e.x + jx, e.y + bob - 3 + jy).setRotation(e.angle).setScale(scale).setDepth(depth);
+    if (e.hackGlow) {
+      e.hackGlow
+        .setPosition(e.x, e.y - 3)
+        .setAlpha(0.45 + Math.sin(t * 6) * 0.12)
+        .setDepth(depth - 0.0001);
+    }
+    if (e.hackMark) {
+      e.hackMark
+        .setPosition(e.x, e.y - e.def.radius - 16 + Math.sin(t * 5) * 2)
+        .setRotation(Math.sin(t * 3) * 0.2)
+        .setAlpha(0.75 + Math.sin(t * 9) * 0.25)
+        .setDepth(depth + 0.0002);
+    }
     e.shadow.setPosition(e.x + 3, e.y + 6);
     if (e.shieldSprite) {
       e.shieldSprite
@@ -177,20 +220,23 @@ export class EnemySystem {
     if (e.spawnTimer <= 0) {
       e.spawnTimer = spawn.interval;
       const hpScale = e.maxHp / e.def.hp;
+      const color = e.hacked ? COLORS.cyan : COLORS.red;
       for (let k = 0; k < spawn.count; k++) {
-        const d = Math.max(0, e.dist - 6 - k * 14);
+        // hacked spawners walk backwards, so "behind" them is further along the road
+        const d = e.hacked ? e.dist + 8 + k * 14 : Math.max(0, e.dist - 6 - k * 14);
         const child = this.spawn(spawn.type, hpScale, e.lane, d, (k - (spawn.count - 1) / 2) * 9);
         child.angle = e.angle;
+        if (e.hacked) this.hack(child, e.hackPerfect, e.hackTimer);
       }
-      this.effects.ring(e.x, e.y, 34, COLORS.red, 300);
-      this.effects.burst(e.x, e.y, COLORS.red, 8);
+      this.effects.ring(e.x, e.y, 34, color, 300);
+      this.effects.burst(e.x, e.y, color, 8);
       e.hatch?.setAlpha(0);
     }
   }
 
   /** Frost slow; bosses ignore part of it. Stronger slows replace weaker ones. */
   applySlow(e: Enemy, amount: number, duration: number): void {
-    if (!e.alive) return;
+    if (!e.alive || e.hacked) return;
     const effective = amount * (1 - (e.def.slowResist ?? 0));
     if (effective >= e.slowAmount || e.slowTimer < duration * 0.5) {
       e.slowAmount = Math.max(effective, e.slowTimer > 0 ? e.slowAmount : 0);
@@ -203,8 +249,8 @@ export class EnemySystem {
    * Apply damage. Shields absorb first (scaled by the source's shield
    * multiplier); armour reduces non-piercing hits. Returns true on kill.
    */
-  damage(e: Enemy, amount: number, source: TowerDef, continuous = false): boolean {
-    if (!e.alive || amount <= 0) return false;
+  damage(e: Enemy, amount: number, source: DamageSource, continuous = false): boolean {
+    if (!e.alive || e.hacked || amount <= 0) return false;
     // frozen machines are brittle: every tower deals extra damage to them
     let dmg = e.slowTimer > 0 ? amount * FROST_BRITTLE : amount;
     if (e.shield > 0) {
@@ -245,6 +291,102 @@ export class EnemySystem {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Turn a machine to our side: it walks back down the road and detonates
+   * when it touches the horde (see docs/kiv.md). `duration` lets hacked
+   * spawners pass their remaining time to their swarmlings.
+   */
+  hack(e: Enemy, perfect: boolean, duration?: number): void {
+    if (!e.alive || e.hacked) return;
+    e.hacked = true;
+    e.hackPerfect = perfect;
+    e.hackTimer = duration ?? HACK.duration + (perfect ? HACK.perfectBonusDuration : 0);
+    e.glitchTimer = duration === undefined ? 0.32 : 0.12;
+    e.slowAmount = 0;
+    e.slowTimer = 0;
+    e.flashTimer = 0;
+    e.sprite.setTint(HACK_TINT);
+    e.shieldSprite?.setTint(HACK_TINT);
+    e.hatch?.setTint(HACK_TINT);
+    e.hackMark = this.scene.add.image(e.x, e.y, 'hack_mark').setBlendMode(Phaser.BlendModes.ADD);
+    e.hackGlow = this.scene.add
+      .image(e.x, e.y, 'fx_glow')
+      .setTint(COLORS.cyan)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale((e.def.radius * 3.4) / 64);
+  }
+
+  private updateHacked(e: Enemy, dt: number): void {
+    e.hackTimer -= dt;
+    if (e.glitchTimer > 0) {
+      e.glitchTimer -= dt;
+      if (e.glitchTimer <= 0) e.sprite.setTint(HACK_TINT);
+    }
+    e.dist -= e.def.speed * dt;
+    if (e.hackTimer <= 0 || e.dist <= 0) {
+      this.shortCircuit(e);
+      return;
+    }
+    const s = this.s;
+    // sampling backwards: restart the segment search from the beginning
+    e.seg = this.paths[e.lane].sample(e.dist, s, 0);
+    e.x = s.x + s.nx * e.offset;
+    e.y = s.y + s.ny * e.offset;
+    e.angle = rotateToward(e.angle, s.angle + Math.PI, 9 * dt);
+
+    e.trailTimer -= dt;
+    if (e.trailTimer <= 0) {
+      e.trailTimer = 0.05;
+      this.effects.trail(e.x - Math.cos(e.angle) * e.def.radius, e.y - Math.sin(e.angle) * e.def.radius, COLORS.cyan);
+    }
+
+    // contact with any machine still on the enemy side?
+    for (let j = 0; j < this.list.length; j++) {
+      const o = this.list[j];
+      if (!o.alive || o.hacked) continue;
+      const r = e.def.radius + o.def.radius + HACK.contactPad;
+      const dx = o.x - e.x;
+      const dy = o.y - e.y;
+      if (dx * dx + dy * dy <= r * r) {
+        this.detonate(e);
+        return;
+      }
+    }
+  }
+
+  /** Hacked machine blows up in the horde: big area damage, no armour, 2x vs shields. */
+  private detonate(e: Enemy): void {
+    const hpScale = e.maxHp / e.def.hp;
+    const heavy = e.def.type === 'juggernaut' || e.def.type === 'titan';
+    let damage = Math.min(e.maxHp * HACK.blastHpMult, HACK.blastCap * hpScale);
+    let radius = HACK.blastRadius * (heavy ? 1.3 : e.def.type === 'mini' ? 0.7 : 1);
+    if (e.hackPerfect) {
+      damage *= HACK.perfectDamage;
+      radius *= HACK.perfectRadius;
+    }
+    const source = e.def.type === 'specter' ? HACK_EMP : HACK_BLAST;
+    const x = e.x;
+    const y = e.y;
+    e.alive = false;
+    e.destroy();
+    const hits = Targeting.within(this.list, x, y, radius, this.blastBuf);
+    for (const o of hits) {
+      const d = Math.hypot(o.x - x, o.y - y);
+      this.damage(o, damage * (d < radius * 0.5 ? 1 : 0.65), source);
+    }
+    this.effects.hackBlast(x, y, radius, e.hackPerfect);
+    this.scene.cameras.main.shake(e.hackPerfect ? 180 : 110, e.hackPerfect ? 0.006 : 0.0035);
+    sfx.play('hackBlast');
+  }
+
+  /** Hacked machine ran out of time or reached the entrance: a harmless pop. */
+  private shortCircuit(e: Enemy): void {
+    this.effects.burst(e.x, e.y, COLORS.cyan, 8);
+    this.effects.flash(e.x, e.y, COLORS.cyan, 0.6, 140);
+    e.alive = false;
+    e.destroy();
   }
 
   private breakShield(e: Enemy): void {
@@ -289,10 +431,20 @@ export class EnemySystem {
     g.clear();
     for (let i = 0; i < this.list.length; i++) {
       const e = this.list[i];
-      if (!e.alive || !e.damaged) continue;
+      if (!e.alive) continue;
       const w = Math.max(18, Math.min(36, e.def.radius * 2));
       const x = e.x - w / 2;
       const y = e.y - e.def.radius - 12;
+      if (e.hacked) {
+        // fuse: time left before the hacked machine short-circuits
+        const total = HACK.duration + (e.hackPerfect ? HACK.perfectBonusDuration : 0);
+        g.fillStyle(0x05080f, 0.85);
+        g.fillRect(x - 1, y - 1, w + 2, 5);
+        g.fillStyle(COLORS.cyan, 1);
+        g.fillRect(x, y, w * Math.max(0, e.hackTimer / total), 3);
+        continue;
+      }
+      if (!e.damaged) continue;
       g.fillStyle(0x05080f, 0.85);
       g.fillRect(x - 1, y - 1, w + 2, 5);
       const hpK = Math.max(0, e.hp / e.maxHp);

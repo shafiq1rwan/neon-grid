@@ -30,7 +30,7 @@ Poki doesn't publish the exact fields of its submission form; you only see them 
 Neon Wasteland Defense
 
 ### Short description (one line)
-> Build neon turrets and stop waves of rogue machines before they reach the last reactor.
+> Build neon turrets, hack enemy machines and turn the invasion against itself.
 
 ### Medium description (2–3 sentences)
 > The machines have taken the ruined city, and only your automated defense grid stands between them and the last energy reactor. Build five kinds of neon turrets, upgrade them into powerful war machines, and hold three city sectors against increasingly brutal waves, ending with a colossal Titan. Can you earn all nine stars?

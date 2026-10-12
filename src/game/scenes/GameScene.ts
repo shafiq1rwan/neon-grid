@@ -10,6 +10,7 @@ import type { SignInfo } from '../rendering/EnvironmentRenderer';
 import { PLATFORM_RADIUS, bgKey, ensureMapBackground } from '../rendering/EnvironmentRenderer';
 import { EconomySystem } from '../systems/EconomySystem';
 import { EnemySystem } from '../systems/EnemySystem';
+import { HackSystem, type HackOutcome } from '../systems/HackSystem';
 import { ProjectileSystem } from '../systems/ProjectileSystem';
 import { TowerSystem } from '../systems/TowerSystem';
 import { WaveSystem } from '../systems/WaveSystem';
@@ -42,6 +43,10 @@ export const GameEvents = {
   paused: 'nwd-paused',
   resumed: 'nwd-resumed',
   gameOver: 'nwd-game-over',
+  hackCharge: 'nwd-hack-charge',
+  hackDenied: 'nwd-hack-denied',
+  hackLock: 'nwd-hack-lock',
+  hacked: 'nwd-hacked',
 } as const;
 
 export class GameScene extends Phaser.Scene {
@@ -55,6 +60,7 @@ export class GameScene extends Phaser.Scene {
   towers!: TowerSystem;
   waves!: WaveSystem;
   economy!: EconomySystem;
+  hack!: HackSystem;
 
   hp = 0;
   speed: 1 | 2 = 1;
@@ -73,6 +79,8 @@ export class GameScene extends Phaser.Scene {
   private reactorGlow!: Phaser.GameObjects.Image;
   private reactorFlash = 0;
   private elapsed = 0;
+  /** Last time scale pushed to tweens/particles (speed × bullet time). */
+  private fxScale = 1;
 
   constructor() {
     super(SCENES.game);
@@ -110,16 +118,28 @@ export class GameScene extends Phaser.Scene {
     this.economy = new EconomySystem(this.map.startCredits);
     this.enemies = new EnemySystem(this, this.paths, this.map.roadWidth, this.effects, {
       onKilled: (e) => {
+        this.hack.onKill();
         this.economy.earn(e.def.reward);
         this.effects.popup(e.x, e.y - 14, `+${e.def.reward}`);
       },
       onEscaped: (e) => this.reactorHit(e.def.leakDamage),
     });
+    this.hack = new HackSystem(this, this.enemies, this.effects, this.map.reactor, {
+      onCharge: (n) => this.events.emit(GameEvents.hackCharge, n),
+      onDenied: (reason) => this.events.emit(GameEvents.hackDenied, reason),
+      onLockStart: () => {
+        this.deselect();
+        this.events.emit(GameEvents.hackLock);
+      },
+      onHacked: (outcome: HackOutcome) => this.events.emit(GameEvents.hacked, outcome),
+    });
+    this.fxScale = 1;
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
     this.towers = new TowerSystem(this, this.map.platforms, this.enemies, this.projectiles, this.effects);
     this.waves = new WaveSystem({
       spawn: (type, hpScale, lane) => this.enemies.spawn(type, hpScale * this.map.difficulty, lane),
       waveStarted: (index) => {
+        this.hack.onWaveStart(index);
         sfx.play('waveStart');
         this.events.emit(GameEvents.waveStart, index);
       },
@@ -233,15 +253,21 @@ export class GameScene extends Phaser.Scene {
       const zone = this.add
         .zone(p.x, p.y - 4, PLATFORM_RADIUS * 2.4, PLATFORM_RADIUS * 2.2)
         .setInteractive({ useHandCursor: true });
-      zone.on('pointerdown', () => this.tapPlatform(i));
+      zone.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        // machines on the road win over the platform under them; any tap resolves a lock
+        if (!this.over && this.hack.tap(p.worldX, p.worldY)) return;
+        this.tapPlatform(i);
+      });
     });
   }
 
   private setupInput(): void {
     this.input.on(
       Phaser.Input.Events.POINTER_DOWN,
-      (_p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
-        if (over.length === 0) this.deselect();
+      (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+        if (over.length > 0) return;
+        if (!this.over && this.hack.tap(p.worldX, p.worldY)) return;
+        this.deselect();
       },
     );
     const kb = this.input.keyboard;
@@ -373,8 +399,9 @@ export class GameScene extends Phaser.Scene {
 
   toggleSpeed(): void {
     this.speed = this.speed === 1 ? 2 : 1;
-    this.tweens.timeScale = this.speed;
-    this.effects.setTimeScale(this.speed);
+    this.fxScale = this.speed * this.hack.warp;
+    this.tweens.timeScale = this.fxScale;
+    this.effects.setTimeScale(this.fxScale);
   }
 
   pauseGame(): void {
@@ -413,7 +440,15 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     const real = Math.min(delta, 50) / 1000;
-    const dt = real * this.speed;
+    // the hack lock runs on real time; the world drops into bullet time while it does
+    if (!this.over) this.hack.update(real);
+    const scale = this.speed * this.hack.warp;
+    if (Math.abs(scale - this.fxScale) > 0.01) {
+      this.fxScale = scale;
+      this.tweens.timeScale = scale;
+      this.effects.setTimeScale(scale);
+    }
+    const dt = real * scale;
     this.elapsed += dt;
     this.effects.beginFrame(dt);
     this.animateReactor(dt);
@@ -455,6 +490,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private endGame(victory: boolean): void {
+    this.hack.cancel();
+    this.hack.update(1);
     if (this.over) return;
     this.over = true;
     this.victory = victory;

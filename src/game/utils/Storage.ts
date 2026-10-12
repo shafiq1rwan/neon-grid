@@ -2,6 +2,8 @@
 export interface SaveData {
   muted: boolean;
   tutorialDone: boolean;
+  /** The "Tap to hack!" hint has been completed. */
+  hackTipDone: boolean;
   bestStars: number;
   bestWave: number;
   wins: number;
@@ -15,6 +17,7 @@ const KEY = 'neon-wasteland-defense:v1';
 const DEFAULTS: SaveData = {
   muted: false,
   tutorialDone: false,
+  hackTipDone: false,
   bestStars: 0,
   bestWave: 0,
   wins: 0,

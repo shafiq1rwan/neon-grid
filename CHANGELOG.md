@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-10-12
+
+### Added
+- **Hacking, the signature mechanic.** Tap a machine to start a timing lock: bullet time, a closing lock-on ring and a reactor data beam. Tap again in the window for a PERFECT HACK. Hacked machines turn cyan, walk back down the road and detonate in the horde.
+  - Charges: start with 1, max 3; +1 per 28 kills and every 3rd wave. Juggernauts cost 2 and the Titan is immune.
+  - HACK charge pill in the HUD, a one-time non-blocking hint (it retires after the first hack or 10 s on screen), and new effects and sounds.
+- Bot-validated balance for hacking; sector difficulty raised about 8% (1.19 / 1.4 / 1.84).
 
 ### Changed
 - Strengthened all six towers' upgrade silhouettes: larger Pulse capacitors, heavier Cannon armor and twin barrels, split Missile racks, wider Laser focusing hardware, taller Tesla side pylons, and larger Cryo crystal clusters. Added front level indicators, aligned projectile origins with weapon geometry, and fixed Tesla icon clipping.
