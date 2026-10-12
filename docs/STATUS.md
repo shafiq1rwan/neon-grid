@@ -56,7 +56,7 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | v1.0.0 uploaded, first playtest | ✅ Done. Finding: about 5 players quit during the old blocking tutorial; they wanted to start immediately |
 | Fix: hint-only tutorial, START always works, wave 1 starts about 6 s after the first tower | ✅ v1.0.1 |
 | v1.0.1 **fit test** | ✅ **Passed**: 500 gameplays, average playtime **4m 56s** (took about 8 h to complete) |
-| v1.1.0 with **Hacking** (signature mechanic, see [kiv.md](kiv.md)) | ⏳ Built and bot-balanced. Next: upload and run a new fit test; keep v1.0.1 as the safe build |
+| v1.1.0 with **Hacking** (signature mechanic, see [GAME_DESIGN.md → Hacking](GAME_DESIGN.md)) | ⏳ Built and bot-balanced. Next: upload and run a new fit test; keep v1.0.1 as the safe build |
 | Animated thumbnail (1080², 4–6 s, ≥ 50 fps, muted .mp4) | ⏳ Needed during Soft Release, before global release. Shot list in POKI_SUBMISSION.md §4 |
 | Web Fit Test → Final review | Not started |
 
@@ -67,7 +67,10 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 
 ## Backlog (prioritised)
 
-0. **Fit-test v1.1.0 (Hacking).** Check that playtime stays at or above 4m 56s, and that playtest recordings show players hacking within the first minute.
+0. **Fit-test v1.1.0 (Hacking).** Success means:
+   - the test passes, with average playtime at or above the v1.0.1 baseline of **4m 56s**,
+   - playtest recordings show players hacking within their first minute,
+   - no single hack wipes a whole late wave, and players who never hack can still clear every sector.
 
 1. **Cut dead time between waves.** About half of a sector's time at 1x is countdown.
    - Gap between waves 14 s → about 8 s (`WAVE_TIMING.betweenWaves`).
@@ -75,7 +78,7 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
    - Remember the 2x speed choice across waves and sectors.
    - Keeps sectors at roughly 4–5.5 min, still above the 3-minute target.
 2. **Make "call wave early" more visible:** a pulsing "+N credits" on the beacon and a one-time hint after wave 1.
-3. **Active ability** (e.g. an orbital strike or EMP with a cooldown) so players have something to do between builds.
+3. **Overcharge** (a second active choice, cheap to build). An OVERCHARGE button in a tower's upgrade panel gives 5 s of double fire rate, then the tower overheats and is offline for 6 s (orange glow and smoke). Worth doing if playtests still show idle time between waves. Hacking already covers the old "active ability" idea.
 4. **A mini-boss mid-sector** (around wave 5) to break up the middle of each sector.
 5. **Animated thumbnail** for Poki (see above).
 6. **Thumbnail style:** the current one is more painterly than the in-game vector art. Regenerate it closer to the game if playtest or fit-test feedback suggests a mismatch.

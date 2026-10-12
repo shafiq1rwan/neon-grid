@@ -69,7 +69,7 @@ export const WAVE_TIMING = {
   betweenWaves: 14,
 } as const;
 
-/** Signature mechanic: hacking corrupted machines (see docs/kiv.md). */
+/** Signature mechanic: hacking corrupted machines (see docs/GAME_DESIGN.md → Hacking). */
 export const HACK = {
   startCharges: 1,
   maxCharges: 3,
