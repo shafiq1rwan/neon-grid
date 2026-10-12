@@ -72,14 +72,20 @@ export class UIScene extends Phaser.Scene {
     this.createPauseLayer();
     let lastW = 0;
     let lastH = 0;
+    let lastDisplayedW = 0;
+    let lastDisplayedH = 0;
     centerCamera(this, (view) => {
       this.hud.layout(view);
       this.banner.setPosition(view.left + view.width / 2, view.top + 16 + this.bannerHeight / 2);
       // drawers are positioned when opened; close them if the screen changes shape
-      if (view.width !== lastW || view.height !== lastH) {
+      const displayed = this.scale.canvas.getBoundingClientRect();
+      if (view.width !== lastW || view.height !== lastH
+        || displayed.width !== lastDisplayedW || displayed.height !== lastDisplayedH) {
         if (lastW !== 0) this.gs.deselect();
         lastW = view.width;
         lastH = view.height;
+        lastDisplayedW = displayed.width;
+        lastDisplayedH = displayed.height;
       }
     });
 

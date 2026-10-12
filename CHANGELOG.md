@@ -9,6 +9,9 @@
 - Bot-validated balance for hacking; sector difficulty raised about 8% (1.19 / 1.4 / 1.84).
 
 ### Changed
+- Reduced the desktop tower catalogue to 1100×228px at 1280×720, with smaller cards, icons, and typography while retaining all six towers in one row.
+- Rebalanced the 1280×720 drawers: centered vertical build-card contents, measured stat-row spacing, and equal action buttons with 8px vertical content padding and a 12px gap.
+- Polished build and upgrade drawers with all available towers in one compact catalogue row and tower-specific upgrade comparisons. Upgrade/sell buttons have matching dimensions, centered label/price rows, and uniform padding and gaps. Restored proportional mobile scaling and the previous compact HUD after fixed screen-sized controls proved too large on cramped screens.
 - Strengthened all six towers' upgrade silhouettes: larger Pulse capacitors, heavier Cannon armor and twin barrels, split Missile racks, wider Laser focusing hardware, taller Tesla side pylons, and larger Cryo crystal clusters. Added front level indicators, aligned projectile origins with weapon geometry, and fixed Tesla icon clipping.
 - Revised the in-game Juggernaut tank with broader exposed tracks, a wedge hull, an angular turret, and a longer cannon. The Titan inherits the updated chassis, with both damaged variants retained.
 - Added distance-driven tread animation, engine exhaust, and smoke that thickens below 25% tank health. Armor hits produce distinct sparks, and destroyed tanks shed armor fragments; the Titan has a larger blast. Effects respect pause and game speed, with capped smoke and debris particles.

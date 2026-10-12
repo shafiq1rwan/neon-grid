@@ -47,6 +47,11 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] The hints don't come back on the next run.
 
 ### Building and economy
+
+- [ ] Catalogue shows all sector towers (4/5/6) in one row, with centered icons/prices and short roles. Each card builds the correct tower; paging controls stay hidden when everything fits.
+- [ ] Upgrade/sell buttons have matching size, centered label/price groups, equal padding, and a 12-unit gap. Mobile panels and HUD scale proportionally with the battlefield, without fixed pixel enlargement crowding small screens.
+- [ ] At 1280×720, build cards have centered icons/roles/prices, stat text does not overlap, and upgrade/sell buttons both measure 424×66px with 8px top/bottom content padding. The same logical spacing scales down on phones.
+- [ ] Upgrade comparisons show slow strength/duration, chain targets, splash radius, or beam warm-up where applicable. Missing credits and maximum level are clear; resize closes open drawers and reopening fits the new size.
 - [ ] Every tower allowed in the sector can be built (4 / 5 / 6 per sector), and towers not allowed can't. Credits are deducted and a cost popup appears.
 - [ ] All six towers have distinguishable Lv1/Lv2/Lv3 silhouettes and front level indicators. Icons show complete foundations; Cryo crystals remain aligned with their glow after upgrades.
 - [ ] Unaffordable cards are greyed out with a red cost; tapping one shakes it and plays an error sound.

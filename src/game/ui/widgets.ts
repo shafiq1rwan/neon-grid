@@ -94,8 +94,8 @@ export class NeonButton extends Phaser.GameObjects.Container {
     scene: Phaser.Scene,
     x: number,
     y: number,
-    readonly w: number,
-    readonly h: number,
+    public w: number,
+    public h: number,
     private readonly opts: ButtonOptions,
   ) {
     super(scene, x, y);
@@ -139,6 +139,16 @@ export class NeonButton extends Phaser.GameObjects.Container {
   setEnabled(enabled: boolean): this {
     if (this.enabled === enabled) return this;
     this.enabled = enabled;
+    this.redraw();
+    return this;
+  }
+
+  /** Keep responsive button geometry and its interactive rectangle in sync. */
+  resize(w: number, h: number): this {
+    this.w = w;
+    this.h = h;
+    this.setSize(w, h);
+    if (this.input?.hitArea instanceof Phaser.Geom.Rectangle) this.input.hitArea.setTo(0, 0, w, h);
     this.redraw();
     return this;
   }

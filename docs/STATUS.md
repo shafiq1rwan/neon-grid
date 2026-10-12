@@ -34,6 +34,9 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 - **Local art update (2026-10-12):** revised Juggernaut/Titan chassis and damaged textures for clearer silhouettes. Production build and browser texture checks pass; preview at `output/tank-design-preview.png`.
 - **Local combat polish (2026-10-12):** animated treads, exhaust, damage smoke, armor-hit sparks, and tank destruction debris. Build and browser checks pass for frost slowdown, pause/resume, 2x effects, kill rewards, particle caps, and restart cleanup. Gameplay preview at `output/tank-polish-gameplay.png`.
 - **Local tower polish (2026-10-12):** stronger upgrade silhouettes for all six towers, front level indicators, aligned muzzle origins, and more texture headroom for Cryo. Browser checks pass for all 18 levels, upgrade costs, texture swaps, rotated muzzle positions, and unclipped icons. Comparison at `output/tower-upgrades-preview.png`.
+- **Local mobile polish (2026-10-12):** compact proportional drawers, all sector towers (4/5/6) in one catalogue row, tower-specific current/next comparisons, and equal action-button padding/spacing. Restored the previous HUD scale after fixed pixel sizing crowded small screens. All six card actions pass at 374×447, 844×390, and 1280×720. Preview: `output/tower-catalogue-374.png`.
+- **Desktop spacing correction (2026-10-12):** centered build-card stacks, measured stat rows, and matching 424×66px action buttons at 1280×720. Verified 8px top/bottom button padding and 12px action spacing across all tower levels. Preview: `output/mobile-upgrade-1280.png`.
+- **Compact desktop catalogue (2026-10-12):** reduced to 1100×228px at 1280×720, keeping all six towers visible. Build, label-fit, and card-action checks pass on desktop and phone layouts. Preview: `output/tower-catalogue-1280.png`.
 
 - **Campaign:** 3 sectors, 32 waves, about 20 minutes in total.
   - Reactor Row: 10 waves, 4 towers, plus the tutorial.
@@ -82,7 +85,7 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 4. **A mini-boss mid-sector** (around wave 5) to break up the middle of each sector.
 5. **Animated thumbnail** for Poki (see above).
 6. **Thumbnail style:** the current one is more painterly than the in-game vector art. Regenerate it closer to the game if playtest or fit-test feedback suggests a mismatch.
-7. **Mobile text:** the small role text on build cards is hard to read on phones (names, costs and icons are fine).
+7. **Mobile UI playtest:** verify the compact tower catalogue and build/upgrade drawers on physical phones. Browser touch and layout checks pass.
 8. **Bundle size:** Phaser is about 340 KB gzipped of the about 380 KB zip. Only worth trimming if load times become an issue.
 
 ## Known caveats
