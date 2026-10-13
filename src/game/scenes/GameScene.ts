@@ -47,7 +47,20 @@ export const GameEvents = {
   hackDenied: 'nwd-hack-denied',
   hackLock: 'nwd-hack-lock',
   hacked: 'nwd-hacked',
+  /** (count, x, y): one blast / splash / chain destroyed several machines. */
+  combo: 'nwd-combo',
+  /** (WaveSummary): the field is clear after a wave. */
+  waveCleared: 'nwd-wave-cleared',
 } as const;
+
+export interface WaveSummary {
+  /** 1-based number of the wave just cleared. */
+  wave: number;
+  kills: number;
+  earned: number;
+  perfectHacks: number;
+  bestCombo: number;
+}
 
 export class GameScene extends Phaser.Scene {
   /** Current campaign sector (set in create; kept in the registry for restarts). */
@@ -78,6 +91,8 @@ export class GameScene extends Phaser.Scene {
   private reactorCore!: Phaser.GameObjects.Image;
   private reactorGlow!: Phaser.GameObjects.Image;
   private reactorFlash = 0;
+  /** Running totals for the "wave cleared" summary (reset after each summary). */
+  private waveStats = { kills: 0, earned: 0, perfectHacks: 0, bestCombo: 0, cleared: -1 };
   /** Poki Game Events: the sector attempt is open until complete/fail is sent. */
   private attemptOpen = false;
   /** 1-based wave last reported as started (0 = none yet). */
@@ -97,7 +112,9 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('mapIndex', this.mapIndex);
     this.map = MAPS[this.mapIndex];
     this.hp = ECONOMY.startingHp;
-    this.speed = 1;
+    // the player's last speed choice carries over between waves and sectors
+    this.speed = storage.data.fastSpeed ? 2 : 1;
+    this.waveStats = { kills: 0, earned: 0, perfectHacks: 0, bestCombo: 0, cleared: -1 };
     this.over = false;
     this.victory = false;
     this.isPaused = false;
@@ -129,6 +146,10 @@ export class GameScene extends Phaser.Scene {
         this.effects.popup(e.x, e.y - 14, `+${e.def.reward}`);
       },
       onEscaped: (e) => this.reactorHit(e.def.leakDamage),
+      onCombo: (count, x, y) => {
+        this.waveStats.bestCombo = Math.max(this.waveStats.bestCombo, count);
+        this.events.emit(GameEvents.combo, count, x, y);
+      },
     });
     this.hack = new HackSystem(this, this.enemies, this.effects, this.map.reactor, {
       onCharge: (n) => this.events.emit(GameEvents.hackCharge, n),
@@ -139,6 +160,7 @@ export class GameScene extends Phaser.Scene {
       },
       onHacked: (outcome: HackOutcome) => {
         poki.measure('hack', outcome, 'used');
+        if (outcome === 'perfect') this.waveStats.perfectHacks++;
         this.events.emit(GameEvents.hacked, outcome);
       },
     });
@@ -431,6 +453,7 @@ export class GameScene extends Phaser.Scene {
 
   toggleSpeed(): void {
     this.speed = this.speed === 1 ? 2 : 1;
+    storage.update({ fastSpeed: this.speed === 2 });
     this.fxScale = this.speed * this.hack.warp;
     this.tweens.timeScale = this.fxScale;
     this.effects.setTimeScale(this.fxScale);
@@ -491,8 +514,27 @@ export class GameScene extends Phaser.Scene {
     this.enemies.update(dt);
     this.towers.update(dt);
     this.projectiles.update(dt);
+    this.checkFieldClear();
 
     if (this.waves.state === 'complete' && this.enemies.count === 0) this.endGame(true);
+  }
+
+  /** Between waves with the field clear: summarise the wave and bring the next one in quickly. */
+  private checkFieldClear(): void {
+    const w = this.waves;
+    if (w.state !== 'waiting' || this.enemies.count > 0) return;
+    if (w.countdown > WAVE_TIMING.afterFieldClear) w.countdown = WAVE_TIMING.afterFieldClear;
+    if (this.waveStats.cleared === w.index) return;
+    const s = this.waveStats;
+    const summary: WaveSummary = {
+      wave: w.index + 1,
+      kills: this.enemies.kills - s.kills,
+      earned: this.economy.earned - s.earned,
+      perfectHacks: s.perfectHacks,
+      bestCombo: s.bestCombo,
+    };
+    this.waveStats = { kills: this.enemies.kills, earned: this.economy.earned, perfectHacks: 0, bestCombo: 0, cleared: w.index };
+    this.events.emit(GameEvents.waveCleared, summary);
   }
 
   private animateReactor(dt: number): void {

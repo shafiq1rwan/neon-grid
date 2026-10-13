@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- "xN COMBO!" pop-up when one hack blast, missile splash or Tesla chain destroys 3 or more machines.
+- "WAVE N CLEARED" card between waves: machines destroyed, credits earned, perfect hacks and best combo.
+
+### Changed
+- Wave-clear cards now celebrate the player with a gold medal, contextual praise, animated stat totals, achievement callouts, a spark burst, and a short success chime.
+- Less waiting: once the field is clear between waves, the next wave starts in 3 seconds. Balance is unchanged (bot-checked on all three sectors).
+- The 1x/2x speed choice is remembered across waves, sectors and visits.
+
 ## 1.1.1 — 2026-10-13
 
 ### Changed

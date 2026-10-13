@@ -67,6 +67,10 @@ export const WAVE_TIMING = {
   afterFirstTower: 6,
   /** Seconds between the end of one wave's spawning and the next wave. */
   betweenWaves: 14,
+  /** Once the field is clear between waves, the next wave starts within this many seconds. */
+  afterFieldClear: 3,
+  /** Kills from one blast / splash / chain that count as a combo. */
+  comboMin: 3,
 } as const;
 
 /** Signature mechanic: hacking corrupted machines (see docs/GAME_DESIGN.md → Hacking). */

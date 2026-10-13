@@ -78,6 +78,7 @@ Runs vary a little because of the random lateral lane offsets.
 - **Armor punishes many small hits.** With armor 5, a Pulse Lv1 bolt (9 damage) does only 4. That is intentional, to push Cannon and Laser against Juggernauts.
 - **Shield and health scale together** with `hpScale`, so late Specters get tough fast.
 - **Waves overlap.** The next countdown starts once the current wave has *spawned*, not when it has been cleared. Late waves stack with the remains of the previous one.
+- **Don't shorten `betweenWaves` blindly.** Cutting it from 14 s to 8 s made waves stack so much that the no-hack bot lost Sectors 1 and 2 (it had 13 and 10 HP left). Dead time is cut instead by `afterFieldClear` (next wave 3 s after the field is clear), which never adds overlap. Bot runs with it (no-hack / perfect hacker): Sector 1 13/20 HP, Sector 2 9/20, Sector 3 6/13, the same as before. The bot's defence never clears the field before the countdown ends, so its run times didn't change.
 - The **early-call bonus** rewards confident players. If you raise `earlyCallBonusPerSecond`, the snowball gets stronger.
 
 ## Re-validating balance

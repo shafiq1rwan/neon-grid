@@ -25,7 +25,10 @@ The machines broke loose after a technological collapse. You control the last au
 | Starting credits | Per sector: 220 / 300 / 360 | `MapDef.startCredits` |
 | Sell refund | 70% of total investment | `ECONOMY.sellRefund` |
 | First wave countdown | 25 s, cut to 6 s once the first tower is built | `WAVE_TIMING.firstWaveCountdown`, `afterFirstTower` |
-| Gap between waves | 14 s after the previous wave finishes spawning | `WAVE_TIMING.betweenWaves` |
+| Gap between waves | 14 s after the previous wave finishes spawning; cut to 3 s as soon as the field is clear | `WAVE_TIMING.betweenWaves`, `afterFieldClear` |
+| Game speed | 1x / 2x; the last choice is saved and kept across waves and sectors | `storage.fastSpeed` |
+| Combo | One hack blast, missile splash or Tesla chain that destroys 3+ machines shows "xN COMBO!" (feedback only, no bonus) | `WAVE_TIMING.comboMin` |
+| Wave summary | When the field is clear between waves: kills, credits earned, perfect hacks and best combo since the last summary | `GameEvents.waveCleared` |
 | Early-call bonus | 2 credits per remaining countdown second | `ECONOMY.earlyCallBonusPerSecond` |
 | Victory | Wave 10 fully spawned **and** no enemies left | `GameScene.update` |
 | Defeat | Reactor HP reaches 0 | `GameScene.reactorHit` |

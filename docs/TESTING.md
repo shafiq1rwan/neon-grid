@@ -84,6 +84,9 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 ### Waves and endings
 - [ ] Wave banners appear, including NEW-enemy intros on waves 3, 5, 7 and 9, and FINAL WAVE on wave 10.
 - [ ] The countdown ring and early bonus show on the beacon.
+- [ ] When the field is clear between waves, the countdown drops to 3 s and a "WAVE N CLEARED" card shows kills, credits (plus perfect hacks / best combo when there were any). The card hides when the next wave starts.
+- [ ] A hack blast, missile or Tesla chain that destroys 3+ machines shows "xN COMBO!" (pink from x5).
+- [ ] 2x speed is remembered after a restart, a new sector and a page reload.
 - [ ] Victory happens only after wave 10 has spawned and the field is clear. Stars match the HP thresholds.
 - [ ] Defeat at 0 HP. Revive works once (+10 HP, field cleared). Retry and Menu work.
 - [ ] Restarting several times leaves no duplicate listeners or leftover sprites.

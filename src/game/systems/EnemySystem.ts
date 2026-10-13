@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, DEPTH, HACK } from '../config';
+import { COLORS, DEPTH, HACK, WAVE_TIMING } from '../config';
 import { ENEMIES, type EnemyType } from '../data/enemies';
 import type { TowerDef } from '../data/towers';
 import { Enemy } from '../entities/Enemy';
@@ -25,6 +25,8 @@ const HACK_EMP: DamageSource = { shieldMultiplier: 3, piercing: true };
 
 export interface EnemyCallbacks {
   onKilled(enemy: Enemy): void;
+  /** Several machines destroyed by one blast, splash or chain. */
+  onCombo?(count: number, x: number, y: number): void;
   onEscaped(enemy: Enemy): void;
 }
 
@@ -356,6 +358,12 @@ export class EnemySystem {
     }
   }
 
+  /** Report a combo if one blast / splash / chain (started at `before` kills) destroyed several machines. */
+  comboFrom(before: number, x: number, y: number): void {
+    const n = this.kills - before;
+    if (n >= WAVE_TIMING.comboMin) this.callbacks.onCombo?.(n, x, y);
+  }
+
   /** Hacked machine blows up in the horde: big area damage, no armour, 2x vs shields. */
   private detonate(e: Enemy): void {
     const hpScale = e.maxHp / e.def.hp;
@@ -371,11 +379,13 @@ export class EnemySystem {
     const y = e.y;
     e.alive = false;
     e.destroy();
+    const before = this.kills;
     const hits = Targeting.within(this.list, x, y, radius, this.blastBuf);
     for (const o of hits) {
       const d = Math.hypot(o.x - x, o.y - y);
       this.damage(o, damage * (d < radius * 0.5 ? 1 : 0.65), source);
     }
+    this.comboFrom(before, x, y);
     this.effects.hackBlast(x, y, radius, e.hackPerfect);
     this.scene.cameras.main.shake(e.hackPerfect ? 180 : 110, e.hackPerfect ? 0.006 : 0.0035);
     sfx.play('hackBlast');

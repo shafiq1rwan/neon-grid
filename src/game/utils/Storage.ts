@@ -10,6 +10,8 @@ export interface SaveData {
   plays: number;
   /** Best star rating per campaign sector (0 = not cleared). */
   mapStars: number[];
+  /** Last chosen game speed was 2x (kept across waves and sectors). */
+  fastSpeed: boolean;
 }
 
 const KEY = 'neon-wasteland-defense:v1';
@@ -23,6 +25,7 @@ const DEFAULTS: SaveData = {
   wins: 0,
   plays: 0,
   mapStars: [],
+  fastSpeed: false,
 };
 
 class Storage {

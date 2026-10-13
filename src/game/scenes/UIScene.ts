@@ -10,12 +10,13 @@ import { poki } from '../platform/PokiAdapter';
 import { enemyKey } from '../rendering/EnemyRenderer';
 import { storage } from '../utils/Storage';
 import { HUD } from '../ui/HUD';
+import { WaveClearCard } from '../ui/WaveClearCard';
 import { TowerMenu } from '../ui/TowerMenu';
 import { Tutorial } from '../ui/Tutorial';
 import { HackHint } from '../ui/HackHint';
 import { UpgradePanel } from '../ui/UpgradePanel';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
-import { GameEvents, type GameScene, type Selection } from './GameScene';
+import { GameEvents, type GameScene, type Selection, type WaveSummary } from './GameScene';
 
 /** Overlay scene for HUD, menus, banners, tutorial and the pause screen. */
 export class UIScene extends Phaser.Scene {
@@ -35,6 +36,7 @@ export class UIScene extends Phaser.Scene {
   private bannerIcon!: Phaser.GameObjects.Image;
   private bannerBg!: Phaser.GameObjects.Graphics;
   private bannerHeight = 64;
+  private summary!: WaveClearCard;
   private unsubscribe: (() => void)[] = [];
 
   constructor() {
@@ -68,6 +70,7 @@ export class UIScene extends Phaser.Scene {
     );
 
     this.createBanner();
+    this.summary = new WaveClearCard(this);
     this.showTowerUnlock();
     this.createPauseLayer();
     let lastW = 0;
@@ -76,6 +79,7 @@ export class UIScene extends Phaser.Scene {
     let lastDisplayedH = 0;
     centerCamera(this, (view) => {
       this.hud.layout(view);
+      this.summary.layout(view);
       this.banner.setPosition(view.left + view.width / 2, view.top + 16 + this.bannerHeight / 2);
       // drawers are positioned when opened; close them if the screen changes shape
       const displayed = this.scale.canvas.getBoundingClientRect();
@@ -95,6 +99,8 @@ export class UIScene extends Phaser.Scene {
     this.listen(GameEvents.waveStart, () => this.tutorial?.finish());
     this.listen(GameEvents.waveStart, (index: number) => this.onWaveStart(index));
     this.listen(GameEvents.waveBonus, (amount: number) => this.toast(`WAVE BONUS +${amount}`));
+    this.listen(GameEvents.combo, (count: number, x: number, y: number) => this.showCombo(count, x, y));
+    this.listen(GameEvents.waveCleared, (s: WaveSummary) => this.showWaveSummary(s));
     this.listen(GameEvents.hackCharge, () => {
       this.hud.pulseHack(true);
       const a = this.hud.hackAnchor;
@@ -114,6 +120,7 @@ export class UIScene extends Phaser.Scene {
     this.listen(GameEvents.gameOver, () => {
       this.menu.close();
       this.panel.close();
+      this.summary.hide();
       this.tutorial?.finish();
     });
 
@@ -201,6 +208,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private onWaveStart(index: number): void {
+    this.summary.hide();
     const total = this.gs.waves.total;
     const isFinal = index === total - 1;
     const fresh = newEnemiesInWave(this.gs.mapIndex, index).filter((t) => t !== 'mini');
@@ -245,6 +253,30 @@ export class UIScene extends Phaser.Scene {
       delay: introducesEnemy ? 2800 : 1200,
       duration: 200, onComplete: () => this.banner.setVisible(false),
     });
+  }
+
+  private showWaveSummary(s: WaveSummary): void {
+    if (this.gs.over) return;
+    this.tweens.killTweensOf(this.banner);
+    this.banner.setVisible(false);
+    this.summary.show(s);
+  }
+
+  /** "x4 COMBO!" popping up where one blast, missile or chain took out several machines. */
+  private showCombo(count: number, x: number, y: number): void {
+    const big = count >= 5;
+    const t = text(this, x, y - 30, `x${count} COMBO!`, big ? 30 : 24, big ? COLORS.pink : COLORS.gold, {
+      stroke: '#05080f', strokeThickness: 6,
+    })
+      .setOrigin(0.5)
+      .setDepth(28)
+      .setScale(0.4);
+    this.tweens.add({ targets: t, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    this.tweens.add({
+      targets: t, y: y - 70, alpha: 0, delay: 650, duration: 450,
+      onComplete: () => t.destroy(),
+    });
+    sfx.play('coin');
   }
 
   /** First visit to a sector that adds a tower: a short "NEW TOWER UNLOCKED" reveal. */

@@ -186,6 +186,7 @@ export class TowerSystem {
     let current: Enemy | null = first;
     let dmg = s.damage;
     const maxJumps = s.chainCount ?? 1;
+    const before = this.enemies.kills;
     while (current && chain.length < maxJumps) {
       chain.push(current);
       const cx = current.x;
@@ -198,6 +199,7 @@ export class TowerSystem {
       fromY = cy;
       current = Targeting.nearest(this.enemies.list, cx, cy, s.chainRange ?? 80, chain);
     }
+    this.enemies.comboFrom(before, fromX, fromY);
     // little discharge sparks around the orb
     this.effects.burst(t.x, t.pivotY, COLORS.purple, 4);
     t.recoil = 1;

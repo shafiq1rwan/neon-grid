@@ -21,6 +21,7 @@ export type SfxName =
   | 'shieldBreak'
   | 'leak'
   | 'waveStart'
+  | 'waveClear'
   | 'error'
   | 'victory'
   | 'defeat'
@@ -177,6 +178,10 @@ class SoundSystem {
         this.tone('sawtooth', 110, 110, t, 0.5, 0.08);
         this.tone('sawtooth', 165, 165, t + 0.12, 0.5, 0.06);
         this.tone('square', 330, 330, t + 0.24, 0.25, 0.04);
+        break;
+      case 'waveClear':
+        [523, 659, 784, 1046].forEach((f, i) => this.tone('triangle', f, f, t + i * 0.085, 0.24, 0.11));
+        this.tone('sine', 262, 262, t, 0.4, 0.08);
         break;
       case 'error':
         this.tone('square', 180, 140, t, 0.12, 0.08);

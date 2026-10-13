@@ -31,6 +31,8 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 
 ## What the game contains (v1.0.1)
 
+- **Local wave-clear celebration (2026-10-13):** medal, contextual congratulations, count-up stats, perfect-hack/combo highlights, sparks, and a success chime. Build and desktop/mobile browser checks pass, including automatic dismissal and next-wave cleanup. Previews: `output/wave-clear-desktop.png` and `output/wave-clear-mobile.png`.
+
 - **Local art update (2026-10-12):** revised Juggernaut/Titan chassis and damaged textures for clearer silhouettes. Production build and browser texture checks pass; preview at `output/tank-design-preview.png`.
 - **Local combat polish (2026-10-12):** animated treads, exhaust, damage smoke, armor-hit sparks, and tank destruction debris. Build and browser checks pass for frost slowdown, pause/resume, 2x effects, kill rewards, particle caps, and restart cleanup. Gameplay preview at `output/tank-polish-gameplay.png`.
 - **Local tower polish (2026-10-12):** stronger upgrade silhouettes for all six towers, front level indicators, aligned muzzle origins, and more texture headroom for Cryo. Browser checks pass for all 18 levels, upgrade costs, texture swaps, rotated muzzle positions, and unclipped icons. Comparison at `output/tower-upgrades-preview.png`.
@@ -77,11 +79,7 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
    - playtest recordings show players hacking within their first minute,
    - no single hack wipes a whole late wave, and players who never hack can still clear every sector.
 
-1. **Cut dead time between waves.** About half of a sector's time at 1x is countdown.
-   - Gap between waves 14 s → about 8 s (`WAVE_TIMING.betweenWaves`).
-   - Auto-start the next wave about 3 s after the field is clear.
-   - Remember the 2x speed choice across waves and sectors.
-   - Keeps sectors at roughly 4–5.5 min, still above the 3-minute target.
+1. ~~**Cut dead time between waves.**~~ Done (unreleased): the next wave starts 3 s after the field is clear, and 2x speed is remembered. The 14 s gap stays: 8 s made waves stack and the bot lost Sectors 1–2 (see BALANCING.md). Also added combo pop-ups and a "wave cleared" summary card.
 2. **Make "call wave early" more visible:** a pulsing "+N credits" on the beacon and a one-time hint after wave 1.
 3. **Overcharge** (a second active choice, cheap to build). An OVERCHARGE button in a tower's upgrade panel gives 5 s of double fire rate, then the tower overheats and is offline for 6 s (orange glow and smoke). Worth doing if playtests still show idle time between waves. Hacking already covers the old "active ability" idea.
 4. **A mini-boss mid-sector** (around wave 5) to break up the middle of each sector.

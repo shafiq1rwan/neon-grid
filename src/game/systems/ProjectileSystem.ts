@@ -100,12 +100,14 @@ export class ProjectileSystem {
         this.effects.burst(p.tx, p.ty, COLORS.pink, 8);
         break;
       case 'missile': {
+        const before = this.enemies.kills;
         const hits = Targeting.within(this.enemies.list, p.tx, p.ty, p.splash, this.splashBuf);
         for (const e of hits) {
           const d = Math.hypot(e.x - p.tx, e.y - p.ty);
           const falloff = d < p.splash * 0.5 ? 1 : 0.6;
           this.enemies.damage(e, p.damage * falloff, src);
         }
+        this.enemies.comboFrom(before, p.tx, p.ty);
         this.effects.explosion(p.tx, p.ty, p.splash, COLORS.orange);
         sfx.play('explosion');
         break;
