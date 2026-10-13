@@ -89,16 +89,21 @@ export class NeonButton extends Phaser.GameObjects.Container {
   private pressed = false;
   private color: number;
   private iconFn: ((g: Phaser.GameObjects.Graphics, color: number) => void) | null;
+  // Not `w`/`h`: Phaser's Transform owns `w` and setPosition(x, y) resets it to 0.
+  private btnW: number;
+  private btnH: number;
 
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
-    public w: number,
-    public h: number,
+    w: number,
+    h: number,
     private readonly opts: ButtonOptions,
   ) {
     super(scene, x, y);
+    this.btnW = w;
+    this.btnH = h;
     this.color = opts.color ?? COLORS.cyan;
     this.iconFn = opts.icon ?? null;
     this.bg = scene.add.graphics();
@@ -145,8 +150,8 @@ export class NeonButton extends Phaser.GameObjects.Container {
 
   /** Keep responsive button geometry and its interactive rectangle in sync. */
   resize(w: number, h: number): this {
-    this.w = w;
-    this.h = h;
+    this.btnW = w;
+    this.btnH = h;
     this.setSize(w, h);
     if (this.input?.hitArea instanceof Phaser.Geom.Rectangle) this.input.hitArea.setTo(0, 0, w, h);
     this.redraw();
@@ -180,11 +185,11 @@ export class NeonButton extends Phaser.GameObjects.Container {
   private redraw(): void {
     const c = this.enabled ? this.color : 0x3a4560;
     this.bg.clear();
-    drawPanel(this.bg, -this.w / 2, -this.h / 2, this.w, this.h, {
+    drawPanel(this.bg, -this.btnW / 2, -this.btnH / 2, this.btnW, this.btnH, {
       color: c,
       fill: this.opts.fill ?? 0x111a2e,
-      radius: Math.min(10, this.h / 3),
-      corners: this.w > 70,
+      radius: Math.min(10, this.btnH / 3),
+      corners: this.btnW > 70,
       ...this.opts.panelStyle,
     });
     this.label?.setColor(this.enabled ? css(COLORS.text) : '#5a6680');
