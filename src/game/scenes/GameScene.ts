@@ -78,6 +78,10 @@ export class GameScene extends Phaser.Scene {
   private reactorCore!: Phaser.GameObjects.Image;
   private reactorGlow!: Phaser.GameObjects.Image;
   private reactorFlash = 0;
+  /** Poki Game Events: the sector attempt is open until complete/fail is sent. */
+  private attemptOpen = false;
+  /** 1-based wave last reported as started (0 = none yet). */
+  private measuredWave = 0;
   private elapsed = 0;
   /** Last time scale pushed to tweens/particles (speed × bullet time). */
   private fxScale = 1;
@@ -101,6 +105,8 @@ export class GameScene extends Phaser.Scene {
     this.playTime = 0;
     this.elapsed = 0;
     this.reactorFlash = 0;
+    this.attemptOpen = true;
+    this.measuredWave = 0;
     this.selection = { kind: 'none' };
     this.hints = [];
     this.tweens.timeScale = 1;
@@ -131,7 +137,10 @@ export class GameScene extends Phaser.Scene {
         this.deselect();
         this.events.emit(GameEvents.hackLock);
       },
-      onHacked: (outcome: HackOutcome) => this.events.emit(GameEvents.hacked, outcome),
+      onHacked: (outcome: HackOutcome) => {
+        poki.measure('hack', outcome, 'used');
+        this.events.emit(GameEvents.hacked, outcome);
+      },
     });
     this.fxScale = 1;
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
@@ -140,6 +149,10 @@ export class GameScene extends Phaser.Scene {
       spawn: (type, hpScale, lane) => this.enemies.spawn(type, hpScale * this.map.difficulty, lane),
       waveStarted: (index) => {
         this.hack.onWaveStart(index);
+        // a wave counts as survived once the next one starts
+        if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'complete');
+        this.measuredWave = index + 1;
+        poki.measure('wave', this.waveId(this.measuredWave), 'start');
         sfx.play('waveStart');
         this.events.emit(GameEvents.waveStart, index);
       },
@@ -180,12 +193,31 @@ export class GameScene extends Phaser.Scene {
       this.towers.clear();
       this.effects.destroy();
       this.input.keyboard?.removeAllListeners();
+      // a defeat that offered a revive is only final once the player leaves
+      if (this.over && !this.victory) this.measureFail();
     });
 
     storage.update({ plays: storage.data.plays + 1 });
     this.scene.stop(SCENES.result);
     this.scene.launch(SCENES.ui);
+    poki.measure('level', this.sectorId, 'start');
     poki.gameplayStart();
+  }
+
+  /** Poki Game Events ids, e.g. "sector-2" and "s2-w07" (padded so they sort). */
+  private get sectorId(): string {
+    return `sector-${this.mapIndex + 1}`;
+  }
+
+  private waveId(wave: number): string {
+    return `s${this.mapIndex + 1}-w${String(wave).padStart(2, '0')}`;
+  }
+
+  private measureFail(): void {
+    if (!this.attemptOpen) return;
+    this.attemptOpen = false;
+    if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'fail');
+    poki.measure('level', this.sectorId, 'fail');
   }
 
   /* ---------------------------------------------------------------- */
@@ -504,6 +536,11 @@ export class GameScene extends Phaser.Scene {
       sfx.play('victory');
       this.effects.ring(r.x, r.y, 200, COLORS.cyan, 900);
       this.effects.burst(r.x, r.y, COLORS.cyan, 30);
+      if (this.attemptOpen) {
+        this.attemptOpen = false;
+        poki.measure('wave', this.waveId(this.measuredWave), 'complete');
+        poki.measure('level', this.sectorId, 'complete');
+      }
       storage.recordStars(this.mapIndex, stars);
       storage.update({
         wins: storage.data.wins + 1,
@@ -519,6 +556,9 @@ export class GameScene extends Phaser.Scene {
     }
     this.events.emit(GameEvents.gameOver, victory);
 
+    const canRevive = !victory && !this.revived && poki.rewardedAvailable;
+    // with a revive on offer the attempt may continue; fail is sent on leaving
+    if (!victory && !canRevive) this.measureFail();
     const data: ResultData = {
       victory,
       wave,
@@ -528,7 +568,7 @@ export class GameScene extends Phaser.Scene {
       earned: this.economy.earned,
       time: this.playTime,
       stars,
-      canRevive: !victory && !this.revived && poki.rewardedAvailable,
+      canRevive,
       mapIndex: this.mapIndex,
     };
     this.time.delayedCall(1300, () => {

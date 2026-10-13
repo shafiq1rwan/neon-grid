@@ -4,6 +4,10 @@
 
 ### Changed
 - Phones held in portrait now play the game auto-rotated instead of showing a "rotate your device" screen. The game fills the screen sideways and touch input is mapped through the rotation; turning the phone to landscape switches back to the normal layout.
+- Narrower upgrade panel (900 → 640 wide) so the stat cards fit their contents instead of stretching across the screen.
+
+### Added
+- Poki Game Events (`measure`): sector start/complete/fail, per-wave progress (`wave / s1-w01` …), the tutorial, and hacks by timing result, so the dashboard shows where players drop off.
 
 ### Fixed
 - WebGL error "Framebuffer status: Incomplete Attachment" reported on Poki. When the host page briefly squeezed the game frame to a few pixels, the expand-to-fill scaling requested a canvas hundreds of thousands of pixels long. The game's internal size is now capped at 4096 px, and transient sliver layouts are ignored. Normal screens, including 4K, are unaffected.

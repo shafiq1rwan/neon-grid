@@ -3,7 +3,8 @@
  *
  * Only documented SDK v2 functions are used:
  *   init, gameLoadingFinished, gameplayStart, gameplayStop,
- *   commercialBreak(beforeAdCallback), rewardedBreak(beforeAdCallback).
+ *   commercialBreak(beforeAdCallback), rewardedBreak(beforeAdCallback),
+ *   measure(category, what, action) for Game Events (developers.poki.com/guide/game-events).
  *
  * When the SDK script is unavailable (local dev, offline, ad blockers) every
  * call becomes a safe no-op and breaks resolve immediately.
@@ -16,6 +17,7 @@ interface PokiSDKApi {
   gameplayStop(): void;
   commercialBreak(beforeAd?: () => void): Promise<void>;
   rewardedBreak(beforeAd?: () => void): Promise<boolean>;
+  measure?(category: string, what: string, action: string): void;
 }
 
 declare global {
@@ -101,6 +103,16 @@ class PokiAdapter {
     if (!this.gameplayActive) return;
     this.gameplayActive = false;
     this.safe(() => this.sdk?.gameplayStop());
+  }
+
+  /**
+   * Game Events for the Poki dashboard. Progress uses the actions 'start',
+   * 'complete' and 'fail' (send complete OR fail per attempt, never both).
+   * Values must not contain '/' or '^'. Ads are measured by Poki automatically.
+   */
+  measure(category: string, what: string, action: string): void {
+    if (import.meta.env.DEV) console.debug('[Poki] measure', category, what, action);
+    this.safe(() => this.sdk?.measure?.(category, what, action));
   }
 
   /** Natural break (before restarting / starting a new run). Never during combat. */

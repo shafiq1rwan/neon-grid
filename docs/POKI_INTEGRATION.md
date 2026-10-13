@@ -32,6 +32,7 @@ Only documented functions are used.
 | `gameplayStop()` | `pauseGame`, game over, quit to menu, before any ad | Play stops |
 | `commercialBreak(cb)` | Menu **Play**, pause **Restart**, result **Retry / Play again** | Natural breaks only, never during combat |
 | `rewardedBreak(cb)` | Result screen **Revive** button | Opt-in, after a defeat |
+| `measure(category, what, action)` | `GameScene`, `UIScene` (via `poki.measure`) | Game Events, see below |
 
 The adapter makes `gameplayStart()` and `gameplayStop()` idempotent, so duplicate calls are ignored.
 
@@ -47,6 +48,25 @@ Tab hidden:    auto-pause → gameplayStop
 Death+revive:  gameplayStop → rewardedBreak → (success) gameplayStart
 Retry:         gameplayStop (game over) → commercialBreak → gameplayStart
 ```
+
+## Game Events (`measure`)
+
+Poki records `game / loading` by itself; everything else in the dashboard's **Game Events** tab comes from these calls ([Poki guide](https://developers.poki.com/guide/game-events)). Ads are tracked automatically, so they are not measured.
+
+| Category / what | Actions | Sent when |
+| --- | --- | --- |
+| `level / sector-1` … `sector-3` | `start`, `complete`, `fail` | Every run of a sector (including Retry / Replay); victory; final defeat |
+| `wave / s1-w01` … `s3-w12` | `start`, `complete`, `fail` | A wave starts; it counts as complete when the next wave starts (or on victory); fail is the wave the reactor fell on |
+| `level / tutorial` | `start`, `complete` | The first-run hints appear; they finish (first wave started) |
+| `hack / perfect`, `hack / good` | `used` (custom) | Every successful hack, by timing result |
+
+Rules kept by the code:
+- One attempt sends **either** `complete` **or** `fail`, never both.
+- A defeat that offers a revive is not final: `fail` is sent only when the player leaves (Retry or Menu). A revived run that then wins sends `complete`. A second defeat (no revive left) sends `fail` at once.
+- Quitting mid-run from the pause menu sends nothing, so it shows as started but not finished.
+- Ids never contain `/` or `^`. Wave numbers are zero-padded so they sort in order.
+
+In dev, every call is logged to the console as `[Poki] measure …` (debug level).
 
 ## Audio and input during ads
 

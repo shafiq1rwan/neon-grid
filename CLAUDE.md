@@ -25,6 +25,7 @@ See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the rel
 - Container hit areas are centred. For children laid out from the top-left, add a centred `Zone` as the hit target (see `TowerMenu`).
 - Hot loops must not allocate. Use squared distances, pooled objects and the shared `Effects.gfx` for lines.
 - Keep the palette in `COLORS` (config.ts) and about 70% dark metal / 30% neon.
+- Poki Game Events go through `poki.measure()` (sector, wave, tutorial, hack; table in docs/POKI_INTEGRATION.md). Send `complete` OR `fail` per attempt, never both, and never measure ads.
 - Ads only at natural breaks (Play, Retry, Restart, Next Sector) or the opt-in revive. Never during combat.
 - Rewarded revive must keep Poki's rules: 🎬 icon, not green, an equal-size Retry beside it, and no reward unless `rewardedBreak()` resolved true (Revive is hidden when `poki.rewardedAvailable` is false).
 - Campaign content is data: sectors in `MAPS` (paths/lanes, platforms, `towers` allowed, `difficulty`, `startCredits`, waves). Re-run a balance check after changing it (docs/BALANCING.md).

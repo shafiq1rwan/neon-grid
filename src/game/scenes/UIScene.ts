@@ -140,12 +140,14 @@ export class UIScene extends Phaser.Scene {
   private startTutorial(): void {
     const g = this.gs;
     const platform = g.map.platforms[g.map.tutorialPlatform ?? 0];
+    poki.measure('level', 'tutorial', 'start');
     this.tutorial = new Tutorial(this, {
       platform,
       waveButton: this.hud.waveBtnPos,
       pulseCard: () => this.menu.cardCenter('pulse'),
       finish: () => {
         storage.update({ tutorialDone: true });
+        poki.measure('level', 'tutorial', 'complete');
         this.tutorial = null;
       },
     });

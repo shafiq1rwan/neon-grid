@@ -121,7 +121,7 @@ export class UpgradePanel {
   }
 
   private layout(): void {
-    const layout = drawerLayout(this.scene, 900);
+    const layout = drawerLayout(this.scene, 640);
     const w = layout.width;
     this.compact = layout.compact;
     const padding = this.compact ? 16 : 20;

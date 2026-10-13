@@ -35,7 +35,7 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 - **Local combat polish (2026-10-12):** animated treads, exhaust, damage smoke, armor-hit sparks, and tank destruction debris. Build and browser checks pass for frost slowdown, pause/resume, 2x effects, kill rewards, particle caps, and restart cleanup. Gameplay preview at `output/tank-polish-gameplay.png`.
 - **Local tower polish (2026-10-12):** stronger upgrade silhouettes for all six towers, front level indicators, aligned muzzle origins, and more texture headroom for Cryo. Browser checks pass for all 18 levels, upgrade costs, texture swaps, rotated muzzle positions, and unclipped icons. Comparison at `output/tower-upgrades-preview.png`.
 - **Local mobile polish (2026-10-12):** compact proportional drawers, all sector towers (4/5/6) in one catalogue row, tower-specific current/next comparisons, and equal action-button padding/spacing. Restored the previous HUD scale after fixed pixel sizing crowded small screens. All six card actions pass at 374×447, 844×390, and 1280×720. Preview: `output/tower-catalogue-374.png`.
-- **Desktop spacing correction (2026-10-12):** centered build-card stacks, measured stat rows, and matching 424×66px action buttons at 1280×720. Verified 8px top/bottom button padding and 12px action spacing across all tower levels. Preview: `output/mobile-upgrade-1280.png`.
+- **Desktop spacing correction (2026-10-12):** centered build-card stacks, measured stat rows, and matching action buttons at 1280×720 (now 294×66px since the upgrade panel was narrowed to 640 in v1.1.1). Verified 8px top/bottom button padding and 12px action spacing across all tower levels. Preview: `output/mobile-upgrade-1280.png`.
 - **Compact desktop catalogue (2026-10-12):** reduced to 1100×228px at 1280×720, keeping all six towers visible. Build, label-fit, and card-action checks pass on desktop and phone layouts. Preview: `output/tower-catalogue-1280.png`.
 
 - **Campaign:** 3 sectors, 32 waves, about 20 minutes in total.
@@ -62,6 +62,8 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | v1.1.0 with **Hacking** (signature mechanic, see [GAME_DESIGN.md → Hacking](GAME_DESIGN.md)) | ⏳ Built and bot-balanced. Next: upload and run a new fit test; keep v1.0.1 as the safe build |
 | Animated thumbnail (1080², 4–6 s, ≥ 50 fps, muted .mp4) | ⏳ Needed during Soft Release, before global release. Shot list in POKI_SUBMISSION.md §4 |
 | Web Fit Test → Final review | Not started |
+
+**Game Events (Poki dashboard → Game Events):** since v1.1.1 the game sends sector, wave, tutorial and hack events (list in [POKI_INTEGRATION.md](POKI_INTEGRATION.md#game-events-measure)). Builds before v1.1.1 only show `game / loading`. Use the wave funnel (`wave / s1-w01` …) to find the wave where players quit or fail most.
 
 **When the playtest recordings arrive, check:**
 - whether players tap a platform or START within the first 10 seconds,
