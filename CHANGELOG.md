@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 — 2026-10-13
+
+### Changed
+- Phones held in portrait now play the game auto-rotated instead of showing a "rotate your device" screen. The game fills the screen sideways and touch input is mapped through the rotation; turning the phone to landscape switches back to the normal layout.
+
+### Fixed
+- WebGL error "Framebuffer status: Incomplete Attachment" reported on Poki. When the host page briefly squeezed the game frame to a few pixels, the expand-to-fill scaling requested a canvas hundreds of thousands of pixels long. The game's internal size is now capped at 4096 px, and transient sliver layouts are ignored. Normal screens, including 4K, are unaffected.
+
 ## 1.1.0 — 2026-10-12
 
 ### Added

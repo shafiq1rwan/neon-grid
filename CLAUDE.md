@@ -31,7 +31,8 @@ See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the rel
 - The tutorial is hints only and must never block or pause play (playtest finding). The START beacon must always work.
 - Hacking (`systems/HackSystem.ts`, tuning in `HACK` in config.ts) is the signature mechanic. The lock runs on REAL time; the world runs at `speed × hack.warp`. Hacked machines must be skipped by every targeting query (`Targeting` already does this) and must never damage the reactor.
 - Keyboard: never `preventDefault` keys at window level, or Phaser ignores them. Use `input.keyboard.capture` in the game config.
-- `keepScaleInSync` in `main.ts` works around a Phaser 3.90 resize-on-rotation bug; keep it.
+- `keepScaleInSync` in `main.ts` works around a Phaser 3.90 resize-on-rotation bug; keep it. Also keep `scale.max` (4096) and its minimum-size guard: without them a sliver-sized host frame crashes WebGL ("Framebuffer status: Incomplete Attachment").
+- Portrait phones play rotated (`utils/AutoRotate.ts`): the `#game` container is CSS-rotated 90°, and Phaser's `getParentBounds`, `updateCenter` and `input.transformPointer` are patched on the instance. Anything that maps screen ↔ game coordinates by hand (e.g. `getBoundingClientRect()` on the canvas) is wrong while rotated; go through Phaser's pointer instead. There is no rotate prompt any more.
 
 ## Docs
 - `docs/STATUS.md`: start here. Status, Poki progress, backlog, new-PC setup.

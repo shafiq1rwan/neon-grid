@@ -34,45 +34,12 @@
         display: block;
         outline: none;
       }
-      #rotate {
-        display: none;
-        position: fixed;
-        inset: 0;
-        z-index: 10;
-        background: #0b1020;
-        color: #dce7ff;
-        font: 600 18px 'Segoe UI', Roboto, Arial, sans-serif;
-        text-align: center;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        gap: 18px;
-      }
-      #rotate .phone {
-        width: 46px;
-        height: 78px;
-        border: 3px solid #00e5ff;
-        border-radius: 9px;
-        box-shadow: 0 0 14px #00e5ff;
-        animation: tilt 1.8s ease-in-out infinite;
-      }
-      @keyframes tilt {
-        0%, 30% { transform: rotate(0deg); }
-        60%, 100% { transform: rotate(-90deg); }
-      }
-      /* Touch devices held in portrait: ask for landscape (the game still runs underneath). */
-      @media (orientation: portrait) and (pointer: coarse) {
-        #rotate {
-          display: flex;
-        }
-      }
     </style>
     <!-- Poki SDK (https://developers.poki.com/guide/sdk-html5). The game runs without it. -->
     <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
   </head>
   <body>
     <div id="game"></div>
-    <div id="rotate"><div class="phone"></div>Rotate your device to defend the reactor</div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

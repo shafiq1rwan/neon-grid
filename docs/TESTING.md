@@ -23,7 +23,7 @@ gs.waves.index = 9; gs.waves.state = 'complete'; gs.enemies.clear(); // force vi
 localStorage.removeItem('neon-wasteland-defense:v1');    // reset save / replay tutorial
 ```
 
-Headless browser runs (Playwright driving Edge) are useful for smoke tests and balance bots. Map game coordinates to screen coordinates through the canvas `getBoundingClientRect()` and the 1280×720 logical size.
+Headless browser runs (Playwright driving Edge) are useful for smoke tests and balance bots. Map game coordinates to screen coordinates through the canvas `getBoundingClientRect()` and the 1280×720 logical size. In a portrait mobile viewport the game is auto-rotated, so that mapping doesn't hold: compute the point inside the container (u, v) from `canvas.clientWidth/Height` and `offsetLeft/Top`, then tap the screen at (`container.clientHeight − v`, u).
 
 ## Manual QA checklist
 
@@ -93,7 +93,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Switching tabs auto-pauses the game and silences audio.
 - [ ] Keyboard: Space, 1–6 (drawer order), U, S, F, P/Esc.
 - [ ] Mobile landscape: taps hit platforms, cards and buttons; text is readable.
-- [ ] Mobile portrait shows the rotate prompt.
+- [ ] Mobile portrait auto-rotates: the game fills the screen sideways (no bands, nothing cut off), and taps on platforms, cards, buttons and machines (hack lock) land where the finger is. Turning the phone to landscape and back re-fits it each time.
 - [ ] The game fills the whole screen at any aspect ratio (phone, tablet, ultrawide) and the battlefield stays fully visible; resizing and rotating re-fit it.
 
 ### Performance

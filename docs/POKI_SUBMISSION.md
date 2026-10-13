@@ -130,7 +130,7 @@ Mapped to Poki's [requirements & quality guidelines](https://developers.poki.com
 | Requirement | Status |
 | --- | --- |
 | Covers the full canvas at 16:9; works on desktop, mobile and tablet | ✅ Scale EXPAND: 16:9 frames show exactly the battlefield, and other shapes fill the screen |
-| Mobile covers the full screen (landscape) | ✅ Portrait shows a rotate prompt |
+| Mobile covers the full screen (landscape) | ✅ Portrait auto-rotates the game, so it is playable without turning the phone |
 | Fast loading, small initial download | ✅ About 380 KB zipped. Art and sound are generated in code. |
 | No external requests (fonts, assets, libraries bundled) | ✅ Only the Poki SDK script is loaded |
 | localStorage wrapped in try/catch (incognito) | ✅ `utils/Storage.ts` |

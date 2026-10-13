@@ -72,7 +72,7 @@ Poki provides its own fullscreen control. The game's fullscreen button and the a
 - [ ] Drag `dist/` into the Poki Inspector and confirm the event order in its log.
 - [ ] No ads during waves; breaks happen only at Play, Retry or Restart.
 - [ ] Sound is muted during ads, and the mute setting persists.
-- [ ] Touch controls work on mobile; portrait shows the rotate prompt.
+- [ ] Touch controls work on mobile; in portrait the game auto-rotates and still fills the screen.
 - [ ] No console errors in production.
 - [ ] The `window.__nwd` debug hook is absent from production (it is gated by `import.meta.env.DEV`).
 - [ ] Relative asset paths (`base: './'` in `vite.config.ts`).

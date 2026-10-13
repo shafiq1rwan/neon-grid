@@ -3,6 +3,7 @@ import { COLORS, GAME_HEIGHT, GAME_WIDTH } from './game/config';
 import { sfx } from './game/audio/SoundSystem';
 import { poki } from './game/platform/PokiAdapter';
 import { storage } from './game/utils/Storage';
+import { applyRotation, installAutoRotate } from './game/utils/AutoRotate';
 import { BootScene } from './game/scenes/BootScene';
 import { GameScene } from './game/scenes/GameScene';
 import { MenuScene } from './game/scenes/MenuScene';
@@ -37,10 +38,16 @@ const config: Phaser.Types.Core.GameConfig = {
   // EXPAND keeps the whole 1280x720 battlefield visible and grows the view to
   // fill wider (phones) or taller (tablets) screens. Scenery is baked VIEW_PAD
   // beyond the battlefield; anything past that is plain background colour.
-  // (No scale min/max: in EXPAND they would also clamp the on-screen CSS size.)
+  // Note: in EXPAND, scale max also caps the on-screen CSS size, so keep it
+  // far above real screens (4096 covers 4K displays).
   scale: {
     mode: Phaser.Scale.EXPAND,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    // EXPAND grows one dimension by the parent's aspect ratio. If a host page
+    // briefly squeezes the frame to a sliver (1-3 px), that asks for a canvas
+    // hundreds of thousands of pixels long and WebGL fails with "Framebuffer
+    // status: Incomplete Attachment". Cap it well above any real screen.
+    max: { width: 4096, height: 4096 },
   },
   render: {
     antialias: true,
@@ -60,13 +67,20 @@ const config: Phaser.Types.Core.GameConfig = {
  * rotating a phone the canvas keeps its old (portrait) size. Re-measure and
  * refresh a few times after any resize/rotation until the browser settles.
  */
-function keepScaleInSync(game: Phaser.Game): void {
+function keepScaleInSync(game: Phaser.Game, container: HTMLElement): void {
   let timers: number[] = [];
   const sync = () => {
+    // portrait phones: (un)rotate the container before measuring it
+    applyRotation(container);
+    // ignore transient sliver layouts while the host page re-flows
+    const parent = game.scale.parent as HTMLElement | null;
+    const rect = parent?.getBoundingClientRect();
+    if (!rect || rect.width < 32 || rect.height < 32) return;
     game.scale.getParentBounds();
     game.scale.refresh();
   };
   const schedule = () => {
+    applyRotation(container);
     for (const t of timers) window.clearTimeout(t);
     timers = [0, 150, 400, 900].map((ms) => window.setTimeout(sync, ms));
   };
@@ -77,8 +91,12 @@ function keepScaleInSync(game: Phaser.Game): void {
 }
 
 void poki.init().finally(() => {
+  // Phones held in portrait play rotated instead of showing a "rotate" screen.
+  const container = document.getElementById('game')!;
+  applyRotation(container);
   const game = new Phaser.Game(config);
-  keepScaleInSync(game);
+  installAutoRotate(game, container);
+  keepScaleInSync(game, container);
   // Exposed in development only, for debugging and automated smoke tests.
   if (import.meta.env.DEV) (window as unknown as { __nwd: Phaser.Game }).__nwd = game;
 });

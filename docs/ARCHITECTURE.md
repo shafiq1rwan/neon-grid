@@ -49,6 +49,8 @@ victory check
 - **Background padding.** The background is baked with `VIEW_PAD` (380×140, enough for screens up to about 2.8:1) of extra scenery around the map, and the road starts at x = −440 so enemies enter off-screen. A screen-space `vignette` sprite is stretched over whatever is visible.
 - **Fullscreen.** `utils/Fullscreen.ts` enters browser fullscreen when PLAY is tapped on touch devices, and the HUD shows a fullscreen toggle. This hides the address bar so the battlefield gets the whole screen. It is disabled on Poki, which has its own fullscreen, and on iPhone Safari, which doesn't support it.
 - **Rotation fix.** `keepScaleInSync` in `main.ts` works around a Phaser 3.90 bug where rotating a phone left the canvas at its old size.
+- **Size cap.** `scale.max` is 4096×4096. If a host page briefly squeezes the frame to a sliver (1–3 px), EXPAND would otherwise request a canvas hundreds of thousands of pixels long, and WebGL fails with "Framebuffer status: Incomplete Attachment" (seen on Poki). `keepScaleInSync` also ignores layouts smaller than 32 px.
+- **Auto-rotate.** On a touch device held in portrait, `utils/AutoRotate.ts` lays the `#game` container out as a landscape box (screen height × screen width) and rotates it 90° with CSS, so the game always plays in landscape with no "rotate your phone" screen. Phaser doesn't know about the CSS rotation, so three methods are patched on the game instance: `scale.getParentBounds` reads the container's layout size (`clientWidth`/`clientHeight`) instead of its rotated bounding box, `scale.updateCenter` centres on that layout size, and `input.transformPointer` maps screen coordinates back into the canvas (u = pageY, v = containerHeight − pageX). `keepScaleInSync` re-applies the rotation on every resize or orientation change. Desktop and landscape are untouched.
 
 ## Folder map
 
@@ -75,7 +77,8 @@ src/game/ui/                widgets (NeonButton, panels, icons), HUD, TowerMenu,
 src/game/audio/             SoundSystem (Web Audio synth, singleton `sfx`)
 src/game/platform/          PokiAdapter (singleton `poki`)
 src/game/utils/             MathUtils (PathData, RNG, angles), ObjectPool, Storage (singleton `storage`),
-                            View (EXPAND camera centring / viewBounds), Fullscreen (non-Poki fullscreen)
+                            View (EXPAND camera centring / viewBounds), Fullscreen (non-Poki fullscreen),
+                            AutoRotate (portrait phones play rotated)
 scripts/package.mjs         zips dist/ into release/<name>-v<version>.zip
 ```
 

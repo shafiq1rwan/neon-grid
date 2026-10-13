@@ -47,7 +47,7 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 - **Progression:** per-sector stars (9 in total) and unlocks, a sector select screen, and NEXT SECTOR on victory.
 - **Tutorial:** hint-only (hand pointer, 2–3 words). It never blocks play.
 - **Poki:** SDK adapter, commercial breaks between runs, and a rewarded revive that follows Poki's button rules.
-- **Screens:** full-screen on every aspect ratio (Phaser EXPAND), auto-fullscreen on phones outside Poki, rotate prompt in portrait.
+- **Screens:** full-screen on every aspect ratio (Phaser EXPAND), auto-fullscreen on phones outside Poki. Portrait phones play auto-rotated (no rotate prompt) since v1.1.1.
 
 Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BALANCING.md](BALANCING.md).
 
@@ -95,6 +95,8 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 - **Test tooling isn't in the repo.** The Playwright smoke tests and the balance bot were run from a temporary folder. The approach and console snippets are in [TESTING.md](TESTING.md) and [BALANCING.md](BALANCING.md), so they can be recreated with `playwright-core` and Edge/Chrome.
 - **Phaser quirks with workarounds in place:**
   - A rotation resize bug, handled by `keepScaleInSync` in `main.ts`.
+  - "Framebuffer status: Incomplete Attachment" on Poki, when the frame is briefly squeezed to a sliver. Fixed in v1.1.1 with `scale.max` 4096 and a minimum-size guard. Keep both.
+  - Auto-rotate (`utils/AutoRotate.ts`) patches three Phaser internals on the game instance. Re-test portrait taps after any Phaser upgrade. Tested in emulated phones only so far; check on a real iPhone and Android before relying on it.
   - Phaser ignores keys whose default was already prevented. Use `input.keyboard.capture` in the game config, never a window-level `preventDefault`.
 
 ## Release routine
