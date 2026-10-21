@@ -10,6 +10,7 @@ import { MenuScene } from './game/scenes/MenuScene';
 import { SectorScene } from './game/scenes/SectorScene';
 import { ResultScene } from './game/scenes/ResultScene';
 import { UIScene } from './game/scenes/UIScene';
+import { WorkshopScene } from './game/scenes/WorkshopScene';
 
 sfx.setMuted(storage.data.muted);
 
@@ -58,7 +59,7 @@ const config: Phaser.Types.Core.GameConfig = {
   input: { activePointers: 2, keyboard: { capture: [32, 38, 40] } },
   disableContextMenu: true,
   banner: false,
-  scene: [BootScene, MenuScene, SectorScene, GameScene, UIScene, ResultScene],
+  scene: [BootScene, MenuScene, SectorScene, GameScene, UIScene, ResultScene, WorkshopScene],
 };
 
 /**

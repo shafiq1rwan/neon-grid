@@ -110,4 +110,5 @@ export const SCENES = {
   game: 'GameScene',
   ui: 'UIScene',
   result: 'ResultScene',
+  workshop: 'WorkshopScene',
 } as const;

@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD, WAVE_TIMING } from '../config';
 import { MAPS, type MapDef } from '../data/maps';
+import { challengeMet, challengesFor, emptyRunStats, needsWin, type RunStats } from '../data/challenges';
+import { perkEffects } from '../data/perks';
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Tower } from '../entities/Tower';
 import { sfx } from '../audio/SoundSystem';
@@ -20,11 +22,21 @@ import { centerCamera } from '../utils/View';
 
 export type Selection = { kind: 'none' } | { kind: 'platform'; index: number } | { kind: 'tower'; index: number };
 
+export interface ChallengeResult {
+  text: string;
+  met: boolean;
+  /** Completed for the first time in this run (awards a star). */
+  isNew: boolean;
+}
+
 export interface ResultData {
   victory: boolean;
   wave: number;
   totalWaves: number;
   hp: number;
+  maxHp: number;
+  /** The sector's challenges (graded on victory). */
+  challenges: ChallengeResult[];
   kills: number;
   earned: number;
   time: number;
@@ -93,6 +105,12 @@ export class GameScene extends Phaser.Scene {
   private reactorFlash = 0;
   /** Running totals for the "wave cleared" summary (reset after each summary). */
   private waveStats = { kills: 0, earned: 0, perfectHacks: 0, bestCombo: 0, cleared: -1 };
+  /** Whole-run stats for the sector challenges. */
+  runStats: RunStats = emptyRunStats();
+  /** Reactor HP at the start (20 plus Workshop plating). */
+  maxHp: number = ECONOMY.startingHp;
+  /** Workshop wave-bonus multiplier for this run. */
+  private bountyMult = 1;
   /** Poki Game Events: the sector attempt is open until complete/fail is sent. */
   private attemptOpen = false;
   /** 1-based wave last reported as started (0 = none yet). */
@@ -111,7 +129,12 @@ export class GameScene extends Phaser.Scene {
     this.mapIndex = Phaser.Math.Clamp(data?.mapIndex ?? fromRegistry ?? 0, 0, MAPS.length - 1);
     this.registry.set('mapIndex', this.mapIndex);
     this.map = MAPS[this.mapIndex];
-    this.hp = ECONOMY.startingHp;
+    // Workshop perks are read once per run
+    const perks = perkEffects();
+    this.maxHp = ECONOMY.startingHp + perks.bonusHp;
+    this.hp = this.maxHp;
+    this.bountyMult = perks.bountyMult;
+    this.runStats = emptyRunStats();
     // the player's last speed choice carries over between waves and sectors
     this.speed = storage.data.fastSpeed ? 2 : 1;
     this.waveStats = { kills: 0, earned: 0, perfectHacks: 0, bestCombo: 0, cleared: -1 };
@@ -138,7 +161,7 @@ export class GameScene extends Phaser.Scene {
     this.createReactor();
 
     this.effects = new Effects(this);
-    this.economy = new EconomySystem(this.map.startCredits);
+    this.economy = new EconomySystem(this.map.startCredits + perks.bonusCredits);
     this.enemies = new EnemySystem(this, this.paths, this.map.roadWidth, this.effects, {
       onKilled: (e) => {
         this.hack.onKill();
@@ -148,6 +171,7 @@ export class GameScene extends Phaser.Scene {
       onEscaped: (e) => this.reactorHit(e.def.leakDamage),
       onCombo: (count, x, y) => {
         this.waveStats.bestCombo = Math.max(this.waveStats.bestCombo, count);
+        this.runStats.bestCombo = Math.max(this.runStats.bestCombo, count);
         this.events.emit(GameEvents.combo, count, x, y);
       },
     });
@@ -160,10 +184,14 @@ export class GameScene extends Phaser.Scene {
       },
       onHacked: (outcome: HackOutcome) => {
         poki.measure('hack', outcome, 'used');
-        if (outcome === 'perfect') this.waveStats.perfectHacks++;
+        if (outcome === 'perfect') {
+          this.waveStats.perfectHacks++;
+          this.runStats.perfectHacks++;
+        }
         this.events.emit(GameEvents.hacked, outcome);
       },
     });
+    this.hack.charges = perks.startCharges;
     this.fxScale = 1;
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
     this.towers = new TowerSystem(this, this.map.platforms, this.enemies, this.projectiles, this.effects);
@@ -180,8 +208,9 @@ export class GameScene extends Phaser.Scene {
       },
       waveSpawned: (_index, def) => {
         if (def.clearBonus > 0) {
-          this.economy.earn(def.clearBonus);
-          this.events.emit(GameEvents.waveBonus, def.clearBonus);
+          const bonus = Math.round(def.clearBonus * this.bountyMult);
+          this.economy.earn(bonus);
+          this.events.emit(GameEvents.waveBonus, bonus);
         }
       },
     }, this.map.waves, this.paths.length);
@@ -402,6 +431,7 @@ export class GameScene extends Phaser.Scene {
       return false;
     }
     this.towers.build(index, type);
+    this.runStats.peakTowers = Math.max(this.runStats.peakTowers, this.towers.count);
     this.hints[index].setVisible(false);
     this.effects.popup(this.map.platforms[index].x, this.map.platforms[index].y - 30, `-${cost}`, '#ff9b32');
     this.deselect();
@@ -433,6 +463,7 @@ export class GameScene extends Phaser.Scene {
     const tower = this.selectedTower();
     if (!tower || this.over) return false;
     const refund = this.towers.sell(tower);
+    this.runStats.sold++;
     this.economy.earn(refund);
     this.effects.popup(tower.x, tower.y - 30, `+${refund}`);
     this.hints[tower.platformIndex].setVisible(true);
@@ -442,6 +473,8 @@ export class GameScene extends Phaser.Scene {
 
   callNextWave(): void {
     if (this.over || !this.waves.canCallNext) return;
+    // calling before wave 1 doesn't count as "early" for the challenges
+    if (this.waves.state === 'waiting') this.runStats.earlyCalls++;
     const bonus = this.waves.callNext();
     if (bonus > 0) {
       this.economy.earn(bonus);
@@ -541,7 +574,7 @@ export class GameScene extends Phaser.Scene {
     const t = this.elapsed;
     this.reactorRing.rotation += dt * 0.8;
     this.reactorFlash = Math.max(0, this.reactorFlash - dt * 2.5);
-    const health = this.hp / ECONOMY.startingHp;
+    const health = Math.min(1, this.hp / this.maxHp);
     const pulse = 0.5 + 0.5 * Math.sin(t * (3 + (1 - health) * 6));
     this.reactorCore.setScale(0.9 + pulse * 0.15 + this.reactorFlash * 0.4);
     this.reactorGlow.setAlpha(0.25 + pulse * 0.15 + this.reactorFlash * 0.4);
@@ -572,7 +605,18 @@ export class GameScene extends Phaser.Scene {
     this.deselect();
     poki.gameplayStop();
     const r = this.map.reactor;
-    const stars = victory ? (this.hp >= 18 ? 3 : this.hp >= 10 ? 2 : 1) : 0;
+    // stars rate HP lost, so Workshop plating adds a cushion without moving the thresholds
+    const lost = this.maxHp - this.hp;
+    const stars = victory ? (lost <= 2 ? 3 : lost <= 10 ? 2 : 1) : 0;
+    const challenges: ChallengeResult[] = challengesFor(this.mapIndex).map((c) => {
+      const met = (victory || !needsWin(c)) && challengeMet(c, this.runStats);
+      const isNew = met && !storage.hasChallenge(c.id);
+      if (isNew) {
+        storage.completeChallenge(c.id);
+        poki.measure('challenge', c.id, 'complete');
+      }
+      return { text: c.text, met, isNew };
+    });
     const wave = victory ? this.waves.total : this.waves.displayNumber;
     if (victory) {
       sfx.play('victory');
@@ -606,6 +650,8 @@ export class GameScene extends Phaser.Scene {
       wave,
       totalWaves: this.waves.total,
       hp: this.hp,
+      maxHp: this.maxHp,
+      challenges,
       kills: this.enemies.kills,
       earned: this.economy.earned,
       time: this.playTime,

@@ -93,10 +93,17 @@ export function ensureMapBackground(scene: Phaser.Scene, map: MapDef, paths: Pat
     // draw in world coordinates; the texture is placed at (AREA.x, AREA.y)
     ctx.translate(-AREA.x, -AREA.y);
     drawGround(ctx, rng);
-    for (const path of paths) drawRoad(ctx, map, path, rng);
+    if (map.junctions) {
+      // crossing lanes: all asphalt first, so no lane's curb cuts across another
+      for (const path of paths) drawRoadBase(ctx, map, path);
+      for (const path of paths) drawRoadMarkings(ctx, map, path, rng);
+      for (const j of map.junctions) drawJunction(ctx, map, j);
+    } else {
+      for (const path of paths) drawRoad(ctx, map, path, rng);
+    }
     for (const lane of map.paths) drawEntry(ctx, lane[0]);
     const blockers: Vec2[] = [...map.platforms, map.reactor];
-    drawReactorPad(ctx, map.reactor);
+    drawReactorPad(ctx, map, paths);
     drawRubbleField(ctx, map, paths, rng, blockers);
     for (const path of paths) drawStreetlights(ctx, map, path);
     const sorted = [...scenery.buildings].sort((a, b) => a.y + a.d + a.h - (b.y + b.d + b.h));
@@ -266,7 +273,15 @@ function offsetPath(pts: Vec2[], off: number): Vec2[] {
   return out;
 }
 
+const ASPHALT = css(0x121828);
+
 function drawRoad(ctx: Ctx, map: MapDef, path: PathData, rng: () => number): void {
+  drawRoadBase(ctx, map, path);
+  drawRoadMarkings(ctx, map, path, rng);
+}
+
+/** Curb and asphalt (uses no randomness, so splitting it from the markings keeps every map's look). */
+function drawRoadBase(ctx: Ctx, map: MapDef, path: PathData): void {
   const pts = path.points;
   const w = map.roadWidth;
   ctx.lineJoin = 'round';
@@ -277,7 +292,47 @@ function drawRoad(ctx: Ctx, map: MapDef, path: PathData, rng: () => number): voi
   strokePath(ctx, pts, w + 16, css(0x1a2335));
   strokePath(ctx, pts, w + 10, css(0x232e45));
   // asphalt
-  strokePath(ctx, pts, w, css(0x121828));
+  strokePath(ctx, pts, w, ASPHALT);
+}
+
+/** Box junction where two lanes cross: clean asphalt, hazard hatching and corner lights. */
+function drawJunction(ctx: Ctx, map: MapDef, j: Vec2): void {
+  const h = map.roadWidth / 2;
+  ctx.fillStyle = ASPHALT;
+  ctx.fillRect(j.x - h, j.y - h, h * 2, h * 2);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(j.x - h + 6, j.y - h + 6, h * 2 - 12, h * 2 - 12);
+  ctx.clip();
+  for (let k = -h * 2; k < h * 2; k += 12) {
+    line(ctx, j.x + k, j.y - h, j.x + k + h * 2, j.y + h, 'rgba(255,180,58,0.16)', 2.4);
+    line(ctx, j.x + k + h * 2, j.y - h, j.x + k, j.y + h, 'rgba(255,180,58,0.16)', 2.4);
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = 0.75;
+  ctx.setLineDash([10, 8]);
+  glow(ctx, COLORS.orange, 6);
+  ctx.strokeStyle = 'rgba(255,155,50,0.55)';
+  ctx.lineWidth = 1.6;
+  ctx.strokeRect(j.x - h + 6, j.y - h + 6, h * 2 - 12, h * 2 - 12);
+  ctx.restore();
+  for (const [sx, sy] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ]) {
+    neonDot(ctx, j.x + sx * (h + 4), j.y + sy * (h + 4), 1.6, COLORS.orange, 6);
+  }
+}
+
+/** Wear, glowing edge guides, centre line and cracks. */
+function drawRoadMarkings(ctx: Ctx, map: MapDef, path: PathData, rng: () => number): void {
+  const pts = path.points;
+  const w = map.roadWidth;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'butt';
 
   // asphalt wear patches along the road
   for (let d = 0; d < path.length; d += 26) {
@@ -683,7 +738,8 @@ function polyPathLocal(ctx: Ctx, pts: number[]): void {
   ctx.closePath();
 }
 
-function drawReactorPad(ctx: Ctx, p: Vec2): void {
+function drawReactorPad(ctx: Ctx, map: MapDef, paths: PathData[]): void {
+  const p = map.reactor;
   ctx.fillStyle = radial(ctx, p.x, p.y, 150, [
     [0, 'rgba(0,229,255,0.16)'],
     [0.5, 'rgba(0,229,255,0.05)'],
@@ -698,6 +754,14 @@ function drawReactorPad(ctx: Ctx, p: Vec2): void {
   ]) {
     const ex = p.x + dx * 200;
     const ey = p.y + dy * 260;
+    // skip a conduit that would run along a road (a lane entering the reactor from that side)
+    let onRoad = false;
+    for (let k = 0.3; k <= 1 && !onRoad; k += 0.1) {
+      const cx = p.x + (ex - p.x) * k;
+      const cy = p.y + (ey - p.y) * k;
+      for (const path of paths) if (path.distanceTo(cx, cy) < map.roadWidth / 2 + 8) onRoad = true;
+    }
+    if (onRoad) continue;
     line(ctx, p.x, p.y, ex, ey, css(0x0a0f1a), 9);
     line(ctx, p.x, p.y, ex, ey, css(0x1c2740), 5);
     ctx.save();

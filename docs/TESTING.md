@@ -81,6 +81,15 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] A tap just after an auto-resolve doesn't open the build drawer. Pause during a lock freezes it. Game over during a lock refunds the charge.
 - [ ] Works with touch on a phone-sized screen, and at 2x speed (the lock timing doesn't speed up).
 
+### Workshop and challenges
+- [ ] Fresh save: no WORKSHOP button on the menu. After earning a star (sector rating or challenge), the menu and result screens show WORKSHOP with the stars to spend.
+- [ ] Workshop: buying a level spends the right stars, shows the new effect and level pips, and greys out when unaffordable or maxed. RESET needs two taps and refunds everything.
+- [ ] Perks apply on the next run: starting credits, wave bonus toast amounts, sell refund (upgrade panel and actual credits), starting hack charges, reactor HP (HUD and result "x / max").
+- [ ] Stars still rate HP lost (3 stars = lost at most 2 HP), so Reactor Plating adds a cushion without changing thresholds.
+- [ ] Pause shows the sector's two challenges with live progress; "(win)" marks the ones that need a victory; finished ones show "done".
+- [ ] Skill challenges (perfect hacks, combo, early calls) complete on defeat too; "win without..." ones only on victory. Each pays +1 star once ("+1 ★ NEW" on the result screen).
+- [ ] Defeat → WORKSHOP → RETRY SECTOR N restarts that sector (with a commercial break).
+
 ### Waves and endings
 - [ ] Wave banners appear, including NEW-enemy intros on waves 3, 5, 7 and 9, and FINAL WAVE on wave 10.
 - [ ] The countdown ring and early bonus show on the beacon.

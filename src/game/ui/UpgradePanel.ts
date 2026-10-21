@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
-import { COLORS, ECONOMY, css } from '../config';
+import { COLORS, css } from '../config';
 import type { TowerDef, TowerLevel } from '../data/towers';
 import type { Tower } from '../entities/Tower';
 import { iconKey } from '../rendering/TowerRenderer';
 import { drawerY } from './TowerMenu';
 import { drawerLayout } from './DrawerLayout';
 import { Icons, NeonButton, drawPanel, text } from './widgets';
+import { sellRefundRate } from '../data/perks';
 
 type Comparison = { label: string; value: (level: TowerLevel) => number; format: (value: number) => string; lowerBetter?: boolean };
 const number = (value: number) => `${Math.round(value * 10) / 10}`;
@@ -223,7 +224,7 @@ export class UpgradePanel {
       this.upgradeCost.setText(`${next.cost}`);
     } else this.upgradeBtn.setLabel('MAX LEVEL');
     this.sellBtn.setLabel('SELL TOWER');
-    this.sellCost.setText(`+${Math.floor(t.invested * ECONOMY.sellRefund)}`);
+    this.sellCost.setText(`+${Math.floor(t.invested * sellRefundRate())}`);
     this.centerAction(this.sellBtn, this.sellCoin, this.sellCost, true);
     this.centerAction(this.upgradeBtn, this.upgradeCoin, this.upgradeCost, !!next);
     this.refresh(credits);

@@ -1,12 +1,12 @@
-# Game Design — Neon Wasteland Defense
+# Game Design — Neon Wasteland
 
 ## Pitch
 
-The machines broke loose after a technological collapse. You control the last automated defense network in a ruined neon city. Build turrets on abandoned defense platforms, upgrade them, and hold three city sectors (32 waves in total) against corrupted machines before they reach the energy reactor.
+The machines broke loose after a technological collapse. You control the last automated defense network in a ruined neon city. Build turrets on abandoned defense platforms, upgrade them, and hold four city sectors (44 waves in total) against corrupted machines before they reach the energy reactor.
 
 - **Genre:** fixed-placement tower defense (Kingdom Rush style placement, original mechanics and art)
 - **Platform:** browser (Poki), desktop and mobile, mouse and touch
-- **Session:** about 6–8 minutes per sector; about 20 minutes for the full campaign
+- **Session:** about 6–9 minutes per sector; about 30 minutes for the full campaign
 - **Goal clarity:** a player should understand "build on the glowing pads, protect the reactor" within 10 seconds
 
 ## Core loop
@@ -44,6 +44,8 @@ Damage is applied in this order:
 ### Targeting
 
 Every tower targets the enemy **furthest along the path** within its range ("first" priority). It re-evaluates every 0.15 s. The Laser keeps its lock until the target dies or leaves range, so it doesn't lose its warm-up charge.
+
+Every targeting query (`Targeting` in `systems/TargetingSystem.ts`) skips **hacked** and **burrowed** machines. That covers tower targets, laser locks, Tesla chain jumps, missile splash, frost pulses and hack blasts. A burrowed machine also takes no damage and can't be slowed, so a shot already in flight when it digs in hits the dirt.
 
 ## Towers
 
@@ -117,14 +119,15 @@ A hacked machine:
 | Charges | Start with 1, max 3 |
 | Earning charges | +1 per 28 kills; +1 at the start of every 3rd wave |
 | Cost | 1 charge; **Juggernaut costs 2**; the **Titan is immune** ("FIREWALL", no charge used) |
+| Burrowers | Can't be tapped while underground. A lock-on pins a Burrower to the surface until it resolves, and a hacked Burrower never digs in |
 | Lock-on | 0.85 s of real time (it ignores 2x speed). The PERFECT window runs from 72% of the lock until 0.12 s after it closes |
 | Hacked duration | 8 s (PERFECT: 10 s), then it short-circuits harmlessly. It also never damages the reactor |
 | Blast | 72 px radius. Damage = 1.25 × the machine's max HP, capped at 380 × its HP scale. Ignores armor, 2x vs shields. Full damage in the inner half, 65% at the edge |
 | PERFECT | ×1.45 damage, ×1.25 radius, +2 s duration |
-| Type twists | Juggernaut: ×1.3 radius. Specter: EMP blast (3x vs shields). Swarm Spawner: its swarmlings spawn already hacked. Swarmling: ×0.7 radius |
+| Type twists | Juggernaut: ×1.3 radius. Specter: EMP blast (3x vs shields). Swarm Spawner: its swarmlings spawn already hacked. Swarmling: ×0.7 radius. Repair Drone: stops repairing |
 | Credits | The hacked machine gives none; machines killed by the blast pay normally |
 
-Towers, chain lightning, missile splash and frost all ignore hacked machines. A late tap just after an auto-resolve is swallowed for 0.4 s, so it can't open a build menu by accident.
+Towers, chain lightning, missile splash and frost all ignore hacked machines. A hacked machine walking back passes over burrowed ones without detonating. A late tap just after an auto-resolve is swallowed for 0.4 s, so it can't open a build menu by accident.
 
 **UI:**
 - **HACK pill** under the stats panel: three charge diamonds and a progress bar to the next charge. It pops when a charge is earned and shakes when a hack is denied. Tapping it shows a tip.
@@ -143,23 +146,41 @@ Base values below. Each wave multiplies HP and shield by its `hpScale`.
 | Shielded Specter | 120 | 130 | — | 58 | 18 | 2 | Purple shield bubble shatters when broken |
 | Swarm Spawner | 540 | — | 2 | 38 | 36 | 3 | Releases 2 swarmlings every 4.5 s |
 | Swarmling (spawned) | 22 | — | — | 82 | 2 | 1 | Starts at the spawner's position and follows the rest of the road |
-| **Titan War Machine** (boss) | 2600 | — | 8 | 22 | 220 | 10 | Sector 3 finale. A huge red war machine with twin cannons; looks damaged below 50% HP |
+| **Titan War Machine** (boss) | 2600 | — | 8 | 22 | 220 | 10 | Sector 3 and 4 finale. A huge red war machine with twin cannons; looks damaged below 50% HP |
+| **Repair Drone** | 150 | — | — | 42 | 20 | 2 | Sector 4. Every 3 s, each damaged machine within 105 px gets back 15% of its max HP (at most 40 × HP scale per pulse) |
+| **Burrower** | 200 | — | 3 | 52 | 18 | 2 | Sector 4. Up for 4 s, then digs in for 150 px of road |
 
-Each sector also has a `difficulty` multiplier on enemy HP and shields (1.19 / 1.4 / 1.84). It was raised about 8% when hacking was added.
+Each sector also has a `difficulty` multiplier on enemy HP and shields (1.05 / 1.4 / 1.84 / 1.15). It was raised about 8% when hacking was added; Sector 1 was then lowered in v1.1.2 after the web fit test.
+
+### Repair Drone (medic)
+
+- A round hover-saucer with a green repair cross and two welding arms. It glows brighter as its next pulse charges.
+- **Pulse:** a green ring at its repair radius, plus green beams to every machine it repaired. Each repaired machine also gets a small spark.
+- It never repairs itself, hacked machines or burrowed ones, and it only pulses when something in range is damaged (otherwise it waits, fully charged). Heavies repaired back above half HP lose their battle-damage look.
+- It's slower than drones and a bit faster than Juggernauts, so it drifts through a pack and escorts heavies. It's fragile (no armor) and costs 1 hack charge. A hacked Repair Drone repairs nothing, and its blast takes out the pack it was healing. Splash and chains catch it in the middle of the pack.
+
+### Burrower
+
+- A segmented digging machine with a spiral drill nose.
+- **Cycle:** above ground for 4 s, then it digs in (0.35 s sink animation), travels 150 px of road underground and pops back up with a burst of dirt. While burrowed it shows as a dirt mound that ploughs along the road, with a dust wake.
+- **While burrowed:** untargetable and immune to everything: towers, beams, chains, splash, frost, hacks and hack blasts. Its health bar is hidden.
+- It never digs in when that would leave it underground within 140 px of the end of its road, so it always surfaces before the reactor.
+- The counter is placement: cover the stretches where it resurfaces, and use burst damage (Cannon, Missile) on the surfaced windows.
 
 Slow resistance: the Juggernaut ignores 25% of frost slow and the Titan 50%.
 
 ## Campaign
 
-Three sectors, played in order. Clearing a sector (any star rating) unlocks the next. First-time players go straight into Sector 1 from PLAY; after that, PLAY opens the sector select screen.
+Four sectors, played in order. Clearing a sector (any star rating) unlocks the next. First-time players go straight into Sector 1 from PLAY; after that, PLAY opens the sector select screen.
 
 | # | Sector | Twist | Waves | Platforms | Start credits | Difficulty | Typical length |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | **Reactor Row** | One winding road; tutorial; 4 towers | 10 | 10 | 220 | 1.1 | about 6.5 min |
-| 2 | **Twin Gates** | Two entrance roads merge into one trunk; enemies alternate lanes or use a fixed one; unlocks Laser | 10 | 11 | 300 | 1.3 | about 6.5 min |
-| 3 | **The Long Road** | Long three-row serpentine; unlocks Cryo; finale against the Titan boss | 12 | 12 | 360 | 1.7 | about 8.5 min |
+| 1 | **Reactor Row** | One winding road; tutorial; 4 towers | 10 | 10 | 220 | 1.05 | about 6 min |
+| 2 | **Twin Gates** | Two entrance roads merge into one trunk; enemies alternate lanes or use a fixed one; unlocks Laser | 10 | 11 | 300 | 1.4 | about 6.5 min |
+| 3 | **The Long Road** | Long three-row serpentine; unlocks Cryo; finale against the Titan boss | 12 | 12 | 360 | 1.84 | about 8.5 min |
+| 4 | **Crossfire Junction** | Two roads that cross each other twice; introduces the Repair Drone and the Burrower; Titan finale with a repair escort | 12 | 12 | 500 | 1.15 | about 8–9 min |
 
-Times are at 1x speed with natural wave pacing. Wave lists for Sectors 2 and 3 are in `src/game/data/waves.ts` (`WAVES_SECTOR_2`, `WAVES_SECTOR_3`). New enemy types are only announced the first time they appear in the campaign.
+Times are at 1x speed with natural wave pacing. Wave lists for Sectors 2–4 are in `src/game/data/waves.ts` (`WAVES_SECTOR_2`, `WAVES_SECTOR_3`, `WAVES_SECTOR_4`). New enemy types are only announced the first time they appear in the campaign.
 
 ## Waves (Sector 1)
 
@@ -170,11 +191,13 @@ Times are at 1x speed with natural wave pacing. Wave lists for Sectors 2 and 3 a
 | 3 | 1.20 | 16 | **Rift Runners introduced** | 30 |
 | 4 | 1.32 | 28 | Runner pressure | 35 |
 | 5 | 1.48 | 22 | **Juggernauts introduced** | 45 |
-| 6 | 1.64 | 31 | Juggernauts + swarm | 50 |
-| 7 | 1.82 | 22 | **Specters introduced** | 60 |
-| 8 | 2.00 | 31 | Specters + runners + armor | 65 |
-| 9 | 2.22 | 30 | **Swarm Spawners introduced** | 75 |
-| 10 | 2.30 | 44 | Final mixed assault | — |
+| 6 | 1.56 | 31 | Juggernauts + swarm | 55 |
+| 7 | 1.64 | 20 | **Specters introduced** (1 Juggernaut) | 70 |
+| 8 | 1.64 | 25 | Specters + runners + 1 Juggernaut, spread out | 75 |
+| 9 | 1.86 | 29 | **Swarm Spawners introduced** | 80 |
+| 10 | 1.98 | 42 | Final mixed assault | — |
+
+Waves 1–3 use an 8 s gap (`gap` in `WaveDef`); every other wave uses `WAVE_TIMING.betweenWaves`. Waves 6–10 and the sector `difficulty` (1.19 → 1.05) were lowered in v1.1.2 after the web fit test: only 22% of players cleared Sector 1, and a third of those who reached wave 8 lost there.
 
 The clear bonus is paid as soon as a wave has finished spawning. A banner announces each wave, and when a new enemy type first appears it shows that enemy's icon and a counter-tip.
 
@@ -196,6 +219,30 @@ The clear bonus is paid as soon as a wave has finished spawning. A banner announ
 - One long serpentine across three rows (about 3,600 px of road), with platforms between the rows covering two stretches each.
 - Scenery is placed procedurally (seeded).
 
+### Sector 4: Crossfire Junction
+
+- Two gates on the left. The north road (lane 0) runs along the top, loops down and back up, and enters the reactor from the left. The south road (lane 1) cuts straight across that loop, so the two roads **cross twice** (box junctions at (600, 380) and (930, 380)). It then swings down and enters the reactor from below. Both roads are about 2,000 px on screen and never merge.
+- Every machine uses only one road, so each tower sees about half the traffic. That's why the sector starts with 500 credits, pays bigger clear bonuses and has a low `difficulty` (1.15). The **junction platforms** (the four quadrants around each crossing, 80 px from both roads) cover both lanes and are the key spots.
+- Groups without a `lane` alternate roads. Wave 4 sends its Juggernaut and Repair Drones down the north road and its drones down the south road. In wave 6 the Spawner and Repair Drones take the north road and the runners the south road. In the finale the Titan and its Repair Drones take the north road and the Juggernauts the south road.
+- All six towers. The wave beacon sits between the two gates. Scenery is procedural (seeded). `MapDef.junctions` makes the background paint all asphalt before any markings, with a hazard-hatched box at each crossing.
+
+### Waves (Sector 4)
+
+| Wave | HP × | Enemies | Theme | Clear bonus |
+| --- | --- | --- | --- | --- |
+| 1 | 1.30 | 16 | Drones | 30 |
+| 2 | 1.40 | 15 | **Repair Drones introduced** behind a drone pack | 40 |
+| 3 | 1.50 | 14 | **Burrowers introduced** + runners | 50 |
+| 4 | 1.65 | 19 | Juggernaut with a repair escort (north), drones (south) | 60 |
+| 5 | 1.80 | 10 | Specters + Burrowers | 65 |
+| 6 | 1.95 | 21 | Spawner + repair escort, runners, Burrowers | 80 |
+| 7 | 2.10 | 12 | Juggernauts, Repair Drones, Specters | 85 |
+| 8 | 2.25 | 24 | Burrowers, Juggernauts, drones | 100 |
+| 9 | 2.45 | 16 | Spawners, Repair Drones, Specters, Juggernauts | 105 |
+| 10 | 2.70 | 30 | Juggernaut column, Burrowers, Repair Drones, runners | 115 |
+| 11 | 2.85 | 27 | Everything at once | 145 |
+| 12 | 3.30 | 45 | **Finale:** Titan + 4 Repair Drones (north), 4 Juggernauts (south), 10 Burrowers, Specters, drones | — |
+
 ## Interface
 
 - **HUD (top left, pinned to the screen edge):** three columns (WAVE n/total with progress markers, REACTOR HP, CREDITS).
@@ -204,9 +251,9 @@ The clear bonus is paid as soon as a wave has finished spawning. A banner announ
 - **Wave banner (top edge):** "WAVE n / total", plus a NEW-enemy line with an icon and tip when a type first appears.
 - **Build drawer:** one card per tower the sector allows (4–6), showing name, icon, cost and a short role. Unaffordable cards are greyed out and their cost turns red. The drawer docks at the top or bottom, whichever is away from the selected platform.
 - **Upgrade panel:** stat columns (current → next), perk line, Upgrade button with cost, Sell button with refund. The map shows the current range and, faintly, the next level's range.
-- **Sector select:** a schematic preview, name, twist, wave count, best stars, a lock on each sector, and a "NEW TOWER" chip.
+- **Sector select:** a 2×2 grid of cards (schematic preview on the left; sector number, name, twist, wave count and best stars on the right), a lock on each locked sector, and one "what's new" chip: NEW TOWER, or the new machines when a sector adds no tower (Sector 4).
 - **Pause:** a run summary (sector, wave, reactor HP), Resume, Restart, Main Menu, sound.
-- **Result:** stars and stats. On victory: NEXT SECTOR / REPLAY / MENU, or CAMPAIGN COMPLETE after Sector 3. On defeat: RETRY plus 🎬 REVIVE (rewarded ad) side by side, and MENU.
+- **Result:** stars and stats. On victory: NEXT SECTOR / REPLAY / MENU, or CAMPAIGN COMPLETE after the last sector (Sector 4). On defeat: RETRY plus 🎬 REVIVE (rewarded ad) side by side, and MENU.
 
 ### Tutorial (first run, Sector 1 only; never blocks)
 
@@ -220,10 +267,37 @@ The hints disappear (and the tutorial counts as done) as soon as wave 1 starts, 
 
 ## Scoring and progression
 
-- **Stars on victory:** 3 for HP ≥ 18, 2 for HP ≥ 10, otherwise 1. Best stars are saved per sector (up to 9 in total).
+- **Stars on victory:** rated on reactor HP *lost*: 3 stars for at most 2 lost, 2 for at most 10, otherwise 1 (with the base 20 HP this is the old 18 / 10 thresholds; Reactor Plating adds a cushion without moving them). Best stars are saved per sector (up to 12 in total).
 - **Unlocks:** a sector unlocks once the previous one is cleared.
-- **Saved:** stars per sector, best wave reached, total wins, mute setting, tutorial completion.
-- **Victory screen:** NEXT SECTOR (with a commercial break), REPLAY or MENU. Clearing Sector 3 shows CAMPAIGN COMPLETE.
+- **Saved:** stars per sector, completed challenges, Workshop upgrades, best wave reached, total wins, mute and speed settings, tutorial completion.
+
+### Workshop (v1.2.0)
+
+Stars are also a currency. Stars earned = sector stars (up to 12) + completed challenges (up to 8), so 20 in total. They are spent in the **Workshop** (`WorkshopScene`, data in `data/perks.ts`) on permanent upgrades. The loop it supports: lose → upgrade → retry.
+
+| Perk | Levels (cost in stars) | Effect per level |
+| --- | --- | --- |
+| Bigger Budget | 3 (1, 2, 3) | +25 starting credits |
+| Wave Bounty | 2 (1, 2) | +25% wave clear bonus |
+| Salvage Crew | 2 (1, 2) | Sell refund +10% (70% → 80% → 90%) |
+| Spare Charge | 1 (2) | Start with 2 hack charges instead of 1 |
+| Reactor Plating | 2 (2, 3) | +2 reactor HP |
+
+Everything costs 19 stars, so players who complete nearly everything can buy it all. RESET (two taps) refunds every star. The WORKSHOP button appears on the menu, sector select and result screens once the player has earned a star; from a result screen the Workshop offers RETRY SECTOR N. Balance numbers in BALANCING.md are measured **without** perks; perks only make things easier.
+
+### Challenges (v1.2.0)
+
+Each sector has two optional challenges (`data/challenges.ts`), each worth one Workshop star, once. The pause screen shows them with live progress.
+
+| Sector | Challenges |
+| --- | --- |
+| 1 | Land 2 perfect hacks · Call 3 waves early |
+| 2 | Get a x4 combo · Win without selling a tower *(win)* |
+| 3 | Win with 9 towers or fewer *(win)* · Land 4 perfect hacks |
+| 4 | Get a x6 combo · Call 5 waves early |
+
+Skill challenges (perfect hacks, combos, early calls) count even when the run is lost, so first-time players who lose Sector 1 still earn stars to spend. *(win)* challenges need a victory. "Calling early" means starting a wave from the beacon or Space while the next-wave countdown is running (not before wave 1).
+- **Victory screen:** NEXT SECTOR (with a commercial break), REPLAY or MENU. Clearing the last sector (Sector 4) shows CAMPAIGN COMPLETE.
 - **Revive after defeat:** once per run, an optional rewarded ad gives +10 reactor HP and clears the field.
 
 ## Art direction

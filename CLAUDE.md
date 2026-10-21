@@ -1,4 +1,4 @@
-# Neon Wasteland Defense — working notes
+# Neon Wasteland — working notes
 
 A Phaser 3 + TypeScript (strict) + Vite tower defense game for Poki. There are no image or audio assets: art is drawn with Canvas2D at boot, and sound is synthesized with Web Audio.
 

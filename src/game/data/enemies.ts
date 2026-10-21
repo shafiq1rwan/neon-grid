@@ -1,6 +1,15 @@
 import { COLORS } from '../config';
 
-export type EnemyType = 'drone' | 'runner' | 'juggernaut' | 'specter' | 'spawner' | 'mini' | 'titan';
+export type EnemyType =
+  | 'drone'
+  | 'runner'
+  | 'juggernaut'
+  | 'specter'
+  | 'spawner'
+  | 'mini'
+  | 'titan'
+  | 'medic'
+  | 'burrower';
 
 export interface EnemyDef {
   type: EnemyType;
@@ -23,6 +32,17 @@ export interface EnemyDef {
   /** Fraction of frost slow ignored (bosses shrug off some of it). */
   slowResist?: number;
   spawn?: { type: EnemyType; count: number; interval: number };
+  /**
+   * Repair pulse: every `interval` s, each damaged machine within `radius` px gets
+   * back `fraction` of its max HP, capped at `cap` × this machine's HP scale (so
+   * bosses heal less). Never itself, hacked or burrowed machines.
+   */
+  heal?: { fraction: number; cap: number; interval: number; radius: number };
+  /**
+   * Burrowing: after `surface` s above ground it digs in and travels `distance` px
+   * of road underground, where nothing can target, damage, slow or hack it.
+   */
+  burrow?: { surface: number; distance: number };
 }
 
 export const ENEMIES: Record<EnemyType, EnemyDef> = {
@@ -119,5 +139,33 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
     radius: 32,
     color: COLORS.red,
     slowResist: 0.5,
+  },
+  medic: {
+    type: 'medic',
+    name: 'Repair Drone',
+    tip: 'Repairs machines near it. Hack it or hit it with splash first!',
+    hp: 150,
+    shield: 0,
+    armor: 0,
+    speed: 42,
+    reward: 20,
+    leakDamage: 2,
+    radius: 13,
+    color: COLORS.green,
+    heal: { fraction: 0.15, cap: 40, interval: 3, radius: 105 },
+  },
+  burrower: {
+    type: 'burrower',
+    name: 'Burrower',
+    tip: 'Digs under the road, out of reach. Hit it when it resurfaces.',
+    hp: 200,
+    shield: 0,
+    armor: 3,
+    speed: 52,
+    reward: 18,
+    leakDamage: 2,
+    radius: 15,
+    color: COLORS.orange,
+    burrow: { surface: 4, distance: 150 },
   },
 };

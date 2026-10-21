@@ -1,15 +1,38 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-10-21
+
+Built for the last web fit test retry: everything from 1.1.2 below, plus reasons to keep playing and replaying.
+
+### Added
+- **Workshop:** spend stars on permanent upgrades: Bigger Budget (starting credits), Wave Bounty (bigger wave bonuses), Salvage Crew (better sell refund), Spare Charge (+1 starting hack charge) and Reactor Plating (+HP). Reset anytime for a full refund. Opens from the menu, sector select and result screens; after a defeat it offers RETRY SECTOR.
+- **Sector challenges:** two optional goals per sector (perfect hacks, combos, early calls, no selling, few towers), each worth a star. Shown with live progress on the pause screen. Skill challenges count even when you lose.
+- **Sector 4 — Crossfire Junction:** two highways that cross twice, 12 waves, Titan finale with a repair escort.
+- **Two new machines:** the Repair Drone heals nearby machines (focus it first) and the Burrower dives underground where towers can't reach it. New heal and burrow sounds.
+- Game Events for challenges and Workshop purchases.
+
+### Changed
+- The game is now called **Neon Wasteland** (menu title, page title, upload zip). Saves carry over.
+- Stars are rated on reactor HP lost (same thresholds at 20 HP), so Reactor Plating is a cushion, not a harder 3 stars.
+- Sector select shows the four sectors in a 2×2 grid.
+
+### Fixed
+- A machine under a laser beam no longer stays solid white: the hit flash now pulses.
+
+## 1.1.2 — 2026-10-21 (not released on its own)
+
+Based on the web fit test (average playtime 7:32 vs a ~9:57 benchmark; only 22% of players cleared Sector 1, a third of those reaching wave 8 lost there, and about a quarter left during the slow first waves).
+
+### Changed
+- **Sector 1 is easier in its second half.** Waves 6–10 have less HP, fewer Juggernauts and Specters, and wave 8's groups are spread out; clear bonuses are slightly higher and the sector difficulty dropped from 1.19 to 1.05. Bot check: players who never upgrade now win with 15–20 HP (they used to lose at wave 10). Sectors 2 and 3 are unchanged.
+- **Faster start.** Waves 1–3 of Sector 1 follow each other after 8 seconds instead of 14.
+- Wave-clear cards now celebrate the player with a gold medal, contextual praise, animated stat totals, achievement callouts, a spark burst, and a short success chime.
+- Less waiting: once the field is clear between waves, the next wave starts in 3 seconds. Balance is unchanged (bot-checked on all three sectors).
+- The 1x/2x speed choice is remembered across waves, sectors and visits.
 
 ### Added
 - "xN COMBO!" pop-up when one hack blast, missile splash or Tesla chain destroys 3 or more machines.
 - "WAVE N CLEARED" card between waves: machines destroyed, credits earned, perfect hacks and best combo.
-
-### Changed
-- Wave-clear cards now celebrate the player with a gold medal, contextual praise, animated stat totals, achievement callouts, a spark burst, and a short success chime.
-- Less waiting: once the field is clear between waves, the next wave starts in 3 seconds. Balance is unchanged (bot-checked on all three sectors).
-- The 1x/2x speed choice is remembered across waves, sectors and visits.
 
 ## 1.1.1 — 2026-10-13
 

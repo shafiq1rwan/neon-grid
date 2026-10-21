@@ -29,6 +29,8 @@ export class Enemy {
 
   alive = true;
   flashTimer = 0;
+  /** Gap between hit flashes under a continuous beam (else a lasered machine stays white). */
+  beamFlashCooldown = 0;
   /** Current frost slow (fraction of speed removed) and its remaining time. */
   slowAmount = 0;
   slowTimer = 0;
@@ -49,6 +51,28 @@ export class Enemy {
   hackGlow: Phaser.GameObjects.Image | null = null;
   readonly phase = Math.random() * Math.PI * 2;
   damagedLook = false;
+  /** Set by HackSystem while a lock-on targets this machine (a Burrower won't dig in mid-lock). */
+  hackLock = false;
+
+  /** Repair Drone: seconds until the next repair pulse, and its charge-up glow. */
+  healTimer = 0;
+  aura: Phaser.GameObjects.Image | null = null;
+
+  /**
+   * Burrower: true while underground. Burrowed machines are skipped by every
+   * targeting query, take no damage, can't be slowed and can't be hacked.
+   */
+  burrowed = false;
+  /** Seconds left above ground before digging in. */
+  surfaceTimer = 0;
+  /** Road distance left to travel underground. */
+  burrowLeft = 0;
+  /** 0..1 dig-in / dig-out animation (1 = fully underground). */
+  sink = 0;
+  /** Alternates the dust wake left / right of the mound. */
+  wakeSide = 1;
+  /** Dirt mound that travels along the road while burrowed. */
+  mound: Phaser.GameObjects.Image | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -79,6 +103,19 @@ export class Enemy {
         .setBlendMode(Phaser.BlendModes.ADD)
         .setScale((def.radius + 9) / 24);
     }
+    if (def.heal) {
+      this.healTimer = def.heal.interval * (0.5 + Math.random() * 0.3);
+      this.aura = scene.add
+        .image(0, 0, 'fx_glow')
+        .setDepth(DEPTH.ENEMY - 0.5)
+        .setTint(def.color)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setAlpha(0);
+    }
+    if (def.burrow) {
+      this.surfaceTimer = def.burrow.surface * (0.6 + Math.random() * 0.4);
+      this.mound = scene.add.image(0, 0, 'burrow_mound').setDepth(DEPTH.ENEMY_SHADOW + 0.2).setVisible(false);
+    }
     if (def.spawn) {
       this.spawnTimer = def.spawn.interval * 0.6;
       this.hatch = scene.add
@@ -102,6 +139,10 @@ export class Enemy {
     this.hatch?.destroy();
     this.hackMark?.destroy();
     this.hackGlow?.destroy();
+    this.aura?.destroy();
+    this.mound?.destroy();
+    this.aura = null;
+    this.mound = null;
     this.shieldSprite = null;
     this.hatch = null;
     this.hackMark = null;

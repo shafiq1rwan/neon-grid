@@ -1,6 +1,6 @@
 import type { EnemyType } from './enemies';
 import type { TowerType } from './towers';
-import { WAVES_SECTOR_1, WAVES_SECTOR_2, WAVES_SECTOR_3, type WaveDef } from './waves';
+import { WAVES_SECTOR_1, WAVES_SECTOR_2, WAVES_SECTOR_3, WAVES_SECTOR_4, type WaveDef } from './waves';
 
 export interface Vec2 {
   x: number;
@@ -54,6 +54,11 @@ export interface MapDef {
   startCredits: number;
   /** Platform highlighted by the first-run tutorial (sector 1 only). */
   tutorialPlatform?: number;
+  /**
+   * Points where lanes cross (not merge). The background then paints every lane's
+   * asphalt before any markings and draws a box junction at each point.
+   */
+  junctions?: Vec2[];
 }
 
 export const SECTOR_7: MapDef = {
@@ -62,7 +67,7 @@ export const SECTOR_7: MapDef = {
   subtitle: 'One winding road. Learn the ropes.',
   waves: WAVES_SECTOR_1,
   towers: ['pulse', 'cannon', 'missile', 'tesla'],
-  difficulty: 1.19,
+  difficulty: 1.05,
   startCredits: 220,
   tutorialPlatform: 1,
   paths: [[
@@ -239,6 +244,64 @@ export const LONG_ROAD: MapDef = {
   seed: 4471,
 };
 
+/**
+ * Crossfire Junction: the north road (lane 0) loops down and back up; the south
+ * road (lane 1) cuts straight across that loop twice, then swings down and up
+ * into the reactor from below. Both lanes are about 2,000 px on screen.
+ */
+export const CROSSFIRE: MapDef = {
+  id: 'crossfire',
+  name: 'Crossfire Junction',
+  subtitle: 'Two highways cross twice. New machines dig and repair.',
+  waves: WAVES_SECTOR_4,
+  towers: ['pulse', 'cannon', 'missile', 'tesla', 'laser', 'cryo'],
+  difficulty: 1.15,
+  startCredits: 500,
+  paths: [
+    [
+      { x: -440, y: 170 },
+      { x: 600, y: 170 },
+      { x: 600, y: 630 },
+      { x: 930, y: 630 },
+      { x: 930, y: 250 },
+      { x: 1150, y: 250 },
+    ],
+    [
+      { x: -440, y: 630 },
+      { x: 280, y: 630 },
+      { x: 280, y: 380 },
+      { x: 1030, y: 380 },
+      { x: 1030, y: 630 },
+      { x: 1192, y: 630 },
+      { x: 1192, y: 310 },
+    ],
+  ],
+  junctions: [
+    { x: 600, y: 380 },
+    { x: 930, y: 380 },
+  ],
+  cornerRadius: 50,
+  roadWidth: 62,
+  platforms: [
+    { x: 180, y: 275 },
+    { x: 420, y: 270 },
+    // junction quadrants: each covers both lanes
+    { x: 680, y: 300 },
+    { x: 850, y: 300 },
+    { x: 180, y: 530 },
+    { x: 380, y: 480 },
+    { x: 520, y: 460 },
+    { x: 680, y: 460 },
+    { x: 850, y: 460 },
+    { x: 765, y: 550 },
+    { x: 1111, y: 470 },
+    { x: 1040, y: 150 },
+  ],
+  reactor: { x: 1192, y: 250 },
+  waveButton: { x: 62, y: 400 },
+  seed: 6620,
+};
+
 /** Towers a sector adds compared with the one before it (shown as an unlock). */
 export function newTowersInMap(mapIndex: number): TowerType[] {
   const before = mapIndex > 0 ? MAPS[mapIndex - 1].towers : [];
@@ -246,7 +309,7 @@ export function newTowersInMap(mapIndex: number): TowerType[] {
 }
 
 /** The campaign, in order. Each sector unlocks after clearing the previous one. */
-export const MAPS: MapDef[] = [SECTOR_7, TWIN_GATES, LONG_ROAD];
+export const MAPS: MapDef[] = [SECTOR_7, TWIN_GATES, LONG_ROAD, CROSSFIRE];
 
 /**
  * Enemy types that appear for the first time in the campaign at this wave
@@ -260,6 +323,15 @@ export function newEnemiesInWave(mapIndex: number, waveIndex: number): EnemyType
   const fresh: EnemyType[] = [];
   for (const grp of waves[waveIndex].groups) {
     if (!seen.has(grp.type) && !fresh.includes(grp.type)) fresh.push(grp.type);
+  }
+  return fresh;
+}
+
+/** Enemy types a sector introduces to the campaign (swarmlings excluded; used by sector select). */
+export function newEnemiesInMap(mapIndex: number): EnemyType[] {
+  const fresh: EnemyType[] = [];
+  for (let w = 0; w < MAPS[mapIndex].waves.length; w++) {
+    for (const t of newEnemiesInWave(mapIndex, w)) if (t !== 'mini' && !fresh.includes(t)) fresh.push(t);
   }
   return fresh;
 }

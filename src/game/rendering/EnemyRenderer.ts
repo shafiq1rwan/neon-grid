@@ -32,6 +32,8 @@ export const ENEMY_TEX_SIZE: Record<EnemyType, number> = {
   specter: 64,
   spawner: 88,
   titan: 150,
+  medic: 60,
+  burrower: 68,
 };
 
 export function enemyKey(type: EnemyType): string {
@@ -70,6 +72,12 @@ export function generateEnemyTextures(scene: Phaser.Scene): void {
   }
   make(enemyKey('specter'), ENEMY_TEX_SIZE.specter, (ctx) => drawSpecter(ctx));
   make(enemyKey('spawner'), ENEMY_TEX_SIZE.spawner, (ctx) => drawSpawner(ctx));
+  make(enemyKey('medic'), ENEMY_TEX_SIZE.medic, (ctx) => drawMedic(ctx));
+  make(enemyKey('burrower'), ENEMY_TEX_SIZE.burrower, (ctx) => drawBurrower(ctx));
+  bakeTexture(scene, 'burrow_mound', 72, 52, (ctx) => {
+    ctx.translate(36, 26);
+    drawMound(ctx);
+  });
   make('spawner_hatch', 40, (ctx) => drawHatchGlow(ctx));
   make('shield_bubble', 72, (ctx) => drawShield(ctx));
   make('enemy_shadow', 64, (ctx) => {
@@ -348,4 +356,144 @@ function drawHatchGlow(ctx: Ctx): void {
     ]),
   );
   ctx.restore();
+}
+
+/** Repair Drone: a round hover-saucer with a glowing repair cross and two welding arms. */
+function drawMedic(ctx: Ctx): void {
+  const c = COLORS.green;
+  const body = 0x173a2a;
+  // welding arms reaching forward, tipped with sparks
+  for (const sy of [-1, 1]) {
+    line(ctx, -2, sy * 9, 14, sy * 14, '#06080f', 4);
+    line(ctx, -2, sy * 9, 14, sy * 14, css(0x46505e), 2);
+    line(ctx, 14, sy * 14, 21, sy * 9, css(0x46505e), 2);
+    neonDot(ctx, 21, sy * 9, 1.6, c, 6);
+  }
+  // outer emitter ring (the repair pulse comes from here)
+  ctx.save();
+  ctx.translate(1.5, 2);
+  circle(ctx, 0, 0, 17, 'rgba(0,0,0,0.5)');
+  ctx.restore();
+  circle(ctx, 0, 0, 17, metalGradient(ctx, -17, -17, 34, 34, 0x223044, 1.6, 0.6), '#0a101b', 1.6);
+  ctx.save();
+  glow(ctx, c, 8);
+  circle(ctx, 0, 0, 14.5, undefined, css(c), 1.4);
+  ctx.restore();
+  // emitter nodes around the ring
+  for (let i = 0; i < 6; i++) {
+    const a = (i * Math.PI) / 3 + Math.PI / 6;
+    circle(ctx, Math.cos(a) * 14.5, Math.sin(a) * 14.5, 2.2, css(0x10161f), css(shade(c, 0.7)), 0.8);
+  }
+  // inner hull with the red hostile sensor up front
+  circle(ctx, 0, 0, 10.5, metalGradient(ctx, -10, -10, 20, 20, body, 1.9, 0.7), css(shade(c, 0.5)), 1);
+  // repair cross
+  ctx.save();
+  glow(ctx, c, 10);
+  fillRR(ctx, -2.4, -7.5, 4.8, 15, 1.2, css(c));
+  fillRR(ctx, -7.5, -2.4, 15, 4.8, 1.2, css(c));
+  ctx.restore();
+  fillRR(ctx, -1.1, -6, 2.2, 12, 0.8, css(shade(c, 1.7)));
+  fillRR(ctx, -6, -1.1, 12, 2.2, 0.8, css(shade(c, 1.7)));
+  neonDot(ctx, 15.5, 0, 1.6, COLORS.red, 6);
+  bolt(ctx, -12, -6, 1);
+  bolt(ctx, -12, 6, 1);
+}
+
+/** Burrower: a segmented digging machine with a huge spiral drill for a nose. */
+function drawBurrower(ctx: Ctx): void {
+  const c = COLORS.orange;
+  const body = 0x4a2c14;
+  // digging paddles on each side
+  for (const sy of [-1, 1]) {
+    fillPoly(ctx, [2, sy * 9, -6, sy * 19, -12, sy * 18, -8, sy * 8], css(0x2a1e14), css(shade(c, 0.55)), 1);
+    line(ctx, -4, sy * 11, -9, sy * 17, 'rgba(255,155,50,0.35)', 0.8);
+  }
+  // shadow
+  ctx.save();
+  ctx.translate(1.5, 2.5);
+  fillRR(ctx, -26, -11, 40, 22, 9, 'rgba(0,0,0,0.5)');
+  ctx.restore();
+  // three armoured segments, back to front
+  const segs: [number, number][] = [
+    [-20, 8],
+    [-10, 10],
+    [1, 11.5],
+  ];
+  for (const [sx, r] of segs) {
+    ellipse(ctx, sx, 0, r * 0.95, r, metalGradient(ctx, sx - r, -r, r * 2, r * 2, body, 1.7, 0.6), '#0a0d14', 1.4);
+    line(ctx, sx - r * 0.3, -r * 0.8, sx - r * 0.3, r * 0.8, 'rgba(0,0,0,0.45)', 1);
+    neonLine(ctx, sx + r * 0.35, -r * 0.55, sx + r * 0.35, r * 0.55, c, 1.2, 4);
+  }
+  vents(ctx, -25, -4, 6, 8, 3, true);
+  // spiral drill cone
+  const drill = [12, -10, 31, 0, 12, 10];
+  ctx.save();
+  glow(ctx, c, 6);
+  fillPoly(ctx, drill, metalGradient(ctx, 12, -10, 19, 20, 0x8a6a3a, 1.6, 0.55), css(shade(c, 0.8)), 1.2);
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(12, -10);
+  ctx.lineTo(31, 0);
+  ctx.lineTo(12, 10);
+  ctx.closePath();
+  ctx.clip();
+  for (let k = 0; k < 5; k++) {
+    const x = 13 + k * 4;
+    line(ctx, x, -11, x + 5, 11, 'rgba(10,6,2,0.65)', 1.4);
+    line(ctx, x + 1.2, -11, x + 6.2, 11, 'rgba(255,215,140,0.35)', 0.7);
+  }
+  ctx.restore();
+  fillRR(ctx, 9, -10, 4, 20, 1.5, css(0x2a1e14), css(shade(c, 0.6)), 0.8);
+  neonDot(ctx, 31, 0, 1.4, COLORS.gold, 6);
+  // sensor eyes behind the drill
+  neonDot(ctx, 6, -6, 1.4, COLORS.red, 5);
+  neonDot(ctx, 6, 6, 1.4, COLORS.red, 5);
+}
+
+/** Dirt mound that ploughs along the road while a Burrower is underground (faces +X). */
+function drawMound(ctx: Ctx): void {
+  // churned earth
+  ellipse(
+    ctx,
+    0,
+    0,
+    30,
+    17,
+    radial(ctx, 0, 0, 30, [
+      [0, 'rgba(92,70,48,0.95)'],
+      [0.65, 'rgba(58,44,32,0.9)'],
+      [1, 'rgba(20,16,14,0)'],
+    ]),
+  );
+  ellipse(ctx, -2, -1, 22, 11, css(0x4a3826), 'rgba(15,10,6,0.8)', 1.2);
+  ellipse(ctx, -4, -3, 16, 7, css(0x5e4830));
+  // broken asphalt chunks pushed up by the drill
+  const chunks: [number, number, number, number][] = [
+    [10, -6, 5, 0.4],
+    [14, 5, 4, -0.5],
+    [-8, 7, 4.5, 0.9],
+    [-14, -6, 3.5, 2.1],
+    [2, 9, 3, 1.4],
+  ];
+  for (const [x, y, r, a] of chunks) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    fillPoly(ctx, [-r, -r * 0.6, r * 0.8, -r * 0.8, r, r * 0.5, -r * 0.6, r * 0.8], css(0x1c2333), 'rgba(90,105,135,0.6)', 0.8);
+    ctx.restore();
+  }
+  // drill glint pushing through the crest
+  ctx.save();
+  ctx.strokeStyle = 'rgba(10,6,2,0.85)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-18, 0);
+  ctx.lineTo(-8, -2);
+  ctx.lineTo(0, 1);
+  ctx.lineTo(10, -1);
+  ctx.stroke();
+  ctx.restore();
+  neonLine(ctx, 12, -2, 20, 0, COLORS.orange, 1.6, 6);
+  neonDot(ctx, 21, 0, 1.4, COLORS.gold, 6);
 }

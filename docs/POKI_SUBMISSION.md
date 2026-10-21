@@ -1,4 +1,4 @@
-# Poki Submission Kit — Neon Wasteland Defense
+# Poki Submission Kit — Neon Wasteland
 
 Everything needed to add the game on **Poki for Developers** (<https://app.poki.dev>): listing copy, category suggestions, assets, the upload build and a pre-submission checklist.
 
@@ -10,13 +10,13 @@ Poki doesn't publish the exact fields of its submission form; you only see them 
 
 | Field | Value |
 | --- | --- |
-| Title | **Neon Wasteland Defense** |
+| Title | **Neon Wasteland** |
 | Genre | Tower defense / strategy |
 | Setting | Neon cyberpunk, post-apocalyptic city |
 | Orientation | Landscape (16:9; fills wider and taller screens) |
 | Platforms | Desktop, mobile, tablet |
 | Input | Mouse, touch, keyboard shortcuts |
-| Session length | About 6–8 minutes per sector; about 20 minutes for the 3-sector campaign (32 waves) |
+| Session length | About 6–8 minutes per sector; about 30 minutes for the 4-sector campaign (44 waves), plus replays for stars, challenges and Workshop upgrades |
 | Engine | Phaser 3.90 (HTML5 / WebGL), TypeScript |
 | Build size | About 380 KB zipped, 1.5 MB unzipped. No external assets or fonts. |
 | Save data | LocalStorage (settings, tutorial completion, best rating, wins) |
@@ -27,18 +27,18 @@ Poki doesn't publish the exact fields of its submission form; you only see them 
 ## 2. Listing copy
 
 ### Title
-Neon Wasteland Defense
+Neon Wasteland
 
 ### Short description (one line)
 > Build neon turrets, hack enemy machines and turn the invasion against itself.
 
 ### Medium description (2–3 sentences)
-> The machines have taken the ruined city, and only your automated defense grid stands between them and the last energy reactor. Build five kinds of neon turrets, upgrade them into powerful war machines, and hold three city sectors against increasingly brutal waves, ending with a colossal Titan. Can you earn all nine stars?
+> The machines have taken the ruined city, and only your automated defense grid stands between them and the last energy reactor. Build five kinds of neon turrets, upgrade them into powerful war machines, and hold four city sectors against increasingly brutal waves, ending with a colossal Titan. Earn stars, complete challenges and upgrade your defenses in the Workshop. Can you earn all twenty stars?
 
 ### Long description
-> **Neon Wasteland Defense** is a fast, stylish tower defense game set in a ruined cyberpunk city.
+> **Neon Wasteland** is a fast, stylish tower defense game set in a ruined cyberpunk city.
 >
-> Corrupted drones, armored juggernauts, shielded specters, swarm-spawning carriers and a colossal Titan march toward your energy reactor across three sectors of the ruined city. Tap the abandoned defense platforms to build turrets, earn credits for every machine you destroy, and spend them on upgrades that visibly transform each tower.
+> Corrupted drones, armored juggernauts, shielded specters, swarm-spawning carriers and a colossal Titan march toward your energy reactor across four sectors of the ruined city. Tap the abandoned defense platforms to build turrets, earn credits for every machine you destroy, and spend them on upgrades that visibly transform each tower.
 >
 > **Six unique turrets**, a new one unlocked in each sector
 > - **Pulse Tower:** rapid-fire energy bolts, great against fast enemies.
@@ -49,7 +49,8 @@ Neon Wasteland Defense
 > - **Cryo Tower:** frost pulses that slow every machine in range and leave them brittle.
 >
 > **Features**
-> - A 3-sector campaign with 32 handcrafted waves: a winding road, twin attack lanes, and a long highway ending in a boss fight
+> - A 4-sector campaign with 44 handcrafted waves: a winding road, twin attack lanes, a long highway with a boss fight, and a junction where two roads cross
+> - Stars, sector challenges and a Workshop of permanent upgrades
 > - New enemy types introduced along the way, including the Titan boss
 > - 3 upgrade levels per tower, each with new armor, weapons and effects
 > - Call waves early for bonus credits
@@ -109,7 +110,7 @@ npm install
 npm run package
 ```
 
-This type-checks, builds and writes **`release/neon-wasteland-defense-v<version>.zip`**. `index.html` is at the root of the zip:
+This type-checks, builds and writes **`release/neon-wasteland-v<version>.zip`**. `index.html` is at the root of the zip:
 
 ```
 index.html

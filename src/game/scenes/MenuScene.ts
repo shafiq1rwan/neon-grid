@@ -9,6 +9,7 @@ import { iconKey } from '../rendering/TowerRenderer';
 import { bgKey } from '../rendering/EnvironmentRenderer';
 import { PathData, type PathSample } from '../utils/MathUtils';
 import { storage } from '../utils/Storage';
+import { availableStars } from '../data/perks';
 import { fullscreen } from '../utils/Fullscreen';
 import { centerCamera } from '../utils/View';
 import { Icons, NeonButton, drawPanel, text } from '../ui/widgets';
@@ -54,15 +55,12 @@ export class MenuScene extends Phaser.Scene {
       .setDisplaySize(860, 260).setAlpha(0.22);
     this.tweens.add({ targets: glow, alpha: 0.34, duration: 1800, yoyo: true, repeat: -1 });
 
-    text(this, cx, 86, 'THE LAST REACTOR. YOUR DEFENSE.', 17, COLORS.textDim, {
+    text(this, cx, 96, 'THE LAST REACTOR. YOUR DEFENSE.', 17, COLORS.textDim, {
       letterSpacing: 3,
     }).setOrigin(0.5);
-    text(this, cx, 152, 'NEON WASTELAND', 76, COLORS.cyan, {
+    text(this, cx, 172, 'NEON WASTELAND', 84, COLORS.cyan, {
       stroke: '#04121a', strokeThickness: 8,
       shadow: { offsetX: 0, offsetY: 0, color: css(COLORS.cyan), blur: 14, fill: true },
-    }).setOrigin(0.5);
-    text(this, cx, 218, 'D E F E N S E', 34, COLORS.pink, {
-      stroke: '#1a0410', strokeThickness: 5,
     }).setOrigin(0.5);
 
     // A visual preview of the arsenal; details belong in the build drawer.
@@ -93,15 +91,25 @@ export class MenuScene extends Phaser.Scene {
     Icons.play(playIcon, COLORS.green);
     playIcon.setPosition(-86, 0);
     playBtn.add(playIcon);
-    text(this, cx, 555, 'Defend the reactor across 3 sectors.', 22, COLORS.text,
-      { fontStyle: 'normal' }).setOrigin(0.5);
+    if (storage.earnedStars > 0) {
+      // returning players: spend stars on permanent upgrades
+      const spare = availableStars();
+      const workshop = new NeonButton(this, cx, 568, 300, 50, {
+        label: spare > 0 ? `WORKSHOP   ★ ${spare}` : 'WORKSHOP', fontSize: 20, color: COLORS.gold,
+        onClick: () => this.scene.start(SCENES.workshop),
+      });
+      if (spare > 0) this.tweens.add({ targets: workshop, scale: 1.04, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    } else {
+      text(this, cx, 555, `Defend the reactor across ${MAPS.length} sectors.`, 22, COLORS.text,
+        { fontStyle: 'normal' }).setOrigin(0.5);
+    }
 
     const d = storage.data;
     const cleared = MAPS.filter((_, i) => storage.starsFor(i) > 0).length;
     const best = cleared > 0
       ? `CAMPAIGN  \u2605 ${storage.totalStars} / ${MAPS.length * 3}  \u00b7  ${cleared} / ${MAPS.length} SECTORS CLEARED`
       : d.bestWave > 0 ? `BEST RUN  \u00b7  WAVE ${d.bestWave} / ${MAPS[0].waves.length}` : 'BUILD  \u00b7  UPGRADE  \u00b7  SURVIVE';
-    text(this, cx, 607, best, 17, d.bestWave > 0 || d.wins > 0 ? COLORS.gold : COLORS.textDim)
+    text(this, cx, storage.earnedStars > 0 ? 630 : 607, best, 17, d.bestWave > 0 || d.wins > 0 ? COLORS.gold : COLORS.textDim)
       .setOrigin(0.5);
 
     const soundBtn = new NeonButton(this, 1070, 52, 172, 52, {
@@ -139,7 +147,7 @@ export class MenuScene extends Phaser.Scene {
     });
     c.add([dim, frame]);
     c.add(text(this, cx - 460, 104, 'HOW TO PLAY', 32, COLORS.text).setOrigin(0, 0.5));
-    c.add(text(this, cx - 460, 146, 'Defend the reactor. Clear 3 sectors.', 22, COLORS.textDim,
+    c.add(text(this, cx - 460, 146, `Defend the reactor. Clear ${MAPS.length} sectors.`, 22, COLORS.textDim,
       { fontStyle: 'normal' }).setOrigin(0, 0.5));
 
     const tips = [
@@ -169,7 +177,7 @@ export class MenuScene extends Phaser.Scene {
     const keyboard = this.add.container(0, 0);
     keyboard.add(text(this, cx, 524, 'KEYBOARD SHORTCUTS', 14, COLORS.textDim).setOrigin(0.5));
     keyboard.add(text(this, cx, 550,
-      'Space: wave   \u00b7   1-5: build   \u00b7   U: upgrade   \u00b7   S: sell   \u00b7   F: speed   \u00b7   P / Esc: pause',
+      'Space: wave   \u00b7   1-6: build   \u00b7   U: upgrade   \u00b7   S: sell   \u00b7   F: speed   \u00b7   P / Esc: pause',
       17, COLORS.text).setOrigin(0.5));
     c.add(keyboard);
     const replay = new NeonButton(this, cx - 235, 610, 450, 60, {

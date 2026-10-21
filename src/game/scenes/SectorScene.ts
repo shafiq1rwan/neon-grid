@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES, VIEW_PAD } from '../config';
-import { MAPS, newTowersInMap, type MapDef } from '../data/maps';
+import { ENEMIES } from '../data/enemies';
+import { MAPS, newEnemiesInMap, newTowersInMap, type MapDef } from '../data/maps';
 import { TOWERS } from '../data/towers';
 import { sfx } from '../audio/SoundSystem';
 import { poki } from '../platform/PokiAdapter';
@@ -9,11 +10,20 @@ import { fullscreen } from '../utils/Fullscreen';
 import { storage } from '../utils/Storage';
 import { centerCamera } from '../utils/View';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
+import { availableStars } from '../data/perks';
 
-const CARD_W = 360;
-const CARD_H = 440;
-const PREVIEW_W = 312;
+/* Cards sit in a 2-column grid: schematic preview on the left, details on the right. */
+const CARD_W = 590;
+const CARD_H = 252;
+const GAP_X = 24;
+const GAP_Y = 22;
+const GRID_TOP = 146;
+const PREVIEW_W = 300;
 const PREVIEW_H = (PREVIEW_W * GAME_HEIGHT) / GAME_WIDTH;
+const PAD = 18;
+/** Left edge of the text column inside a card. */
+const INFO_X = PAD + PREVIEW_W + 22;
+const INFO_W = CARD_W - INFO_X - PAD;
 
 function starPoints(cx: number, cy: number, r: number): Phaser.Geom.Point[] {
   const pts: Phaser.Geom.Point[] = [];
@@ -25,7 +35,7 @@ function starPoints(cx: number, cy: number, r: number): Phaser.Geom.Point[] {
   return pts;
 }
 
-/** Campaign sector select: three sectors, unlocked in order, with best stars. */
+/** Campaign sector select: every sector in `MAPS` (2 per row), unlocked in order, with best stars. */
 export class SectorScene extends Phaser.Scene {
   private starting = false;
 
@@ -40,11 +50,20 @@ export class SectorScene extends Phaser.Scene {
     this.add.rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x05080f, 0.72).setOrigin(0);
 
     const cx = GAME_WIDTH / 2;
-    text(this, cx, 70, 'SELECT SECTOR', 40, COLORS.cyan).setOrigin(0.5);
+    text(this, cx, 62, 'SELECT SECTOR', 40, COLORS.cyan).setOrigin(0.5);
     const total = storage.totalStars;
-    text(this, cx, 116, `CAMPAIGN  ★ ${total} / ${MAPS.length * 3}`, 18, total > 0 ? COLORS.gold : COLORS.textDim).setOrigin(0.5);
+    text(this, cx, 108, `CAMPAIGN  ★ ${total} / ${MAPS.length * 3}`, 18, total > 0 ? COLORS.gold : COLORS.textDim).setOrigin(0.5);
 
-    MAPS.forEach((map, i) => this.createCard(map, i, cx + (i - 1) * (CARD_W + 30), 150));
+    // 2 columns; a lone last card is centred
+    const rows = Math.ceil(MAPS.length / 2);
+    MAPS.forEach((map, i) => {
+      const row = Math.floor(i / 2);
+      const alone = i === MAPS.length - 1 && MAPS.length % 2 === 1;
+      const col = alone ? 0.5 : i % 2;
+      const left = cx - CARD_W - GAP_X / 2 + col * (CARD_W + GAP_X);
+      const top = GRID_TOP + row * (CARD_H + GAP_Y) + (rows === 1 ? CARD_H / 2 : 0);
+      this.createCard(map, i, left + CARD_W / 2, top);
+    });
 
     new NeonButton(this, 92, 60, 140, 52, {
       label: '‹  MENU',
@@ -52,6 +71,15 @@ export class SectorScene extends Phaser.Scene {
       color: COLORS.textDim,
       onClick: () => this.scene.start(SCENES.menu),
     });
+    if (storage.earnedStars > 0) {
+      const spare = availableStars();
+      new NeonButton(this, GAME_WIDTH - 112, 60, 200, 52, {
+        label: spare > 0 ? `WORKSHOP \u2605${spare}` : 'WORKSHOP',
+        fontSize: 17,
+        color: COLORS.gold,
+        onClick: () => this.scene.start(SCENES.workshop),
+      });
+    }
 
     const onKey = (ev: KeyboardEvent) => {
       if (ev.code === 'Escape') this.scene.start(SCENES.menu);
@@ -75,37 +103,53 @@ export class SectorScene extends Phaser.Scene {
     c.add(frame);
 
     // schematic preview of the sector's roads, platforms and reactor
-    const px = (CARD_W - PREVIEW_W) / 2;
-    const py = 22;
+    const px = PAD;
+    const py = PAD;
     const preview = this.add.graphics();
     this.drawPreview(preview, map, px, py, unlocked);
     c.add(preview);
 
-    c.add(text(this, 24, py + PREVIEW_H + 18, `SECTOR ${index + 1}`, 14, COLORS.textDim, { letterSpacing: 2 } as Phaser.Types.GameObjects.Text.TextStyle));
-    c.add(text(this, 24, py + PREVIEW_H + 38, map.name, 28, unlocked ? COLORS.text : COLORS.textDim));
+    c.add(text(this, INFO_X, PAD + 2, `SECTOR ${index + 1}`, 15, COLORS.textDim, { letterSpacing: 2 } as Phaser.Types.GameObjects.Text.TextStyle));
+    const name = text(this, INFO_X, PAD + 22, map.name, 27, unlocked ? COLORS.text : COLORS.textDim);
+    if (name.width > INFO_W) name.setScale(INFO_W / name.width);
+    c.add(name);
     c.add(
-      text(this, 24, py + PREVIEW_H + 78, map.subtitle, 16, COLORS.textDim, {
+      text(this, INFO_X, PAD + 62, map.subtitle, 17, COLORS.textDim, {
         fontStyle: 'normal',
-        wordWrap: { width: CARD_W - 48 },
+        wordWrap: { width: INFO_W },
       }),
     );
-    c.add(text(this, 24, CARD_H - 52, `${map.waves.length} WAVES`, 16, COLORS.cyan));
-    const fresh = index > 0 ? newTowersInMap(index) : [];
-    if (fresh.length > 0) {
-      const def = TOWERS[fresh[0]];
-      const chip = text(this, 24, CARD_H - 84, `NEW TOWER: ${def.name.replace(' Tower', '').toUpperCase()}`, 15, def.color);
+    c.add(text(this, INFO_X, CARD_H - PAD - 22, `${map.waves.length} WAVES`, 17, COLORS.cyan));
+
+    // one "what's new" chip: a new tower, otherwise the new machines
+    const freshTowers = index > 0 ? newTowersInMap(index) : [];
+    const freshEnemies = index > 0 ? newEnemiesInMap(index) : [];
+    let chipLabel = '';
+    let chipColor: number = COLORS.cyan;
+    if (freshTowers.length > 0) {
+      const def = TOWERS[freshTowers[0]];
+      chipLabel = `NEW TOWER: ${def.name.replace(' Tower', '').toUpperCase()}`;
+      chipColor = def.color;
+    } else if (freshEnemies.length > 0) {
+      chipLabel = `NEW: ${freshEnemies.map((t) => ENEMIES[t].name.toUpperCase()).join(' + ')}`;
+      chipColor = COLORS.red;
+    }
+    if (chipLabel) {
+      const chipY = CARD_H - PAD - 62;
+      const chip = text(this, INFO_X + 8, chipY + 6, chipLabel, 15, chipColor);
+      if (chip.width > INFO_W - 16) chip.setScale((INFO_W - 16) / chip.width);
       const chipBg = this.add.graphics();
-      chipBg.fillStyle(def.color, 0.12);
-      chipBg.fillRoundedRect(16, CARD_H - 90, chip.width + 16, 28, 6);
-      chipBg.lineStyle(1, def.color, 0.6);
-      chipBg.strokeRoundedRect(16, CARD_H - 90, chip.width + 16, 28, 6);
+      chipBg.fillStyle(chipColor, 0.12);
+      chipBg.fillRoundedRect(INFO_X, chipY, chip.displayWidth + 16, 30, 6);
+      chipBg.lineStyle(1, chipColor, 0.6);
+      chipBg.strokeRoundedRect(INFO_X, chipY, chip.displayWidth + 16, 30, 6);
       c.add([chipBg, chip]);
     }
 
     const sg = this.add.graphics();
     for (let s = 0; s < 3; s++) {
-      const sx = CARD_W - 110 + s * 38;
-      const sy = CARD_H - 42;
+      const sx = CARD_W - PAD - 92 + s * 38;
+      const sy = CARD_H - PAD - 12;
       sg.fillStyle(s < stars ? COLORS.gold : 0x1a2338, 1);
       sg.fillPoints(starPoints(sx, sy, 15), true);
       sg.lineStyle(1.5, s < stars ? 0xfff0b0 : 0x2a3550, 1);
@@ -117,8 +161,8 @@ export class SectorScene extends Phaser.Scene {
       const lock = this.add.graphics();
       lock.fillStyle(0x03050a, 0.55);
       lock.fillRoundedRect(px, py, PREVIEW_W, PREVIEW_H, 8);
-      const lx = CARD_W / 2;
-      const ly = py + PREVIEW_H / 2;
+      const lx = px + PREVIEW_W / 2;
+      const ly = py + PREVIEW_H / 2 - 10;
       lock.lineStyle(5, COLORS.textDim, 1);
       lock.beginPath();
       lock.arc(lx, ly - 8, 14, Math.PI, 0);
@@ -127,7 +171,7 @@ export class SectorScene extends Phaser.Scene {
       lock.fillRoundedRect(lx - 22, ly - 8, 44, 34, 6);
       c.add(lock);
       c.add(
-        text(this, CARD_W / 2, py + PREVIEW_H + 4, `Clear Sector ${index} to unlock`, 15, COLORS.textDim, {
+        text(this, lx, py + PREVIEW_H - 10, `Clear Sector ${index} to unlock`, 16, COLORS.text, {
           fontStyle: 'normal',
         }).setOrigin(0.5, 1),
       );

@@ -147,7 +147,8 @@ export class HackSystem {
     let best: Enemy | null = null;
     let bestD = Infinity;
     for (const e of this.enemies.list) {
-      if (!e.alive || e.hacked) continue;
+      // burrowed machines are underground: nothing to tap
+      if (!e.alive || e.hacked || e.burrowed) continue;
       const r = Math.max(28, e.def.radius * 1.6);
       const d = (e.x - x) ** 2 + (e.y - 3 - y) ** 2;
       if (d <= r * r && d < bestD) {
@@ -161,10 +162,12 @@ export class HackSystem {
   /** Start locking onto a machine (also used by the balance bot). */
   startLock(e: Enemy): void {
     const cost = this.costOf(e);
-    if (this.target || this.charges < cost || !e.alive || e.hacked || e.def.type === 'titan') return;
+    if (this.target || this.charges < cost || !e.alive || e.hacked || e.burrowed || e.def.type === 'titan') return;
     this.charges -= cost;
     this.lockCost = cost;
     this.target = e;
+    // pins a Burrower to the surface until the lock resolves
+    e.hackLock = true;
     this.progress = 0;
     this.effects.ring(e.x, e.y, 46, COLORS.cyan, 260);
     sfx.play('hackLock');
@@ -177,8 +180,9 @@ export class HackSystem {
     if (!e) return;
     const perfect = tapped && this.inPerfectWindow;
     this.target = null;
+    e.hackLock = false;
     if (!tapped) this.tapGuard = 0.4;
-    if (!e.alive || e.hacked) {
+    if (!e.alive || e.hacked || e.burrowed) {
       this.charges = Math.min(HACK.maxCharges, this.charges + this.lockCost);
       return;
     }
@@ -208,6 +212,7 @@ export class HackSystem {
   /** Drop any lock (game over / restart) and refund its charge. */
   cancel(): void {
     if (!this.target) return;
+    this.target.hackLock = false;
     this.target = null;
     this.charges = Math.min(HACK.maxCharges, this.charges + this.lockCost);
   }
@@ -223,7 +228,7 @@ export class HackSystem {
 
     const e = this.target;
     if (e) {
-      if (!e.alive || e.hacked) {
+      if (!e.alive || e.hacked || e.burrowed) {
         this.cancel();
       } else {
         this.progress += realDt;
@@ -317,6 +322,7 @@ export class HackSystem {
   }
 
   destroy(): void {
+    if (this.target) this.target.hackLock = false;
     this.target = null;
   }
 }

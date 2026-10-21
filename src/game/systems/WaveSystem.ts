@@ -117,8 +117,9 @@ export class WaveSystem {
         this.state = 'complete';
       } else {
         this.state = 'waiting';
-        this.countdown = WAVE_TIMING.betweenWaves;
-        this.countdownMax = WAVE_TIMING.betweenWaves;
+        const gap = def.gap ?? WAVE_TIMING.betweenWaves;
+        this.countdown = gap;
+        this.countdownMax = gap;
       }
     }
   }

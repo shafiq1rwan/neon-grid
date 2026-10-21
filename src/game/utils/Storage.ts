@@ -12,8 +12,13 @@ export interface SaveData {
   mapStars: number[];
   /** Last chosen game speed was 2x (kept across waves and sectors). */
   fastSpeed: boolean;
+  /** Workshop upgrades bought with stars: perk id → level. */
+  perks: Record<string, number>;
+  /** Completed sector challenges (ids from data/challenges.ts); each is worth a star. */
+  challenges: string[];
 }
 
+// Kept from before the rename to "Neon Wasteland": changing it would wipe players' saves.
 const KEY = 'neon-wasteland-defense:v1';
 
 const DEFAULTS: SaveData = {
@@ -26,6 +31,8 @@ const DEFAULTS: SaveData = {
   plays: 0,
   mapStars: [],
   fastSpeed: false,
+  perks: {},
+  challenges: [],
 };
 
 class Storage {
@@ -41,6 +48,10 @@ class Storage {
           if (typeof parsed[k] === typeof DEFAULTS[k]) (this.data as unknown as Record<string, unknown>)[k] = parsed[k];
         }
         if (!Array.isArray(this.data.mapStars)) this.data.mapStars = [];
+        if (!Array.isArray(this.data.challenges)) this.data.challenges = [];
+        this.data.challenges = this.data.challenges.filter((c) => typeof c === 'string');
+        const perks = this.data.perks as unknown;
+        if (!perks || typeof perks !== 'object' || Array.isArray(perks)) this.data.perks = {};
         this.data.mapStars = this.data.mapStars.map((n) => (typeof n === 'number' ? n : 0));
         // Saves from before the campaign: a win means sector 1 was cleared.
         if (this.data.mapStars.length === 0 && this.data.bestStars > 0) this.data.mapStars = [this.data.bestStars];
@@ -68,6 +79,29 @@ class Storage {
 
   get totalStars(): number {
     return this.data.mapStars.reduce((a, b) => a + b, 0);
+  }
+
+  /** Stars from sector ratings plus completed challenges (the Workshop currency). */
+  get earnedStars(): number {
+    return this.totalStars + this.data.challenges.length;
+  }
+
+  hasChallenge(id: string): boolean {
+    return this.data.challenges.includes(id);
+  }
+
+  completeChallenge(id: string): void {
+    if (this.hasChallenge(id)) return;
+    this.update({ challenges: [...this.data.challenges, id] });
+  }
+
+  perkLevel(id: string): number {
+    const n = this.data.perks[id];
+    return typeof n === 'number' && n > 0 ? Math.floor(n) : 0;
+  }
+
+  setPerkLevel(id: string, level: number): void {
+    this.update({ perks: { ...this.data.perks, [id]: level } });
   }
 
   update(patch: Partial<SaveData>): void {

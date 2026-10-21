@@ -55,10 +55,12 @@ Poki records `game / loading` by itself; everything else in the dashboard's **Ga
 
 | Category / what | Actions | Sent when |
 | --- | --- | --- |
-| `level / sector-1` … `sector-3` | `start`, `complete`, `fail` | Every run of a sector (including Retry / Replay); victory; final defeat |
-| `wave / s1-w01` … `s3-w12` | `start`, `complete`, `fail` | A wave starts; it counts as complete when the next wave starts (or on victory); fail is the wave the reactor fell on |
+| `level / sector-1` … `sector-4` | `start`, `complete`, `fail` | Every run of a sector (including Retry / Replay); victory; final defeat |
+| `wave / s1-w01` … `s4-w12` | `start`, `complete`, `fail` | A wave starts; it counts as complete when the next wave starts (or on victory); fail is the wave the reactor fell on |
 | `level / tutorial` | `start`, `complete` | The first-run hints appear; they finish (first wave started) |
 | `hack / perfect`, `hack / good` | `used` (custom) | Every successful hack, by timing result |
+| `challenge / s1-perfect` … `s4-early` | `complete` (custom) | A sector challenge is completed for the first time |
+| `workshop / budget-1` … `plating-2` | `purchased` (custom) | A Workshop upgrade level is bought |
 
 Rules kept by the code:
 - One attempt sends **either** `complete` **or** `fail`, never both.
@@ -87,7 +89,7 @@ Poki provides its own fullscreen control. The game's fullscreen button and the a
 
 ## Submission checklist
 
-- [ ] `npm run package` creates `release/neon-wasteland-defense-v<version>.zip` with `index.html` at its root.
+- [ ] `npm run package` creates `release/neon-wasteland-v<version>.zip` with `index.html` at its root.
 - [ ] Listing copy, categories and thumbnails are ready (see [POKI_SUBMISSION.md](POKI_SUBMISSION.md)).
 - [ ] Drag `dist/` into the Poki Inspector and confirm the event order in its log.
 - [ ] No ads during waves; breaks happen only at Play, Retry or Restart.

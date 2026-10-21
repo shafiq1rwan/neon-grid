@@ -22,6 +22,20 @@ export type DamageSource = Pick<TowerDef, 'shieldMultiplier' | 'piercing'>;
 const HACK_BLAST: DamageSource = { shieldMultiplier: 2, piercing: true };
 /** Hacked Specters detonate as an EMP that is brutal against shields. */
 const HACK_EMP: DamageSource = { shieldMultiplier: 3, piercing: true };
+/** Seconds a Burrower takes to dig in or out (purely visual). */
+const SINK_TIME = 0.35;
+/** A Burrower never digs in this close to the end of its road, so it surfaces before the reactor. */
+const BURROW_END_MARGIN = 140;
+/** Seconds the repair beams stay visible after a pulse. */
+const HEAL_FX_TIME = 0.4;
+/** Most beams one repair pulse draws (every machine in range is still repaired). */
+const HEAL_MAX_LINKS = 6;
+
+interface HealLink {
+  medic: Enemy | null;
+  target: Enemy | null;
+  ttl: number;
+}
 
 export interface EnemyCallbacks {
   onKilled(enemy: Enemy): void;
@@ -34,6 +48,8 @@ export class EnemySystem {
   readonly list: Enemy[] = [];
   private readonly bars: Phaser.GameObjects.Graphics;
   private readonly blastBuf: Enemy[] = [];
+  /** Repair beams (medic -> repaired machine), pooled and drawn on the shared Effects graphics. */
+  private readonly healLinks: HealLink[] = [];
   private readonly s: PathSample = { x: 0, y: 0, angle: 0, nx: 0, ny: 0 };
   private time = 0;
   kills = 0;
@@ -78,6 +94,7 @@ export class EnemySystem {
       }
       e.impactTimer = Math.max(0, e.impactTimer - dt);
       if (e.hacked) {
+        // a hacked Repair Drone repairs nothing; a hacked Burrower stays on the surface
         this.updateHacked(e, dt);
         if (!e.alive) continue;
         if (e.def.spawn) this.updateSpawner(e, dt);
@@ -92,7 +109,8 @@ export class EnemySystem {
           if (e.flashTimer <= 0) e.sprite.clearTint();
         }
       }
-      e.dist += e.def.speed * (1 - e.slowAmount) * dt;
+      const step = e.def.speed * (1 - e.slowAmount) * dt;
+      e.dist += step;
       const path = this.paths[e.lane];
       if (e.dist >= path.length) {
         this.callbacks.onEscaped(e);
@@ -105,6 +123,7 @@ export class EnemySystem {
       e.y = s.y + s.ny * e.offset;
       e.angle = rotateToward(e.angle, s.angle, 7 * dt);
 
+      if (e.beamFlashCooldown > 0) e.beamFlashCooldown -= dt;
       if (e.flashTimer > 0) {
         e.flashTimer -= dt;
         if (e.flashTimer <= 0) {
@@ -123,10 +142,140 @@ export class EnemySystem {
       }
 
       if (e.def.spawn) this.updateSpawner(e, dt);
+      if (e.def.heal) this.updateMedic(e, dt);
+      if (e.def.burrow) this.updateBurrow(e, dt, step, path.length);
       if (e.def.type === 'juggernaut' || e.def.type === 'titan') this.updateTank(e, dt);
       this.place(e, dt);
     }
+    this.drawHealLinks(dt);
     this.drawBars();
+  }
+
+  /** Repair Drone: charge up, then pulse-repair nearby machines (see `EnemyDef.heal`). */
+  private updateMedic(e: Enemy, dt: number): void {
+    const heal = e.def.heal!;
+    e.healTimer -= dt;
+    const warn = 0.8;
+    if (e.aura) {
+      const k = e.healTimer < warn ? 1 - Math.max(0, e.healTimer) / warn : 0;
+      e.aura.setAlpha(0.2 + k * 0.5).setScale((e.def.radius * 2.6 + k * 20) / 64);
+    }
+    if (e.healTimer > 0) return;
+    const cap = heal.cap * (e.maxHp / e.def.hp);
+    const r2 = heal.radius * heal.radius;
+    let healed = 0;
+    for (let j = 0; j < this.list.length; j++) {
+      const o = this.list[j];
+      if (o === e || !o.alive || o.hacked || o.burrowed || o.hp >= o.maxHp) continue;
+      const dx = o.x - e.x;
+      const dy = o.y - e.y;
+      if (dx * dx + dy * dy > r2) continue;
+      o.hp = Math.min(o.maxHp, o.hp + Math.min(o.maxHp * heal.fraction, cap));
+      // repaired above half health: tanks lose their battle-damage look (place() swaps the texture)
+      if (o.damagedLook && o.hp >= o.maxHp * 0.5) o.damagedLook = false;
+      this.effects.burst(o.x, o.y - 3, e.def.color, 3);
+      if (healed < HEAL_MAX_LINKS) this.addHealLink(e, o);
+      healed++;
+    }
+    if (healed === 0) {
+      // nothing to repair yet: stay charged and check again shortly
+      e.healTimer = 0.25;
+      return;
+    }
+    e.healTimer = heal.interval;
+    this.effects.ring(e.x, e.y, heal.radius, e.def.color, 520);
+    this.effects.flash(e.x, e.y - 3, e.def.color, 1.1, 180);
+    sfx.play('heal');
+  }
+
+  private addHealLink(medic: Enemy, target: Enemy): void {
+    let link: HealLink | null = null;
+    for (const l of this.healLinks) {
+      if (l.ttl <= 0) {
+        link = l;
+        break;
+      }
+    }
+    if (!link) {
+      link = { medic: null, target: null, ttl: 0 };
+      this.healLinks.push(link);
+    }
+    link.medic = medic;
+    link.target = target;
+    link.ttl = HEAL_FX_TIME;
+  }
+
+  /** Fading repair beams from each medic to the machines it just repaired. */
+  private drawHealLinks(dt: number): void {
+    const g = this.effects.gfx;
+    for (const l of this.healLinks) {
+      if (l.ttl <= 0) continue;
+      l.ttl -= dt;
+      const m = l.medic;
+      const o = l.target;
+      if (!m || !o || l.ttl <= 0 || !m.alive || !o.alive || m.hacked || o.burrowed) {
+        l.ttl = 0;
+        l.medic = null;
+        l.target = null;
+        continue;
+      }
+      const k = l.ttl / HEAL_FX_TIME;
+      const c = m.def.color;
+      g.lineStyle(8, c, 0.18 * k);
+      g.lineBetween(m.x, m.y - 3, o.x, o.y - 3);
+      g.lineStyle(2.4, c, 0.9 * k);
+      g.lineBetween(m.x, m.y - 3, o.x, o.y - 3);
+      g.fillStyle(0xffffff, 0.9 * k);
+      g.fillCircle(o.x, o.y - 3, 2.5 + 3 * k);
+    }
+  }
+
+  /**
+   * Burrower: stays up for `burrow.surface` s, then digs in and travels
+   * `burrow.distance` px underground. While burrowed it is skipped by every
+   * targeting query (towers, splash, chains, frost, beams, hack picks and blasts)
+   * and `damage` / `applySlow` ignore it.
+   */
+  private updateBurrow(e: Enemy, dt: number, step: number, roadLength: number): void {
+    const b = e.def.burrow!;
+    if (e.burrowed) {
+      e.burrowLeft -= step;
+      e.trailTimer -= dt;
+      if (e.trailTimer <= 0) {
+        // V-shaped dust wake behind the mound, alternating sides
+        e.trailTimer = 0.05;
+        e.wakeSide = -e.wakeSide;
+        const c = Math.cos(e.angle);
+        const sn = Math.sin(e.angle);
+        const side = e.wakeSide * 9;
+        this.effects.engineExhaust(e.x - c * 16 - sn * side, e.y - sn * 16 + c * side, false);
+      }
+      if (e.burrowLeft <= 0) {
+        e.burrowed = false;
+        e.surfaceTimer = b.surface;
+        this.effects.puff(e.x, e.y, 3);
+        this.effects.burst(e.x, e.y, e.def.color, 8);
+        this.effects.ring(e.x, e.y, 32, e.def.color, 320);
+      }
+    } else if (e.sink <= 0) {
+      e.surfaceTimer -= dt;
+      // never dig in mid hack-lock, or so close to the reactor that it would leak unseen
+      if (e.surfaceTimer <= 0 && !e.hackLock && e.dist + b.distance + BURROW_END_MARGIN < roadLength) {
+        e.burrowed = true;
+        e.burrowLeft = b.distance;
+        sfx.play('burrow');
+        e.slowAmount = 0;
+        e.slowTimer = 0;
+        e.flashTimer = 0;
+        e.sprite.clearTint();
+        this.effects.puff(e.x, e.y, 3);
+        this.effects.burst(e.x, e.y, e.def.color, 6);
+      }
+    }
+    const want = e.burrowed ? 1 : 0;
+    if (e.sink !== want) {
+      e.sink = want > e.sink ? Math.min(1, e.sink + dt / SINK_TIME) : Math.max(0, e.sink - dt / SINK_TIME);
+    }
   }
 
   private updateTank(e: Enemy, dt: number): void {
@@ -172,6 +321,14 @@ export class EnemySystem {
       case 'spawner':
         bob = Math.sin(t * 2) * 1.2;
         break;
+      case 'medic':
+        bob = Math.sin(t * 3.5) * 2;
+        break;
+      case 'burrower':
+        // digging in: shrinks and sinks below the road
+        scale = 1 - e.sink * 0.55;
+        bob = e.sink * 6;
+        break;
       default:
         break;
     }
@@ -201,6 +358,18 @@ export class EnemySystem {
         .setDepth(depth + 0.0002);
     }
     e.shadow.setPosition(e.x + 3, e.y + 6);
+    if (e.mound) {
+      const under = e.sink;
+      e.sprite.setAlpha(1 - under * 0.95);
+      e.shadow.setAlpha(1 - under);
+      e.mound
+        .setVisible(under > 0)
+        .setPosition(e.x, e.y)
+        .setRotation(e.angle)
+        .setAlpha(under)
+        .setScale(0.9 + under * 0.2 + Math.sin(t * 14) * 0.04 * under);
+    }
+    if (e.aura) e.aura.setPosition(e.x, e.y + bob - 3).setDepth(depth - 0.0002);
     if (e.shieldSprite) {
       e.shieldSprite
         .setPosition(e.x, e.y + bob - 3)
@@ -238,7 +407,7 @@ export class EnemySystem {
 
   /** Frost slow; bosses ignore part of it. Stronger slows replace weaker ones. */
   applySlow(e: Enemy, amount: number, duration: number): void {
-    if (!e.alive || e.hacked) return;
+    if (!e.alive || e.hacked || e.burrowed) return;
     const effective = amount * (1 - (e.def.slowResist ?? 0));
     if (effective >= e.slowAmount || e.slowTimer < duration * 0.5) {
       e.slowAmount = Math.max(effective, e.slowTimer > 0 ? e.slowAmount : 0);
@@ -252,7 +421,8 @@ export class EnemySystem {
    * multiplier); armour reduces non-piercing hits. Returns true on kill.
    */
   damage(e: Enemy, amount: number, source: DamageSource, continuous = false): boolean {
-    if (!e.alive || e.hacked || amount <= 0) return false;
+    // burrowed machines are underground: shots already in flight hit the dirt
+    if (!e.alive || e.hacked || e.burrowed || amount <= 0) return false;
     // frozen machines are brittle: every tower deals extra damage to them
     let dmg = e.slowTimer > 0 ? amount * FROST_BRITTLE : amount;
     if (e.shield > 0) {
@@ -272,9 +442,11 @@ export class EnemySystem {
         dmg = Math.max(dmg - e.def.armor, dmg * 0.25);
       }
       e.hp -= dmg;
-      if (!continuous || e.flashTimer <= 0) {
+      // beams pulse the flash (~5x a second) instead of holding it every frame
+      if (!continuous || e.beamFlashCooldown <= 0) {
         e.sprite.setTintFill(0xffffff);
-        e.flashTimer = continuous ? 0.03 : 0.06;
+        e.flashTimer = continuous ? 0.04 : 0.06;
+        if (continuous) e.beamFlashCooldown = 0.2;
       }
       const heavy = e.def.type === 'juggernaut' || e.def.type === 'titan';
       if (heavy && !e.damagedLook && e.hp < e.maxHp * 0.5) {
@@ -312,6 +484,16 @@ export class EnemySystem {
     e.sprite.setTint(HACK_TINT);
     e.shieldSprite?.setTint(HACK_TINT);
     e.hatch?.setTint(HACK_TINT);
+    e.aura?.setAlpha(0);
+    e.hackLock = false;
+    if (e.burrowed || e.sink > 0) {
+      // defensive only (hack picks skip burrowed machines): pop it back up
+      e.burrowed = false;
+      e.sink = 0;
+      e.sprite.setAlpha(1);
+      e.shadow.setAlpha(1);
+      e.mound?.setVisible(false);
+    }
     e.hackMark = this.scene.add.image(e.x, e.y, 'hack_mark').setBlendMode(Phaser.BlendModes.ADD);
     e.hackGlow = this.scene.add
       .image(e.x, e.y, 'fx_glow')
@@ -347,7 +529,7 @@ export class EnemySystem {
     // contact with any machine still on the enemy side?
     for (let j = 0; j < this.list.length; j++) {
       const o = this.list[j];
-      if (!o.alive || o.hacked) continue;
+      if (!o.alive || o.hacked || o.burrowed) continue;
       const r = e.def.radius + o.def.radius + HACK.contactPad;
       const dx = o.x - e.x;
       const dy = o.y - e.y;
@@ -441,7 +623,7 @@ export class EnemySystem {
     g.clear();
     for (let i = 0; i < this.list.length; i++) {
       const e = this.list[i];
-      if (!e.alive) continue;
+      if (!e.alive || e.burrowed) continue;
       const w = Math.max(18, Math.min(36, e.def.radius * 2));
       const x = e.x - w / 2;
       const y = e.y - e.def.radius - 12;
@@ -479,6 +661,11 @@ export class EnemySystem {
       e.destroy();
     }
     this.list.length = 0;
+    for (const l of this.healLinks) {
+      l.ttl = 0;
+      l.medic = null;
+      l.target = null;
+    }
   }
 
   destroy(): void {

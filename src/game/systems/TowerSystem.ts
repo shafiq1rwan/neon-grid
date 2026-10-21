@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, ECONOMY } from '../config';
+import { COLORS } from '../config';
 import type { Vec2 } from '../data/maps';
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Enemy } from '../entities/Enemy';
@@ -10,6 +10,7 @@ import { rotateToward, wrapAngle } from '../utils/MathUtils';
 import type { EnemySystem } from './EnemySystem';
 import type { ProjectileSystem } from './ProjectileSystem';
 import { Targeting } from './TargetingSystem';
+import { sellRefundRate } from '../data/perks';
 
 const RETARGET_INTERVAL = 0.15;
 
@@ -59,9 +60,16 @@ export class TowerSystem {
     sfx.play('upgrade');
   }
 
+  /** Towers currently standing. */
+  get count(): number {
+    let n = 0;
+    for (const t of this.towers) if (t) n++;
+    return n;
+  }
+
   /** Returns the refund amount. */
   sell(tower: Tower): number {
-    const refund = Math.floor(tower.invested * ECONOMY.sellRefund);
+    const refund = Math.floor(tower.invested * sellRefundRate());
     this.towers[tower.platformIndex] = null;
     this.effects.puff(tower.x, tower.y, 5);
     this.effects.burst(tower.x, tower.y, tower.def.color, 10);

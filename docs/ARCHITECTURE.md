@@ -21,7 +21,8 @@ Scene order is set in `main.ts` and controls draw order (UIScene draws over Game
 | `SectorScene` | Campaign sector select: schematic previews, locks, stars. Runs a commercial break before starting a sector. |
 | `GameScene` | Owns the simulation and all systems. Exposes the player-action API (`tapPlatform`, `buildTower`, `upgradeSelected`, `sellSelected`, `callNextWave`, `toggleSpeed`, `pauseGame`, `resumeGame`, `revive`). |
 | `UIScene` | HUD, build drawer, upgrade panel, tutorial, wave banners, pause overlay. Reads the game state every frame and listens to `GameEvents`. |
-| `ResultScene` | Victory or defeat summary, stars, Revive (rewarded ad), Retry and Menu. |
+| `ResultScene` | Victory or defeat summary, stars, challenge results, Revive (rewarded ad), Retry, Menu and Workshop. |
+| `WorkshopScene` | Permanent upgrades bought with stars (`data/perks.ts`). Opened from the menu or a result screen; from a result it offers RETRY SECTOR N (with the usual commercial break). No ads in the Workshop itself. |
 
 **Scene instances are reused.** `GameScene.create()` resets every field, and each scene removes its listeners on `SHUTDOWN`. Restart with `gameScene.scene.restart()`; it relaunches UIScene itself.
 

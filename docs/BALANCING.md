@@ -38,7 +38,7 @@ The bot's "hacker" strategy hacks the highest-HP hackable machine whenever it ha
 
 | Sector (difficulty) | No hacking (mixed + upgrades) | Perfect hacker | Hacks / perfects |
 | --- | --- | --- | --- |
-| 1 Reactor Row (1.19) | Victory, 13 HP | Victory, 18 HP | 19 / 14 |
+| 1 Reactor Row (1.19, before v1.1.2) | Victory, 13 HP | Victory, 18 HP | 19 / 14 |
 | 2 Twin Gates (1.4) | Victory, 10 HP | Victory, 20 HP | 20 / 15 |
 | 3 The Long Road (1.84) | Victory, 5 HP | Victory, 14 HP | 17 / 15 |
 
@@ -48,6 +48,49 @@ The bot's "hacker" strategy hacks the highest-HP hackable machine whenever it ha
 - The final tuning: 28 kills per charge, a charge every 3rd wave, Juggernauts cost 2, a 380 cap, and +8% sector difficulty.
 
 **Levers:** everything is in `HACK` in `config.ts`, plus the per-sector `difficulty`. Players who never hack must still be able to win every sector.
+
+### v1.1.2: Sector 1 rebalanced from real-player data
+
+The web fit test's Game Events showed the bot was a much better player than real players. Of 6,006 players who started Sector 1, only 22% cleared it. At wave 8, 913 of 2,736 (33%) lost, and waves 9 and 10 each lost another ~20%. The weak bot strategies reproduced this: "noup" (no upgrades) and "pulse" (Pulse only) both lost Sector 1 at wave 10.
+
+Changes: waves 6–10 flattened (HP × 1.64/1.82/2.0/2.22/2.3 → 1.56/1.64/1.64/1.86/1.98), fewer Juggernauts in waves 7–8 (2+2 → 1+1), fewer Specters in waves 7–10, wave 8's groups spread out, slightly bigger clear bonuses, and Sector 1 `difficulty` 1.19 → 1.05. Waves 1–3 got an 8 s gap (players left during the slow early waves).
+
+| Sector 1 strategy | Before | After |
+| --- | --- | --- |
+| noup (no upgrades) | Defeat at wave 10 | Victory, 15–17 HP (3 runs) |
+| pulse (Pulse only) | Defeat at wave 10 | Victory, 17–20 HP (3 runs) |
+| mixed + upgrades | Victory, 15 HP | Victory, 20 HP |
+| perfect hacker | Victory, 16 HP | Victory, 20 HP |
+
+Target for Sector 1: the weak strategies win comfortably, because real players are weaker than the bot. Sectors 2 and 3 were not changed: their per-wave fail rates in the fit test were low (players who reach them mostly finish).
+
+**Bot tips:** run at most 3 bots in parallel; more makes frames lag, which coarsens the 6x simulation and adds noise. Results vary by a few HP between runs, so use 3 runs. The leak log tags a leak with the wave that is current when it reaches the reactor, so leaks from wave N often show up as wave N+1.
+
+### Sector 4: Crossfire Junction (Repair Drone, Burrower)
+
+Sector 4 is the hardest sector. Players who reach it are skilled and may have Workshop upgrades. Targets: mixed + upgrades wins with about 4–10 HP, the perfect hacker wins with 10+ HP, and noup / pulse may lose.
+
+Final tuning: `difficulty` 1.15, `startCredits` 500, clear bonuses about 30% above Sector 3's, hpScale 1.3 → 3.3 over 12 waves. Bot runs (3 per strategy, at most 3 in parallel, no Workshop perks):
+
+| Strategy | Run 1 | Run 2 | Run 3 | Main leaks |
+| --- | --- | --- | --- | --- |
+| mixed + upgrades | Victory, 7 HP | Victory, 7 HP | Victory, 4 HP | wave 4 Juggernaut, wave 5 and 8 Burrowers |
+| perfect hacker | Victory, 13 HP | Victory, 11 HP | Victory, 11 HP | 1 Juggernaut, 2–3 Burrowers (14–15 hacks, nearly all perfect) |
+| noup (no upgrades) | Defeat, wave 8 | Defeat, wave 8 | Defeat, wave 9 | Burrowers, wave 6 Spawner, Juggernauts |
+| pulse only | Defeat, wave 10 | Defeat, wave 12 | Defeat, wave 9 | Juggernauts (armor), finale Specters |
+
+Bot game time is about 7:30 (mixed) to 8:05 (hacker) at 1x. Sectors 1–3 were re-run once each (mixed) after the change: 20 / 10 / 6 HP, the same as before.
+
+**What it took to get here:**
+- Two lanes that cross but never merge mean every tower sees only about half the machines (Twin Gates shares a trunk; Crossfire doesn't). The first version, at difficulty 1.9 with 380 credits and platforms about 140 px from the roads, lost on wave 4 even with perfect hacking. Moving platforms into the four quadrants of each junction (80 px from both roads), lengthening the south road to about 2,000 px, and changing the economy (500 credits, bigger clear bonuses) with a low `difficulty` fixed it.
+- On this map, building wide beats upgrading early: at difficulty 1.0, noup did better than mixed. The late waves are therefore heavy on armor and HP (Juggernaut columns, Titan finale at hpScale 3.3) so that upgrades matter.
+- Repair Drones first healed a flat 46 × HP scale. That fully healed drones every pulse, and the sector lost on wave 4. Now they heal 15% of the target's max HP, capped at 40 × the medic's HP scale (the finale Titan gets about 1.5% per pulse).
+- Burrowers first spent about 53% of the road underground (up 3.2 s, under 190 px) and leaked in bulk. Now they're up 4 s, under 150 px, with 200 HP.
+- **Very sensitive:** at difficulty 1.1 mixed won with 13–15 HP; at 1.2 it got 2 HP, lost on wave 8, and got 5 HP. Finale Burrower count and wave 8 Burrowers swing the result by about 4 HP each.
+
+**Levers:** `heal` (fraction, cap, interval, radius) and `burrow` (surface, distance) in `enemies.ts`; Sector 4 `difficulty` / `startCredits` in `maps.ts`; `WAVES_SECTOR_4` in `waves.ts`. Workshop perks will make Sector 4 easier for returning players, so re-check with the perks the lead expects players to have.
+
+**Bot note:** the hacker bot must skip `e.burrowed` machines when picking (`startLock` refuses them).
 
 ### Campaign bot validation (before hacking, v1.0.1)
 
@@ -74,6 +117,8 @@ Runs vary a little because of the random lateral lane offsets.
 
 ## Watch-outs
 
+- **Repair Drones multiply HP too.** With "first" targeting, towers shoot the front of a pack while a Repair Drone in the middle keeps healing it. Splash, chains and a hack on the medic are the counters. Keep `heal.cap` low, or escorted bosses become unkillable.
+- **Burrowers dodge coverage.** Underground time is effective HP. Any coverage gap where they surface is a leak. Change `burrow.distance` together with HP.
 - **Spawners multiply HP.** Each one releases `count` swarmlings every `interval` seconds for as long as it is alive. A spawner that survives the whole road can release about 25 swarmlings. Change `spawn.count` and `spawn.interval` carefully.
 - **Armor punishes many small hits.** With armor 5, a Pulse Lv1 bolt (9 damage) does only 4. That is intentional, to push Cannon and Laser against Juggernauts.
 - **Shield and health scale together** with `hpScale`, so late Specters get tough fast.

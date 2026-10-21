@@ -1,7 +1,7 @@
-# Neon Wasteland Defense
+# Neon Wasteland
 
 A 2D neon-cyberpunk tower defense game built with **Phaser 3**, **TypeScript (strict)** and **Vite**, intended for Poki.
-Hold a ruined city's last reactor across a 3-sector campaign (32 waves, ending with a Titan boss). Each sector takes about 6–8 minutes.
+Hold a ruined city's last reactor across a 4-sector campaign (44 waves, with Titan boss fights). Each sector takes about 6–8 minutes. Stars and sector challenges buy permanent upgrades in the Workshop.
 
 **Picking this up on a new PC?** Start with [docs/STATUS.md](docs/STATUS.md): setup, current Poki progress and the backlog.
 
@@ -19,7 +19,7 @@ npm run preview    # serve the production build locally
 npm run package    # build + zip for Poki into release/
 ```
 
-`npm run package` builds and zips the game into `release/neon-wasteland-defense-v<version>.zip` (index.html at the root), ready to upload to Poki.
+`npm run package` builds and zips the game into `release/neon-wasteland-v<version>.zip` (index.html at the root), ready to upload to Poki.
 
 `dist/` is a fully static site with relative asset paths, so you can upload it to any static host or zip it for Poki.
 
@@ -31,7 +31,7 @@ One-time setup: in the repo's **Settings → Pages**, set **Source** to **GitHub
 
 ## How to play
 
-- PLAY starts Sector 1 straight away for new players. After that, PLAY opens the **sector select** screen (3 sectors, unlocked in order).
+- PLAY starts Sector 1 straight away for new players. After that, PLAY opens the **sector select** screen (4 sectors, unlocked in order).
 - Tap a glowing **platform** to open the build drawer, then tap a tower card to build it. Each sector offers its own set of towers (4 → 5 → 6).
 - Tap a built tower to see its stats, its range, and the **Upgrade** (3 levels) and **Sell** (70% refund) buttons.
 - Tap the red **beacon** near the road entrance to start the next wave early. You get bonus credits for every second left on the countdown.
@@ -106,4 +106,4 @@ output/marketing/            Poki thumbnail + generation prompt
 
 ## Saved data
 
-LocalStorage key `neon-wasteland-defense:v1` stores: mute setting, whether the tutorial is done, best stars per sector (`mapStars`, which also drives unlocks), best wave reached and the win count. Progress is per browser, so it doesn't follow you to a new PC.
+LocalStorage key `neon-wasteland-defense:v1` (kept from before the rename to Neon Wasteland, so saves survive) stores: mute setting, whether the tutorial is done, best stars per sector (`mapStars`, which also drives unlocks), best wave reached and the win count. Progress is per browser, so it doesn't follow you to a new PC.

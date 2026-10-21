@@ -32,7 +32,9 @@ export type SfxName =
   | 'hackPerfect'
   | 'hackBlast'
   | 'hackCharge'
-  | 'hackDeny';
+  | 'hackDeny'
+  | 'heal'
+  | 'burrow';
 
 /** Minimum milliseconds between two plays of the same sound. */
 const THROTTLE: Partial<Record<SfxName, number>> = {
@@ -43,6 +45,8 @@ const THROTTLE: Partial<Record<SfxName, number>> = {
   tesla: 80,
   laser: 120,
   charge: 150,
+  heal: 250,
+  burrow: 160,
   kill: 45,
   shieldBreak: 80,
   coin: 60,
@@ -154,6 +158,16 @@ class SoundSystem {
       case 'laser':
         this.tone('sawtooth', 880, 1320, t, 0.18, 0.05);
         this.tone('sine', 440, 660, t, 0.2, 0.08);
+        break;
+      case 'heal':
+        // soft rising two-note chime: a machine is being repaired
+        this.tone('sine', 520, 780, t, 0.16, 0.045);
+        this.tone('sine', 780, 1170, t + 0.08, 0.2, 0.035);
+        break;
+      case 'burrow':
+        // muffled dig into the ground
+        this.noiseBurst(t, 0.22, 900, 'lowpass', 0.16, 160);
+        this.tone('sine', 140, 60, t, 0.2, 0.06);
         break;
       case 'charge':
         this.tone('sine', 300, 900, t, 0.25, 0.05);

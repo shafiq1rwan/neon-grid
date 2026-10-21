@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES } from '../config';
 import { MAPS } from '../data/maps';
+import { availableStars } from '../data/perks';
 import { poki } from '../platform/PokiAdapter';
+import { storage } from '../utils/Storage';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
 import { centerCamera } from '../utils/View';
 import type { GameScene, ResultData } from './GameScene';
@@ -40,7 +42,10 @@ export class ResultScene extends Phaser.Scene {
     const hasNext = victory && data.mapIndex < MAPS.length - 1;
     const campaignDone = victory && !hasNext;
     const pw = 560;
-    const ph = data.canRevive || hasNext ? 540 : 470;
+    const challenges = data.challenges;
+    const chH = challenges.length > 0 ? challenges.length * 28 + 14 : 0;
+    const showWorkshop = storage.earnedStars > 0;
+    const ph = 528 + chH;
     const px = cx - pw / 2;
     const py = (GAME_HEIGHT - ph) / 2;
     const root = this.add.container(0, 0);
@@ -60,7 +65,7 @@ export class ResultScene extends Phaser.Scene {
         cx,
         py + 86,
         campaignDone
-          ? 'All three sectors are safe. The wasteland is yours.'
+          ? `All ${MAPS.length} sectors are safe. The wasteland is yours.`
           : victory
             ? `${MAPS[data.mapIndex].name} is safe. Sector ${data.mapIndex + 2} is now unlocked.`
             : `The machines broke through on wave ${data.wave}.`,
@@ -99,7 +104,7 @@ export class ResultScene extends Phaser.Scene {
     const rows: [string, string][] = [
       ['Waves survived', `${victory ? data.totalWaves : Math.max(0, data.wave - 1)} / ${data.totalWaves}`],
       ['Machines destroyed', `${data.kills}`],
-      ['Reactor HP', `${data.hp} / 20`],
+      ['Reactor HP', `${data.hp} / ${data.maxHp}`],
       ['Credits earned', `${data.earned}`],
       ['Time', `${mins}:${secs}`],
     ];
@@ -109,7 +114,30 @@ export class ResultScene extends Phaser.Scene {
       root.add(text(this, px + pw - 90, y, value, 18, COLORS.text).setOrigin(1, 0));
     });
 
-    const by = py + 390;
+    challenges.forEach((c, i) => {
+      const y = py + 372 + i * 28;
+      root.add(text(this, px + 90, y, `${c.met ? '✔' : '✖'}  ${c.text}`, 17, c.met ? COLORS.green : COLORS.textDim,
+        { fontStyle: c.met ? 'bold' : 'normal' }));
+      const tag = c.isNew ? '+1 ★ NEW' : c.met ? 'done' : '';
+      root.add(text(this, px + pw - 90, y, tag, 17, c.isNew ? COLORS.gold : COLORS.textDim).setOrigin(1, 0));
+    });
+
+    const by = py + 390 + chH;
+    // secondary row: menu, plus the Workshop once there are stars to spend
+    const secondY = by + 86;
+    const spare = availableStars();
+    const menu = new NeonButton(this, showWorkshop ? cx - 104 : cx, secondY, 180, 46, {
+      label: 'MENU', fontSize: 17, color: COLORS.purple,
+      onClick: () => this.toMenu(),
+    });
+    root.add(menu);
+    if (showWorkshop) {
+      const workshop = new NeonButton(this, cx + 104, secondY, 200, 46, {
+        label: spare > 0 ? `WORKSHOP ★${spare}` : 'WORKSHOP', fontSize: 17, color: COLORS.gold,
+        onClick: () => this.toWorkshop(data.mapIndex),
+      });
+      root.add(workshop);
+    }
     if (data.canRevive) {
       // Poki rules: the normal continue option sits beside the rewarded one at
       // equal size; the rewarded button is not green and shows a 🎬 icon.
@@ -130,13 +158,7 @@ export class ResultScene extends Phaser.Scene {
       const note = text(this, cx + 128, by + 40, 'Watch an ad to restore the reactor', 13, COLORS.textDim, {
         fontStyle: 'normal',
       }).setOrigin(0.5, 0);
-      const menu = new NeonButton(this, cx, by + 86, 180, 46, {
-        label: 'MENU',
-        fontSize: 17,
-        color: COLORS.purple,
-        onClick: () => this.toMenu(),
-      });
-      root.add([again, revive, note, menu]);
+      root.add([again, revive, note]);
     } else if (hasNext) {
       const replay = new NeonButton(this, cx - 128, by, 236, 60, {
         label: 'REPLAY',
@@ -150,27 +172,15 @@ export class ResultScene extends Phaser.Scene {
         color: COLORS.green,
         onClick: () => void this.nextSector(data.mapIndex + 1),
       });
-      const menu = new NeonButton(this, cx, by + 86, 180, 46, {
-        label: 'MENU',
-        fontSize: 17,
-        color: COLORS.purple,
-        onClick: () => this.toMenu(),
-      });
-      root.add([replay, next, menu]);
+      root.add([replay, next]);
     } else {
-      const again = new NeonButton(this, cx - 98, by, 180, 52, {
+      const again = new NeonButton(this, cx, by, 260, 60, {
         label: victory ? 'PLAY AGAIN' : 'RETRY',
-        fontSize: 19,
+        fontSize: 20,
         color: COLORS.green,
         onClick: () => void this.playAgain(),
       });
-      const menu = new NeonButton(this, cx + 98, by, 180, 52, {
-        label: 'MENU',
-        fontSize: 19,
-        color: COLORS.purple,
-        onClick: () => this.toMenu(),
-      });
-      root.add([again, menu]);
+      root.add(again);
     }
 
     root.setAlpha(0).setY(30);
@@ -208,6 +218,14 @@ export class ResultScene extends Phaser.Scene {
     await poki.commercialBreak();
     this.scene.stop();
     this.gameScene.scene.restart({ mapIndex: index });
+  }
+
+  /** Lose → upgrade → retry: the Workshop offers to restart this sector. */
+  private toWorkshop(mapIndex: number): void {
+    if (this.busy) return;
+    this.scene.stop(SCENES.ui);
+    this.scene.stop(SCENES.game);
+    this.scene.start(SCENES.workshop, { retryMap: mapIndex });
   }
 
   private toMenu(): void {

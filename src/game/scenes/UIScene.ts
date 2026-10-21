@@ -9,6 +9,7 @@ import { sfx } from '../audio/SoundSystem';
 import { poki } from '../platform/PokiAdapter';
 import { enemyKey } from '../rendering/EnemyRenderer';
 import { storage } from '../utils/Storage';
+import { challengeProgress, challengesFor, needsWin } from '../data/challenges';
 import { HUD } from '../ui/HUD';
 import { WaveClearCard } from '../ui/WaveClearCard';
 import { TowerMenu } from '../ui/TowerMenu';
@@ -29,6 +30,8 @@ export class UIScene extends Phaser.Scene {
   private pauseLayer!: Phaser.GameObjects.Container;
   private pauseSound!: NeonButton;
   private pauseSummary!: Phaser.GameObjects.Text;
+  private pauseChallenges!: Phaser.GameObjects.Text;
+  private pauseChallengeBg!: Phaser.GameObjects.Graphics;
   private banner!: Phaser.GameObjects.Container;
   private bannerTitle!: Phaser.GameObjects.Text;
   private bannerSub!: Phaser.GameObjects.Text;
@@ -372,7 +375,11 @@ export class UIScene extends Phaser.Scene {
     });
     const hint = text(this, cx + 108, py + 322, 'P / Esc to resume', 16, COLORS.textDim,
       { fontStyle: 'normal' }).setOrigin(0.5);
-    c.add([dim, g, title, this.pauseSummary, resume, restart, menu, this.pauseSound, hint]);
+    // this sector's optional challenges, under the pause card
+    this.pauseChallengeBg = this.add.graphics();
+    this.pauseChallenges = text(this, px + 28, py + ph + 30, '', 16, COLORS.text, { fontStyle: 'normal', lineSpacing: 8 });
+    c.add([dim, g, title, this.pauseSummary, resume, restart, menu, this.pauseSound, hint,
+      this.pauseChallengeBg, this.pauseChallenges]);
     this.pauseLayer = c;
   }
 
@@ -380,10 +387,33 @@ export class UIScene extends Phaser.Scene {
     this.pauseSound.setLabel(sfx.isMuted() ? 'SOUND: OFF' : 'SOUND: ON');
   }
 
+  private updatePauseChallenges(): void {
+    const list = challengesFor(this.gs.mapIndex);
+    const g = this.pauseChallengeBg;
+    g.clear();
+    if (list.length === 0) {
+      this.pauseChallenges.setText('');
+      return;
+    }
+    const lines = ['CHALLENGES  (each earns a Workshop star once)'];
+    for (const c of list) {
+      const status = storage.hasChallenge(c.id) ? '✔ done' : challengeProgress(c, this.gs.runStats);
+      lines.push(`${c.text}${needsWin(c) ? ' (win)' : ''}   ·   ${status}`);
+    }
+    this.pauseChallenges.setText(lines.join('\n'));
+    const t = this.pauseChallenges;
+    const pw = 480;
+    const x = (GAME_WIDTH - pw) / 2;
+    drawPanel(g, x, t.y - 16, pw, t.height + 32, {
+      color: COLORS.gold, fillAlpha: 0.96, radius: 14, glow: false, corners: false,
+    });
+  }
+
   private showPause(show: boolean): void {
     this.updatePauseSound();
     if (show) {
       this.pauseSummary.setText(`Sector ${this.gs.mapIndex + 1}   ·   Wave ${this.gs.waves.displayNumber} / ${this.gs.waves.total}   \u00b7   Reactor ${Math.max(0, this.gs.hp)} HP`);
+      this.updatePauseChallenges();
     }
     this.pauseLayer.setVisible(show);
     if (show) {
@@ -437,7 +467,7 @@ export class UIScene extends Phaser.Scene {
     let best = null as (typeof gs.enemies.list)[number] | null;
     for (const e of gs.enemies.list) {
       // only machines fully on screen, so the hand and label stay readable
-      if (!e.alive || e.hacked || e.def.type === 'titan' || e.x < view.left + 90 || e.x > view.right - 90) continue;
+      if (!e.alive || e.hacked || e.burrowed || e.def.type === 'titan' || e.x < view.left + 90 || e.x > view.right - 90) continue;
       if (!best || e.dist > best.dist) best = e;
     }
     if (best) hint.show({ x: best.x, y: best.y }, false, dt, view);
