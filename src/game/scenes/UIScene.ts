@@ -15,6 +15,7 @@ import { WaveClearCard } from '../ui/WaveClearCard';
 import { TowerMenu } from '../ui/TowerMenu';
 import { Tutorial } from '../ui/Tutorial';
 import { HackHint } from '../ui/HackHint';
+import { BuildNudge, type NudgeTarget } from '../ui/BuildNudge';
 import { UpgradePanel } from '../ui/UpgradePanel';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
 import { GameEvents, type GameScene, type Selection, type WaveSummary } from './GameScene';
@@ -27,6 +28,13 @@ export class UIScene extends Phaser.Scene {
   private panel!: UpgradePanel;
   private tutorial: Tutorial | null = null;
   private hackHint: HackHint | null = null;
+  private buildNudge: BuildNudge | null = null;
+  /** Pooled coins that fly from kills to the credits counter. */
+  private coinPool: Phaser.GameObjects.Image[] = [];
+  /** Platforms ordered by how much road they cover (best spot to suggest first). */
+  private platformOrder: number[] = [];
+  private cheapestTower = 0;
+  private readonly nudgeTarget: NudgeTarget = { kind: 'build', x: 0, y: 0, first: false };
   private pauseLayer!: Phaser.GameObjects.Container;
   private pauseSound!: NeonButton;
   private pauseSummary!: Phaser.GameObjects.Text;
@@ -67,7 +75,7 @@ export class UIScene extends Phaser.Scene {
     );
     this.panel = new UpgradePanel(
       this,
-      () => this.gs.upgradeSelected(),
+      () => { if (this.gs.upgradeSelected()) this.buildNudge?.acted('upgrade'); },
       () => this.gs.sellSelected(),
       () => this.gs.deselect(),
     );
@@ -97,12 +105,20 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.listen(GameEvents.selection, (sel: Selection) => this.onSelection(sel));
-    this.listen(GameEvents.towerBuilt, () => this.tutorial?.advance('start'));
+    this.listen(GameEvents.towerBuilt, () => {
+      this.tutorial?.advance('start');
+      this.buildNudge?.acted('build');
+    });
     // hints end as soon as the action starts
     this.listen(GameEvents.waveStart, () => this.tutorial?.finish());
     this.listen(GameEvents.waveStart, (index: number) => this.onWaveStart(index));
     this.listen(GameEvents.waveBonus, (amount: number) => this.toast(`WAVE BONUS +${amount}`));
     this.listen(GameEvents.combo, (count: number, x: number, y: number) => this.showCombo(count, x, y));
+    this.coinPool = [];
+    for (let i = 0; i < 14; i++) {
+      this.coinPool.push(this.add.image(0, 0, 'ui_coin').setDepth(45).setVisible(false));
+    }
+    this.listen(GameEvents.coins, (x: number, y: number) => this.flyCoin(x, y));
     this.listen(GameEvents.waveCleared, (s: WaveSummary) => this.showWaveSummary(s));
     this.listen(GameEvents.hackCharge, () => {
       this.hud.pulseHack(true);
@@ -139,6 +155,10 @@ export class UIScene extends Phaser.Scene {
 
     if (!storage.data.tutorialDone && this.gs.map.tutorialPlatform !== undefined) this.startTutorial();
     this.hackHint = storage.data.hackTipDone ? null : new HackHint(this);
+    // players who haven't cleared Sector 1 yet get "build more" nudges
+    this.buildNudge = storage.starsFor(0) > 0 ? null : new BuildNudge(this);
+    this.platformOrder = this.rankPlatforms();
+    this.cheapestTower = Math.min(...this.gs.map.towers.map((t) => TOWERS[t].levels[0].cost));
   }
 
   private listen<T extends unknown[]>(event: string, fn: (...args: T) => void): void {
@@ -249,8 +269,8 @@ export class UIScene extends Phaser.Scene {
       fillAlpha: 0.98, corners: false, glow: false, radius: 14,
     });
     this.tweens.killTweensOf(this.banner);
-    this.banner.setVisible(true).setAlpha(0).setScale(1);
-    this.tweens.add({ targets: this.banner, alpha: 1, duration: 200 });
+    this.banner.setVisible(true).setAlpha(0).setScale(1.18);
+    this.tweens.add({ targets: this.banner, alpha: 1, scale: 1, duration: 260, ease: 'Back.easeOut' });
     this.tweens.add({
       targets: this.banner, alpha: 0,
       delay: introducesEnemy ? 2800 : 1200,
@@ -263,6 +283,27 @@ export class UIScene extends Phaser.Scene {
     this.tweens.killTweensOf(this.banner);
     this.banner.setVisible(false);
     this.summary.show(s);
+  }
+
+  /** A coin arcs from the kill to the credits counter (skipped when the pool is busy). */
+  private flyCoin(x: number, y: number): void {
+    const coin = this.coinPool.find((c) => !c.visible);
+    if (!coin) return;
+    const to = this.hud.coinAnchor;
+    coin.setPosition(x, y).setScale(0.9).setAlpha(1).setVisible(true);
+    // rise a little first, then swoop into the counter
+    this.tweens.add({
+      targets: coin, y: y - 26, duration: 160, ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: coin, x: to.x, y: to.y, scale: 0.6, duration: 420, ease: 'Cubic.easeIn',
+          onComplete: () => {
+            coin.setVisible(false);
+            this.hud.popCoin();
+          },
+        });
+      },
+    });
   }
 
   /** "x4 COMBO!" popping up where one blast, missile or chain took out several machines. */
@@ -442,6 +483,72 @@ export class UIScene extends Phaser.Scene {
     this.panel.refresh(credits);
     if (!this.gs.isPaused) this.tutorial?.update(delta / 1000);
     this.updateHackHint(delta / 1000);
+    this.updateBuildNudge(delta / 1000);
+  }
+
+  /** Platform indices, most road within reach first. */
+  private rankPlatforms(): number[] {
+    const gs = this.gs;
+    const s = { x: 0, y: 0, angle: 0, nx: 0, ny: 0 };
+    const reach = 150 * 150;
+    return gs.map.platforms
+      .map((p, i) => {
+        let n = 0;
+        for (const path of gs.paths) {
+          let seg = 0;
+          for (let d = 0; d < path.length; d += 20) {
+            seg = path.sample(d, s, seg);
+            if ((s.x - p.x) ** 2 + (s.y - p.y) ** 2 < reach) n++;
+          }
+        }
+        return { i, n };
+      })
+      .sort((a, b) => b.n - a.n)
+      .map((c) => c.i);
+  }
+
+  private updateBuildNudge(dt: number): void {
+    const nudge = this.buildNudge;
+    if (!nudge) return;
+    const gs = this.gs;
+    const blocked = gs.over || gs.isPaused || !!this.tutorial?.active || gs.selection.kind !== 'none'
+      || !!gs.hack.target || !!this.hackHint?.visible;
+    nudge.update(this.findNudgeTarget(), blocked, dt, viewBounds(this));
+  }
+
+  /** An empty platform the player can afford to build on, or else an affordable upgrade. */
+  private findNudgeTarget(): NudgeTarget | null {
+    const gs = this.gs;
+    const credits = gs.economy.credits;
+    const out = this.nudgeTarget;
+    let hasEmpty = false;
+    for (const i of this.platformOrder) {
+      if (gs.towers.at(i)) continue;
+      hasEmpty = true;
+      if (credits < this.cheapestTower) break;
+      const p = gs.map.platforms[i];
+      out.kind = 'build';
+      out.x = p.x;
+      out.y = p.y;
+      out.first = gs.towers.count === 0;
+      return out;
+    }
+    if (hasEmpty) return null;
+    // cheapest affordable upgrade (no allocations: this runs every frame)
+    let best: (typeof gs.towers.towers)[number] = null;
+    let bestCost = Infinity;
+    for (const t of gs.towers.towers) {
+      const next = t?.nextStats;
+      if (!t || !next || next.cost > credits || next.cost >= bestCost) continue;
+      best = t;
+      bestCost = next.cost;
+    }
+    if (!best) return null;
+    out.kind = 'upgrade';
+    out.first = false;
+    out.x = best.x;
+    out.y = best.y;
+    return out;
   }
 
   /** Show the one-time hack hint on the leading machine once the action starts. */

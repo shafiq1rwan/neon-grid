@@ -186,14 +186,14 @@ Times are at 1x speed with natural wave pacing. Wave lists for Sectors 2–4 are
 
 | Wave | HP × | Enemies | Theme | Clear bonus |
 | --- | --- | --- | --- | --- |
-| 1 | 1.00 | 8 | Drones | 20 |
-| 2 | 1.10 | 16 | Drones (faster second group) | 25 |
-| 3 | 1.20 | 16 | **Rift Runners introduced** | 30 |
-| 4 | 1.32 | 28 | Runner pressure | 35 |
+| 1 | 1.00 | 9 | Drones | 35 |
+| 2 | 1.10 | 16 | Drones (faster second group) | 40 |
+| 3 | 1.20 | 16 | **Rift Runners introduced** | 40 |
+| 4 | 1.28 | 24 | Runner pressure | 40 |
 | 5 | 1.48 | 22 | **Juggernauts introduced** | 45 |
 | 6 | 1.56 | 31 | Juggernauts + swarm | 55 |
-| 7 | 1.64 | 20 | **Specters introduced** (1 Juggernaut) | 70 |
-| 8 | 1.64 | 25 | Specters + runners + 1 Juggernaut, spread out | 75 |
+| 7 | 1.64 | 18 | **Specters introduced** (3 Specters, 1 Juggernaut) | 70 |
+| 8 | 1.64 | 24 | Specters + runners + 1 Juggernaut, spread out | 75 |
 | 9 | 1.86 | 29 | **Swarm Spawners introduced** | 80 |
 | 10 | 1.98 | 42 | Final mixed assault | — |
 
@@ -265,6 +265,15 @@ Playtests showed players want to start immediately, so the tutorial is hints onl
 
 The hints disappear (and the tutorial counts as done) as soon as wave 1 starts, whether from the beacon, the countdown or the Space key. The beacon always works. Wave 1 starts at most 6 seconds after the first tower is built.
 
+### Build nudge (until Sector 1 is cleared; never blocks)
+
+The v1.2.0 player fit test showed most players stop building after one or two towers: they leave during wave 2 (19% of players reaching it) or get overrun at waves 4 and 8. `ui/BuildNudge.ts` points at the next useful action with the same hand and big words:
+
+- **"Build a tower!" / "Build another tower!"** on the empty platform that covers the most road, when the player can afford the cheapest tower.
+- **"Upgrade a tower!"** on the cheapest affordable upgrade, once every platform is used.
+
+It waits 4 s after the opportunity appears (so players can act on their own), stays up at most 8 s, then keeps quiet for 20 s if ignored. It hides during the tutorial, the hack hint, a hack lock, pause, game over and while a build/upgrade drawer is open. It only runs for players who haven't cleared Sector 1 yet. Game Events: `nudge / build|upgrade` with `shown` and `followed`.
+
 ## Scoring and progression
 
 - **Stars on victory:** rated on reactor HP *lost*: 3 stars for at most 2 lost, 2 for at most 10, otherwise 1 (with the base 20 HP this is the old 18 / 10 thresholds; Reactor Plating adds a cushion without moving them). Best stars are saved per sector (up to 12 in total).
@@ -291,12 +300,12 @@ Each sector has two optional challenges (`data/challenges.ts`), each worth one W
 
 | Sector | Challenges |
 | --- | --- |
-| 1 | Land 2 perfect hacks · Call 3 waves early |
+| 1 | Hack 3 machines · Call 3 waves early |
 | 2 | Get a x4 combo · Win without selling a tower *(win)* |
 | 3 | Win with 9 towers or fewer *(win)* · Land 4 perfect hacks |
 | 4 | Get a x6 combo · Call 5 waves early |
 
-Skill challenges (perfect hacks, combos, early calls) count even when the run is lost, so first-time players who lose Sector 1 still earn stars to spend. *(win)* challenges need a victory. "Calling early" means starting a wave from the beacon or Space while the next-wave countdown is running (not before wave 1).
+Skill challenges (hacks, perfect hacks, combos, early calls) count even when the run is lost, so first-time players who lose Sector 1 still earn stars to spend. *(win)* challenges need a victory. "Calling early" means starting a wave from the beacon or Space while the next-wave countdown is running (not before wave 1).
 - **Victory screen:** NEXT SECTOR (with a commercial break), REPLAY or MENU. Clearing the last sector (Sector 4) shows CAMPAIGN COMPLETE.
 - **Revive after defeat:** once per run, an optional rewarded ad gives +10 reactor HP and clears the field.
 

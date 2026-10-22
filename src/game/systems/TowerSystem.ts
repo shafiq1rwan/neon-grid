@@ -43,6 +43,7 @@ export class TowerSystem {
     this.effects.ring(p.x, p.y, 46, tower.def.color, 420);
     this.effects.burst(p.x, p.y, tower.def.color, 12);
     this.effects.puff(p.x, p.y + 10, 4);
+    this.scene.cameras.main.shake(70, 0.0016);
     sfx.play('place');
     return tower;
   }
@@ -57,6 +58,7 @@ export class TowerSystem {
     this.effects.burst(tower.x, tower.y - 10, c, 20);
     this.effects.flash(tower.x, tower.pivotY, c, 1.6, 260);
     this.effects.popup(tower.x, tower.y - 40, `LEVEL ${tower.level}`, '#ffffff');
+    this.scene.cameras.main.shake(90, 0.0022);
     sfx.play('upgrade');
   }
 

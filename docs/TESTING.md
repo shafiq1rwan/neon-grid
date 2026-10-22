@@ -81,6 +81,12 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] A tap just after an auto-resolve doesn't open the build drawer. Pause during a lock freezes it. Game over during a lock refunds the charge.
 - [ ] Works with touch on a phone-sized screen, and at 2x speed (the lock timing doesn't speed up).
 
+### Build nudge
+- [ ] Save without Sector 1 cleared: about 4 s after the player can afford a tower with an empty platform, a hand + "Build another tower!" (or "Build a tower!" with no towers) points at a good platform. It hides while the drawer is open, during the tutorial, the hack hint, a hack lock and pause.
+- [ ] Ignored for 8 s, it disappears for 20 s. Building or upgrading makes it go away at once.
+- [ ] With every platform used and an affordable upgrade, it shows "Upgrade a tower!" on the cheapest upgrade.
+- [ ] Never shows once Sector 1 has been cleared.
+
 ### Workshop and challenges
 - [ ] Fresh save: no WORKSHOP button on the menu. After earning a star (sector rating or challenge), the menu and result screens show WORKSHOP with the stars to spend.
 - [ ] Workshop: buying a level spends the right stars, shows the new effect and level pips, and greys out when unaffordable or maxed. RESET needs two taps and refunds everything.

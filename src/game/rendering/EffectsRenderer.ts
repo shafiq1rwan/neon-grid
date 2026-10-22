@@ -148,6 +148,90 @@ export function generateEffectTextures(scene: Phaser.Scene): void {
   // UI icons
   bakeTexture(scene, 'ui_coin', 32, 32, (ctx) => drawCoin(ctx, 16, 16, 11));
   bakeTexture(scene, 'ui_heart', 32, 32, (ctx) => drawHeart(ctx, 16, 17, 11));
+  bakeTexture(scene, POINTER_KEY, POINTER_W * POINTER_RES, POINTER_H * POINTER_RES, drawPointer);
+}
+
+/* Coaching pointer ---------------------------------------------------- */
+
+export const POINTER_KEY = 'ui_pointer';
+/** Logical size of the pointer (texture is baked at POINTER_RES× for crisp edges). */
+const POINTER_W = 64;
+const POINTER_H = 74;
+export const POINTER_RES = 2;
+/** Fingertip position inside the texture, as an origin (0..1). */
+/** Everything is drawn shifted right by this much so the thumb's outline isn't clipped. */
+const POINTER_PAD = 4;
+export const POINTER_ORIGIN = { x: (19 + POINTER_PAD) / POINTER_W, y: 7 / POINTER_H } as const;
+
+/** Builds each part of the hand as a path and hands it to `paint`. */
+function pointerParts(ctx: Ctx, paint: () => void): void {
+  const part = (x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    paint();
+  };
+  part(13, 7, 12, 34, 6); // index finger
+  part(24, 25, 10, 20, 5); // middle knuckle
+  part(33, 28, 10, 19, 5); // ring knuckle
+  part(42, 32, 9, 17, 4.5); // little knuckle
+  part(10, 36, 41, 25, 11); // palm
+  ctx.save(); // thumb, angled out to the left
+  ctx.translate(13, 44);
+  ctx.rotate(-0.55);
+  part(-13, -6, 18, 11, 5.5);
+  ctx.restore();
+  part(15, 57, 31, 10, 4); // cuff
+}
+
+/**
+ * Pointing glove for the tutorial / hint system: white glove, one clean dark
+ * outline, a neon cuff and a soft cyan glow, so it reads on the dark map.
+ */
+function drawPointer(ctx: Ctx): void {
+  ctx.scale(POINTER_RES, POINTER_RES);
+  ctx.translate(POINTER_PAD, 0);
+  ctx.lineJoin = 'round';
+  // drop shadow
+  ctx.save();
+  ctx.translate(3, 4);
+  ctx.fillStyle = 'rgba(0,0,0,0.38)';
+  pointerParts(ctx, () => ctx.fill());
+  ctx.restore();
+  // outline pass (with glow) under the fills gives one silhouette outline
+  ctx.save();
+  glow(ctx, COLORS.cyan, 7);
+  ctx.strokeStyle = '#05080f';
+  ctx.lineWidth = 5;
+  pointerParts(ctx, () => ctx.stroke());
+  ctx.restore();
+  // glove fill: white with a cool shade towards the bottom right
+  const fill = ctx.createLinearGradient(8, 6, 50, 64);
+  fill.addColorStop(0, '#ffffff');
+  fill.addColorStop(0.65, '#eef4ff');
+  fill.addColorStop(1, '#c9d8f2');
+  ctx.fillStyle = fill;
+  pointerParts(ctx, () => ctx.fill());
+  // knuckle creases and the finger's edge against the palm
+  ctx.strokeStyle = 'rgba(5,8,15,0.45)';
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(25, 36); ctx.lineTo(25, 42);
+  ctx.moveTo(33.5, 38); ctx.lineTo(33.5, 44);
+  ctx.moveTo(42.5, 40); ctx.lineTo(42.5, 45);
+  ctx.stroke();
+  // fingernail highlight
+  ctx.fillStyle = 'rgba(0,229,255,0.22)';
+  ctx.beginPath();
+  ctx.roundRect(16, 9.5, 6, 7, 3);
+  ctx.fill();
+  // neon cuff
+  ctx.fillStyle = css(COLORS.cyan);
+  ctx.beginPath();
+  ctx.roundRect(16.5, 58.5, 28, 7, 3);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillRect(19, 60, 23, 1.6);
 }
 
 function projectile(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: Ctx) => void): void {

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.1 — 2026-10-22
+
+Based on the v1.2.0 player fit test (5m 23s; only 22% cleared Sector 1; 19% left during wave 2; 12% lost at wave 4 and 29% at wave 8).
+
+### Added
+- **Build nudge:** until Sector 1 is cleared, a hand and "Build another tower!" point at a good empty platform whenever the player can afford a tower (or "Upgrade a tower!" once every platform is used). It waits 4 s, never blocks, and backs off if ignored. Based on the v1.2.0 player fit test: players stopped building after 1–2 towers and then left at wave 2 or lost at waves 4 and 8. New Game Events: `nudge / build|upgrade` (`shown`, `followed`).
+
+### Changed
+- **Punchier opening:** Sector 1 waves 1–3 are shorter and pay bigger clear bonuses (35 / 40 / 40), so a second and third tower come within the first minute.
+- **Softer real-player walls:** wave 4 has 12 Runners (was 16); the first Specter waves (7–8) have 3 Specters (was 5 and 4).
+- **Sector 1 challenge "Land 2 perfect hacks" is now "Hack 3 machines"** (only 4 of ~500 players managed the old one), so most first-time players earn a Workshop star even if they lose.
+- **After a loss, the WORKSHOP button pulses** with "Upgrade, then retry!" whenever there are stars to spend.
+- **More satisfying feedback:** coins fly from every kill into the credits counter (the coin icon bounces), a small camera kick on building, upgrading and big kills, and a pop on the wave banner.
+- New coaching pointer for the tutorial, hack hint and build nudge: a clean white glove with one outline, a neon cuff and a soft cyan glow (baked at 2× for crisp edges), replacing the old hand drawn from rounded boxes. On "Pick a tower" it points at the tower icon from the side, so the card's role and price stay readable.
+
 ## 1.2.0 — 2026-10-21
 
 Built for the last web fit test retry: everything from 1.1.2 below, plus reasons to keep playing and replaying.

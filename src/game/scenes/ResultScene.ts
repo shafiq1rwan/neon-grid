@@ -136,6 +136,11 @@ export class ResultScene extends Phaser.Scene {
         label: spare > 0 ? `WORKSHOP ★${spare}` : 'WORKSHOP', fontSize: 17, color: COLORS.gold,
         onClick: () => this.toWorkshop(data.mapIndex),
       });
+      // after a loss, spending stars is the way back: make it hard to miss
+      if (!victory && spare > 0) {
+        this.tweens.add({ targets: workshop, scale: 1.08, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+        root.add(text(this, cx + 104, secondY + 34, 'Upgrade, then retry!', 14, COLORS.gold).setOrigin(0.5, 0));
+      }
       root.add(workshop);
     }
     if (data.canRevive) {

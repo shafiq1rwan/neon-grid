@@ -613,6 +613,8 @@ export class EnemySystem {
         this.effects.puff(e.x, e.y, 4);
       }
     }
+    // a little kick when something big goes down
+    if (big) this.scene.cameras.main.shake(90, 0.0025);
     sfx.play(big ? 'bigKill' : 'kill');
     this.callbacks.onKilled(e);
     e.destroy();

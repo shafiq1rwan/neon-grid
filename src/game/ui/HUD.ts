@@ -34,6 +34,7 @@ export class HUD {
 
   private shownHp = -1;
   private shownCredits = -1;
+  private coinIcon!: Phaser.GameObjects.Image;
   private shownWave = '';
   private shownSpeed = 0;
   private shownMuted: boolean | null = null;
@@ -68,6 +69,7 @@ export class HUD {
     this.heart = s.add.image(180, 66, 'ui_heart').setScale(0.75);
     this.hpText = text(s, 204, 66, '20', 25, COLORS.text).setOrigin(0, 0.5);
     const coin = s.add.image(308, 66, 'ui_coin').setScale(0.75);
+    this.coinIcon = coin;
     this.creditText = text(s, 332, 66, '0', 25, COLORS.gold).setOrigin(0, 0.5);
     this.left = s.add.container(0, 0, [g, this.progress, waveLabel, reactorLabel, creditsLabel,
       this.waveText, this.heart, this.hpText, coin, this.creditText]);
@@ -159,6 +161,19 @@ export class HUD {
   /** Screen position of the hack pill (for popups). */
   get hackAnchor(): { x: number; y: number } {
     return { x: this.left.x + this.hackPill.x, y: this.left.y + this.hackPill.y };
+  }
+
+  /** Screen position of the credits coin icon (flying coins land here). */
+  get coinAnchor(): { x: number; y: number } {
+    return { x: this.left.x + this.coinIcon.x, y: this.left.y + this.coinIcon.y };
+  }
+
+  /** The coin icon bounces when a flying coin lands. */
+  popCoin(): void {
+    const c = this.coinIcon;
+    this.scene.tweens.killTweensOf(c);
+    c.setScale(1.05);
+    this.scene.tweens.add({ targets: c, scale: 0.75, duration: 180, ease: 'Quad.easeOut' });
   }
 
   /** Screen position just below the credits counter (for toasts). */

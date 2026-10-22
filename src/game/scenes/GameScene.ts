@@ -59,6 +59,8 @@ export const GameEvents = {
   hackDenied: 'nwd-hack-denied',
   hackLock: 'nwd-hack-lock',
   hacked: 'nwd-hacked',
+  /** (x, y): a kill paid credits; the UI flies a coin to the counter. */
+  coins: 'nwd-coins',
   /** (count, x, y): one blast / splash / chain destroyed several machines. */
   combo: 'nwd-combo',
   /** (WaveSummary): the field is clear after a wave. */
@@ -167,6 +169,7 @@ export class GameScene extends Phaser.Scene {
         this.hack.onKill();
         this.economy.earn(e.def.reward);
         this.effects.popup(e.x, e.y - 14, `+${e.def.reward}`);
+        this.events.emit(GameEvents.coins, e.x, e.y - 14);
       },
       onEscaped: (e) => this.reactorHit(e.def.leakDamage),
       onCombo: (count, x, y) => {
@@ -184,6 +187,7 @@ export class GameScene extends Phaser.Scene {
       },
       onHacked: (outcome: HackOutcome) => {
         poki.measure('hack', outcome, 'used');
+        this.runStats.hacks++;
         if (outcome === 'perfect') {
           this.waveStats.perfectHacks++;
           this.runStats.perfectHacks++;

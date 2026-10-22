@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS } from '../config';
+import { POINTER_KEY, POINTER_ORIGIN, POINTER_RES } from '../rendering/EffectsRenderer';
 import { text } from './widgets';
 
 export type TutorialStep = 'platform' | 'pick' | 'start' | 'done';
@@ -27,7 +28,7 @@ export class Tutorial {
   step: TutorialStep = 'platform';
   private readonly root: Phaser.GameObjects.Container;
   private readonly ripple: Phaser.GameObjects.Graphics;
-  private readonly hand: Phaser.GameObjects.Graphics;
+  private readonly hand: Phaser.GameObjects.Image;
   private readonly label: Phaser.GameObjects.Text;
   private t = 0;
 
@@ -36,8 +37,7 @@ export class Tutorial {
     private readonly host: TutorialHost,
   ) {
     this.ripple = scene.add.graphics();
-    this.hand = scene.add.graphics();
-    drawHand(this.hand);
+    this.hand = createPointer(scene);
     this.label = text(scene, 0, 0, '', 30, COLORS.text, {
       stroke: '#05080f',
       strokeThickness: 7,
@@ -92,8 +92,8 @@ export class Tutorial {
         break;
       case 'pick':
         target = this.host.pulseCard();
-        // label on the side of the card away from the drawer edge
-        ly = target.y > 400 ? -110 : 96;
+        // label clear of the drawer, on the side away from its edge
+        ly = target.y > 400 ? -150 : 132;
         break;
       default:
         // beacon sits near the left edge: label to its right
@@ -108,36 +108,27 @@ export class Tutorial {
     this.ripple.strokeCircle(target.x, target.y, 18 + k * 34);
     this.ripple.lineStyle(10, COLORS.green, 0.15 * (1 - k));
     this.ripple.strokeCircle(target.x, target.y, 22 + k * 34);
-    // the hand taps down onto the target
     const press = Math.abs(Math.sin(this.t * 4));
-    this.hand.setPosition(target.x + 10, target.y + 14 + press * 10);
+    if (this.step === 'pick') {
+      // point at the card's tower icon from the right, so its role and price stay readable
+      // (mirrored, with the origin mirrored too, so the thumb stays on top)
+      this.hand.setFlipX(true).setOrigin(1 - POINTER_ORIGIN.x, POINTER_ORIGIN.y).setRotation(-Math.PI / 2)
+        .setPosition(target.x + 34 + press * 10, target.y - 12);
+    } else {
+      // the hand taps down onto the target
+      this.hand.setFlipX(false).setOrigin(POINTER_ORIGIN.x, POINTER_ORIGIN.y).setRotation(0)
+        .setPosition(target.x + 10, target.y + 14 + press * 10);
+    }
     this.label.setPosition(target.x + lx, target.y + ly);
     this.label.setScale(1 + Math.sin(this.t * 5) * 0.04);
   }
 }
 
 /** A simple pointing hand (fingertip at 0,0). */
-export function drawHand(g: Phaser.GameObjects.Graphics): void {
-  const skin = 0xffffff;
-  const edge = 0x05080f;
-  g.fillStyle(0x000000, 0.35);
-  g.fillRoundedRect(-4, 4, 18, 40, 8);
-  g.fillRoundedRect(-4, 30, 44, 34, 12);
-  // index finger
-  g.fillStyle(skin, 1);
-  g.lineStyle(3, edge, 1);
-  g.fillRoundedRect(-8, 0, 16, 40, 8);
-  g.strokeRoundedRect(-8, 0, 16, 40, 8);
-  // palm and folded fingers
-  g.fillRoundedRect(-8, 26, 42, 34, 12);
-  g.strokeRoundedRect(-8, 26, 42, 34, 12);
-  g.lineStyle(2, edge, 0.6);
-  g.lineBetween(10, 30, 10, 44);
-  g.lineBetween(22, 30, 22, 44);
-  // thumb
-  g.fillStyle(skin, 1);
-  g.lineStyle(3, edge, 1);
-  g.fillRoundedRect(-18, 34, 14, 22, 7);
-  g.strokeRoundedRect(-18, 34, 14, 22, 7);
-  g.setScale(0.9);
+/** The coaching pointer: a baked glove texture whose origin is the fingertip. */
+export function createPointer(scene: Phaser.Scene): Phaser.GameObjects.Image {
+  return scene.add
+    .image(0, 0, POINTER_KEY)
+    .setOrigin(POINTER_ORIGIN.x, POINTER_ORIGIN.y)
+    .setScale(1 / POINTER_RES);
 }

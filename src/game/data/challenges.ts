@@ -5,7 +5,7 @@
  * They reward the game's own skills: perfect hacks, combos, calling waves
  * early, and efficient builds.
  */
-export type ChallengeKind = 'perfectHacks' | 'combo' | 'earlyCalls' | 'noSell' | 'maxTowers';
+export type ChallengeKind = 'hacks' | 'perfectHacks' | 'combo' | 'earlyCalls' | 'noSell' | 'maxTowers';
 
 export interface ChallengeDef {
   /** Stable save id. */
@@ -17,6 +17,8 @@ export interface ChallengeDef {
 
 /** What a run achieved (tracked by GameScene). */
 export interface RunStats {
+  /** Successful hacks of any kind. */
+  hacks: number;
   perfectHacks: number;
   bestCombo: number;
   earlyCalls: number;
@@ -27,7 +29,8 @@ export interface RunStats {
 
 export const CHALLENGES: ChallengeDef[][] = [
   [
-    { id: 's1-perfect', kind: 'perfectHacks', target: 2, text: 'Land 2 perfect hacks' },
+    // v1.2.1: was "Land 2 perfect hacks" (4 of ~500 fit-test players); most players hack
+    { id: 's1-hack', kind: 'hacks', target: 3, text: 'Hack 3 machines' },
     { id: 's1-early', kind: 'earlyCalls', target: 3, text: 'Call 3 waves early' },
   ],
   [
@@ -49,7 +52,7 @@ export function challengesFor(mapIndex: number): ChallengeDef[] {
 }
 
 export function emptyRunStats(): RunStats {
-  return { perfectHacks: 0, bestCombo: 0, earlyCalls: 0, sold: 0, peakTowers: 0 };
+  return { hacks: 0, perfectHacks: 0, bestCombo: 0, earlyCalls: 0, sold: 0, peakTowers: 0 };
 }
 
 /** Challenges about how you won only count on a victory. */
@@ -59,6 +62,7 @@ export function needsWin(c: ChallengeDef): boolean {
 
 export function challengeMet(c: ChallengeDef, s: RunStats): boolean {
   switch (c.kind) {
+    case 'hacks': return s.hacks >= c.target;
     case 'perfectHacks': return s.perfectHacks >= c.target;
     case 'combo': return s.bestCombo >= c.target;
     case 'earlyCalls': return s.earlyCalls >= c.target;
@@ -70,6 +74,7 @@ export function challengeMet(c: ChallengeDef, s: RunStats): boolean {
 /** Live progress text for the pause screen, e.g. "1 / 2". */
 export function challengeProgress(c: ChallengeDef, s: RunStats): string {
   switch (c.kind) {
+    case 'hacks': return `${Math.min(s.hacks, c.target)} / ${c.target}`;
     case 'perfectHacks': return `${Math.min(s.perfectHacks, c.target)} / ${c.target}`;
     case 'combo': return `best x${s.bestCombo}`;
     case 'earlyCalls': return `${Math.min(s.earlyCalls, c.target)} / ${c.target}`;

@@ -35,14 +35,17 @@ const g = (type: EnemyType, count: number, interval: number, delay = 0, lane?: n
 /** Sector 1 — Reactor Row: the introductory campaign (10 waves). */
 export const WAVES_SECTOR_1: WaveDef[] = [
   // 1–2: basic drones (short gaps: fit-test players left during these easy waves)
-  { hpScale: 1, clearBonus: 20, gap: 8, groups: [g('drone', 8, 1.4)] },
-  { hpScale: 1.1, clearBonus: 25, gap: 8, groups: [g('drone', 10, 1.1), g('drone', 6, 0.6, 14)] },
+  // v1.2.1: shorter, busier and better paid, so a second and third tower come
+  // within the first minute (fit test: 19% of players left during wave 2)
+  { hpScale: 1, clearBonus: 35, gap: 8, groups: [g('drone', 9, 1.1)] },
+  { hpScale: 1.1, clearBonus: 40, gap: 8, groups: [g('drone', 10, 1.0), g('drone', 6, 0.6, 10)] },
   // 3–4: fast runners
-  { hpScale: 1.2, clearBonus: 30, gap: 8, groups: [g('drone', 10, 1.1), g('runner', 6, 0.9, 6)] },
+  { hpScale: 1.2, clearBonus: 40, gap: 8, groups: [g('drone', 10, 1.0), g('runner', 6, 0.9, 5)] },
+  // v1.2.1: fewer runners (12% of fit-test players lost here)
   {
-    hpScale: 1.32,
-    clearBonus: 35,
-    groups: [g('runner', 8, 0.7), g('drone', 12, 0.9, 3), g('runner', 8, 0.5, 13)],
+    hpScale: 1.28,
+    clearBonus: 40,
+    groups: [g('runner', 6, 0.7), g('drone', 12, 0.9, 3), g('runner', 6, 0.55, 13)],
   },
   // 5–6: heavy juggernauts
   {
@@ -60,13 +63,14 @@ export const WAVES_SECTOR_1: WaveDef[] = [
   {
     hpScale: 1.64,
     clearBonus: 70,
-    groups: [g('specter', 5, 1.6), g('drone', 14, 0.8, 3), g('juggernaut', 1, 1, 12)],
+    // v1.2.1: a gentler first look at shields (3 Specters, was 5)
+    groups: [g('specter', 3, 1.8), g('drone', 14, 0.8, 3), g('juggernaut', 1, 1, 12)],
   },
   {
     hpScale: 1.64,
     clearBonus: 75,
     groups: [
-      g('specter', 4, 1.8),
+      g('specter', 3, 1.8),
       g('runner', 10, 0.55, 6),
       g('juggernaut', 1, 1, 16),
       g('drone', 10, 0.7, 22),

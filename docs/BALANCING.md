@@ -64,6 +64,18 @@ Changes: waves 6–10 flattened (HP × 1.64/1.82/2.0/2.22/2.3 → 1.56/1.64/1.64
 
 Target for Sector 1: the weak strategies win comfortably, because real players are weaker than the bot. Sectors 2 and 3 were not changed: their per-wave fail rates in the fit test were low (players who reach them mostly finish).
 
+### v1.2.1: Sector 1 from the v1.2.0 player fit test
+
+The v1.2.0 player fit test (5m 23s average, vs 4m 56s for v1.0.1) still showed only 22% of players clearing Sector 1. 19% of players reaching wave 2 left during it, 12% lost at wave 4 and 29% at wave 8. The bot fills every platform; real players build one or two towers and stop. Changes: a build nudge (see GAME_DESIGN.md), waves 1–3 shorter with bigger clear bonuses (35/40/40), wave 4 with 12 Runners instead of 16 (HP × 1.28), and 3 Specters instead of 5/4 in waves 7–8.
+
+| Sector 1 strategy (v1.2.1) | Results |
+| --- | --- |
+| noup (no upgrades) | Victory 17, 20, 20 HP |
+| pulse (Pulse only) | Victory 20, 17 HP |
+| mixed + upgrades | Victory 20 HP |
+
+No leaks in waves 1–4 for any strategy; the bots afford about 5 towers by wave 4 (4 before).
+
 **Bot tips:** run at most 3 bots in parallel; more makes frames lag, which coarsens the 6x simulation and adds noise. Results vary by a few HP between runs, so use 3 runs. The leak log tags a leak with the wave that is current when it reaches the reactor, so leaks from wave N often show up as wave N+1.
 
 ### Sector 4: Crossfire Junction (Repair Drone, Burrower)

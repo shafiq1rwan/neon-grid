@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS } from '../config';
-import { drawHand } from './Tutorial';
+import { createPointer } from './Tutorial';
 import { text } from './widgets';
 
 /**
@@ -10,7 +10,7 @@ import { text } from './widgets';
 export class HackHint {
   private readonly root: Phaser.GameObjects.Container;
   private readonly ripple: Phaser.GameObjects.Graphics;
-  private readonly hand: Phaser.GameObjects.Graphics;
+  private readonly hand: Phaser.GameObjects.Image;
   private readonly label: Phaser.GameObjects.Text;
   private t = 0;
   /** Seconds the "Tap to hack!" pointer has been on screen. */
@@ -18,8 +18,7 @@ export class HackHint {
 
   constructor(private readonly scene: Phaser.Scene) {
     this.ripple = scene.add.graphics();
-    this.hand = scene.add.graphics();
-    drawHand(this.hand);
+    this.hand = createPointer(scene);
     this.label = text(scene, 0, 0, '', 26, COLORS.text, { stroke: '#05080f', strokeThickness: 7 }).setOrigin(0.5);
     this.root = scene.add.container(0, 0, [this.ripple, this.hand, this.label]).setDepth(40).setVisible(false);
   }
@@ -61,6 +60,10 @@ export class HackHint {
 
   hide(): void {
     this.root.setVisible(false);
+  }
+
+  get visible(): boolean {
+    return this.root.visible;
   }
 
   /** Fade out and remove. */

@@ -61,6 +61,7 @@ Poki records `game / loading` by itself; everything else in the dashboard's **Ga
 | `hack / perfect`, `hack / good` | `used` (custom) | Every successful hack, by timing result |
 | `challenge / s1-perfect` … `s4-early` | `complete` (custom) | A sector challenge is completed for the first time |
 | `workshop / budget-1` … `plating-2` | `purchased` (custom) | A Workshop upgrade level is bought |
+| `nudge / build`, `nudge / upgrade` | `shown`, `followed` (custom) | The build nudge appears / the player builds or upgrades while it points |
 
 Rules kept by the code:
 - One attempt sends **either** `complete` **or** `fail`, never both.

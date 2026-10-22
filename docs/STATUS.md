@@ -2,7 +2,7 @@
 
 Where the project stands, what's in flight and what to do next. Read this first when picking the project up on a new machine (or in a new AI-assistant session).
 
-_Last updated: 2026-10-21 · version **1.2.0** (built for the last web fit test: Sector 1 rebalance, Workshop + challenges, Sector 4)_
+_Last updated: 2026-10-22 · version **1.2.1** (player-fit-test fixes for Sector 1; the last web fit test retry is still unused)_
 
 ## Set up on a new PC
 
@@ -66,6 +66,8 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | Animated thumbnail (1080², 4–6 s, ≥ 50 fps, muted .mp4) | ⏳ Needed during Soft Release, before global release. Shot list in POKI_SUBMISSION.md §4 |
 | **Web Fit Test** (v1.1.x) | ❌ **Not accepted**: conversion to play **82.0%** (benchmark ~68%, good), average playtime **7:32** (benchmark ~9:57, too short), CTR from categories 2.4%. Game Events: only 22% cleared Sector 1; a third of players reaching S1 wave 8 lost there; ~24% left during waves 1–3 |
 | v1.1.2: Sector 1 rebalance + faster start (fix for the above) | Folded into v1.2.0 (not uploaded on its own) |
+| v1.2.0 **player fit test** | ✅ 500 gameplays, **5m 23s** (v1.0.1: 4m 56s). Sector 1 completion still 22%: 19% left during wave 2, 12% lost at wave 4, 29% at wave 8. Hacking used in ~77% of gameplays, perfect hacks ~12%, Workshop purchases ~2–3% |
+| v1.2.1: build nudge, new pointer, punchier opening, softer S1 waves 4/7–8, "Hack 3 machines" challenge, coin/juice effects, Workshop prompt after a loss | ⏳ Built (`release/neon-wasteland-v1.2.1.zip`). Next: player fit test; compare Sector 1 completion (22%) and wave-2 leaves (19%), and check the `nudge` events |
 | **v1.2.0** for the **last** web fit test retry: Sector 1 rebalance, Workshop + challenges, Sector 4 with two new enemies | ⏳ Built (`release/neon-wasteland-v1.2.0.zip`). Next: upload and request the final web fit test. Compare: S1 completion (was 22%), S1 w08 fails (was 33%), average playtime (was 7:32, target ~10:00) |
 | Final review | Not started |
 
