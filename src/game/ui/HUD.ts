@@ -4,7 +4,7 @@ import type { ViewBounds } from '../utils/View';
 import type { GameScene } from '../scenes/GameScene';
 import { sfx } from '../audio/SoundSystem';
 import { fullscreen } from '../utils/Fullscreen';
-import { Icons, NeonButton, drawPanel, text } from './widgets';
+import { Icons, NeonButton, bakeShape, drawPanel, text } from './widgets';
 
 /** Always-visible heads-up display: wave, reactor HP, credits and controls. */
 export class HUD {
@@ -53,13 +53,15 @@ export class HUD {
     },
   ) {
     const s = scene;
-    const g = s.add.graphics();
-    drawPanel(g, 20, 16, 412, 80, {
-      color: 0x344963, fillAlpha: 0.96, corners: false, glow: false, radius: 12,
-    });
-    g.lineStyle(1, 0x344963, 0.6);
-    g.lineBetween(150, 34, 150, 78);
-    g.lineBetween(278, 34, 278, 78);
+    // static panel art is baked once (see bakeShape)
+    const g = s.add.image(20 - 8, 16 - 8, bakeShape(s, 'hud_panel', 412 + 16, 80 + 16, (pg) => {
+      drawPanel(pg, 8, 8, 412, 80, {
+        color: 0x344963, fillAlpha: 0.96, corners: false, glow: false, radius: 12,
+      });
+      pg.lineStyle(1, 0x344963, 0.6);
+      pg.lineBetween(138, 26, 138, 70);
+      pg.lineBetween(266, 26, 266, 70);
+    })).setOrigin(0);
     this.progress = s.add.graphics();
     const waveLabel = text(s, 40, 30, 'WAVE', 13, COLORS.textDim);
     this.waveText = text(s, 40, 62, '1/10', 25, COLORS.text).setOrigin(0, 0.5);
@@ -75,8 +77,9 @@ export class HUD {
       this.waveText, this.heart, this.hpText, coin, this.creditText]);
 
     // HACK charges: pips fill as charges are earned, the bar shows progress to the next
-    const pillBg = s.add.graphics();
-    drawPanel(pillBg, -98, -22, 196, 44, { color: COLORS.cyan, fillAlpha: 0.94, corners: false, radius: 12 });
+    const pillBg = s.add.image(-98 - 8, -22 - 8, bakeShape(s, 'hud_hackpill', 196 + 16, 44 + 16, (pg) => {
+      drawPanel(pg, 8, 8, 196, 44, { color: COLORS.cyan, fillAlpha: 0.94, corners: false, radius: 12 });
+    })).setOrigin(0);
     const hackLabel = text(s, -82, -1, 'HACK', 16, COLORS.cyan).setOrigin(0, 0.5);
     this.hackPips = s.add.graphics();
     this.hackBar = s.add.graphics();
@@ -112,15 +115,26 @@ export class HUD {
     const wp = game.map.waveButton;
     this.waveBtnPos = { x: wp.x, y: wp.y };
     this.waveBtn = s.add.container(wp.x, wp.y);
+    // the ring's base is baked; only the countdown arc is drawn live
+    const ringBase = s.add.image(0, 0, bakeShape(s, 'hud_beacon', 80, 80, (rg) => {
+      rg.fillStyle(0x0d1424, 0.92);
+      rg.fillCircle(40, 40, 30);
+      rg.lineStyle(6, COLORS.red, 0.15);
+      rg.strokeCircle(40, 40, 33);
+      rg.lineStyle(2, COLORS.red, 0.9);
+      rg.strokeCircle(40, 40, 30);
+    }));
     this.waveRing = s.add.graphics();
     this.waveLabel = text(s, 0, 46, 'START', 15, COLORS.text, {
       stroke: '#05080f',
       strokeThickness: 4,
     }).setOrigin(0.5);
     this.waveSub = text(s, 0, 64, '', 13, COLORS.gold, { stroke: '#05080f', strokeThickness: 4 }).setOrigin(0.5);
-    const icon = s.add.graphics();
-    Icons.chevrons(icon, COLORS.red);
-    this.waveBtn.add([this.waveRing, icon, this.waveLabel, this.waveSub]);
+    const icon = s.add.image(0, 0, bakeShape(s, 'hud_chevrons', 64, 64, (ig) => {
+      ig.translateCanvas(32, 32);
+      Icons.chevrons(ig, COLORS.red);
+    }));
+    this.waveBtn.add([ringBase, this.waveRing, icon, this.waveLabel, this.waveSub]);
     const hit = s.add.zone(0, 10, 96, 110).setInteractive({ useHandCursor: true });
     this.waveBtn.add(hit);
     hit.on('pointerdown', () => this.waveBtn.setScale(0.92));
@@ -214,10 +228,11 @@ export class HUD {
       this.shownChargeFrac = frac;
       const b = this.hackBar;
       b.clear();
+      // plain rects: no per-frame triangulation
       b.fillStyle(0x05080f, 1);
-      b.fillRoundedRect(-82, 12, 164, 4, 2);
+      b.fillRect(-82, 12, 164, 4);
       b.fillStyle(charges >= HACK.maxCharges ? COLORS.cyan : 0x6fbfd0, 1);
-      b.fillRoundedRect(-82, 12, Math.max(4, 164 * frac), 4, 2);
+      b.fillRect(-82, 12, Math.max(4, 164 * frac), 4);
     }
 
     const waveStr = waves.endless ? `${waves.displayNumber}` : `${waves.displayNumber}/${waves.total}`;
@@ -277,7 +292,7 @@ export class HUD {
       const color = done ? COLORS.cyan : current ? COLORS.pink : 0x2a3550;
       const x = cx0 + n * 9;
       p.fillStyle(color, current ? 0.6 + 0.4 * Math.sin(time * 0.01) : 1);
-      p.fillRoundedRect(x, 84, 6, 3, 1);
+      p.fillRect(x, 84, 6, 3);
     }
 
     // wave call beacon
@@ -286,12 +301,6 @@ export class HUD {
     if (show) {
       const r = this.waveRing;
       r.clear();
-      r.fillStyle(0x0d1424, 0.92);
-      r.fillCircle(0, 0, 30);
-      r.lineStyle(6, COLORS.red, 0.15);
-      r.strokeCircle(0, 0, 33);
-      r.lineStyle(2, COLORS.red, 0.9);
-      r.strokeCircle(0, 0, 30);
       if (!waves.hold) {
         const k = Phaser.Math.Clamp(waves.countdown / Math.max(1, waves.countdownMax), 0, 1);
         r.lineStyle(4, COLORS.gold, 1);

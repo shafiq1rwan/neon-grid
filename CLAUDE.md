@@ -24,6 +24,7 @@ See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the rel
 - Don't call the field `game` inside a Scene subclass; it shadows `Phaser.Scene.game`. UIScene uses `gs`.
 - Container hit areas are centred. For children laid out from the top-left, add a centred `Zone` as the hit target (see `TowerMenu`).
 - Hot loops must not allocate. Use squared distances, pooled objects and the shared `Effects.gfx` for lines.
+- Don't leave static vector art in a `Graphics` object: Phaser re-triangulates every filled Graphics shape on every frame (the HUD once cost half of each frame on phones). Bake it with `bakeShape()` (ui/widgets.ts) and show an Image; `NeonButton` already does. Per-frame Graphics should use `fillRect` / strokes, not rounded or circular fills.
 - Keep the palette in `COLORS` (config.ts) and about 70% dark metal / 30% neon.
 - Poki Game Events go through `poki.measure()` (sector, wave, tutorial, hack; table in docs/POKI_INTEGRATION.md). Send `complete` OR `fail` per attempt, never both, and never measure ads.
 - Ads only at natural breaks (Play, Retry, Restart, Next Sector) or the opt-in revive. Never during combat.

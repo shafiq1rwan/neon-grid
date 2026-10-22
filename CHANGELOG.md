@@ -6,6 +6,9 @@
 - **Endless mode** (unlocks after clearing Sector 1): pick any cleared sector's map and survive as long as you can. Generated waves bring in new machines as they climb, with a Titan boss wave every 10 waves. The best wave per map is saved and shown on sector select, in the map picker and on the menu. Reaching waves 10, 20 and 30 earns Workshop stars. Bot check: strong builds last about 23–25 waves (~12 min) on every map. New Game Events: `endless` start/fail and `endless-reach` every 5 waves.
 - Sector select now has an ENDLESS strip under the (slightly shorter) sector cards.
 
+### Performance
+- **Smoother frame rate on phones.** Playtest median FPS was 57. Profiling a busy wave with a 4× slower CPU showed about 75% of each frame spent re-triangulating vector UI shapes (Phaser redraws every filled `Graphics` shape every frame), with the HUD alone costing half the frame. Buttons, HUD panels, the hack pill and the wave beacon are now drawn once into cached textures, and the live progress bars use plain rectangles. Same busy scene: 20 ms → 10 ms per frame, main thread ~92% → ~22% busy. Visuals are unchanged.
+
 ## 1.2.1 — 2026-10-22
 
 Based on the v1.2.0 player fit test (5m 23s; only 22% cleared Sector 1; 19% left during wave 2; 12% lost at wave 4 and 29% at wave 8).

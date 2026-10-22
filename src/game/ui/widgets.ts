@@ -80,10 +80,38 @@ export interface ButtonOptions {
   panelStyle?: PanelStyle;
 }
 
+/**
+ * Phaser re-triangulates every filled Graphics shape on every frame in WebGL,
+ * which made the HUD cost about half of each frame on phones. Static vector
+ * art is therefore drawn once into a cached texture and shown as an Image.
+ * `draw` must stay inside (0, 0)–(w, h).
+ */
+export function bakeShape(
+  scene: Phaser.Scene,
+  key: string,
+  w: number,
+  h: number,
+  draw: (g: Phaser.GameObjects.Graphics) => void,
+): string {
+  if (!scene.textures.exists(key)) {
+    const g = scene.make.graphics({}, false);
+    draw(g);
+    g.generateTexture(key, Math.ceil(w), Math.ceil(h));
+    g.destroy();
+  }
+  return key;
+}
+
+/** Margin around baked panels for the drop shadow and glow stroke. */
+const PANEL_PAD = 8;
+/** Square size of a baked button icon (icons are drawn around their centre). */
+const ICON_BOX = 80;
+const iconIds = new Map<(g: Phaser.GameObjects.Graphics, color: number) => void, number>();
+
 /** Touch-friendly neon button. Fires on release over the button. */
 export class NeonButton extends Phaser.GameObjects.Container {
-  private readonly bg: Phaser.GameObjects.Graphics;
-  private readonly iconGfx: Phaser.GameObjects.Graphics | null = null;
+  private readonly bg: Phaser.GameObjects.Image;
+  private readonly iconImg: Phaser.GameObjects.Image | null = null;
   readonly label: Phaser.GameObjects.Text | null = null;
   private enabled = true;
   private pressed = false;
@@ -106,11 +134,11 @@ export class NeonButton extends Phaser.GameObjects.Container {
     this.btnH = h;
     this.color = opts.color ?? COLORS.cyan;
     this.iconFn = opts.icon ?? null;
-    this.bg = scene.add.graphics();
+    this.bg = scene.add.image(0, 0, '__DEFAULT');
     this.add(this.bg);
     if (opts.icon) {
-      this.iconGfx = scene.add.graphics();
-      this.add(this.iconGfx);
+      this.iconImg = scene.add.image(0, 0, '__DEFAULT');
+      this.add(this.iconImg);
     }
     if (opts.label !== undefined) {
       this.label = text(scene, 0, 0, opts.label, opts.fontSize ?? 20, COLORS.text).setOrigin(0.5);
@@ -177,21 +205,35 @@ export class NeonButton extends Phaser.GameObjects.Container {
   }
 
   redrawIcon(): void {
-    if (!this.iconGfx || !this.iconFn) return;
-    this.iconGfx.clear();
-    this.iconFn(this.iconGfx, this.enabled ? this.color : 0x5a6680);
+    const fn = this.iconFn;
+    if (!this.iconImg || !fn) return;
+    const color = this.enabled ? this.color : 0x5a6680;
+    let id = iconIds.get(fn);
+    if (id === undefined) {
+      id = iconIds.size;
+      iconIds.set(fn, id);
+    }
+    const key = bakeShape(this.scene, `icon|${id}|${color}`, ICON_BOX, ICON_BOX, (g) => {
+      g.translateCanvas(ICON_BOX / 2, ICON_BOX / 2);
+      fn(g, color);
+    });
+    this.iconImg.setTexture(key);
   }
 
   private redraw(): void {
     const c = this.enabled ? this.color : 0x3a4560;
-    this.bg.clear();
-    drawPanel(this.bg, -this.btnW / 2, -this.btnH / 2, this.btnW, this.btnH, {
+    const w = Math.round(this.btnW * 10) / 10;
+    const h = Math.round(this.btnH * 10) / 10;
+    const style: PanelStyle = {
       color: c,
       fill: this.opts.fill ?? 0x111a2e,
-      radius: Math.min(10, this.btnH / 3),
-      corners: this.btnW > 70,
+      radius: Math.min(10, h / 3),
+      corners: w > 70,
       ...this.opts.panelStyle,
-    });
+    };
+    const key = `btn|${w}|${h}|${style.color}|${style.fill}|${style.fillAlpha ?? ''}|${style.radius}|${style.glow ?? ''}|${style.corners ?? ''}`;
+    bakeShape(this.scene, key, w + PANEL_PAD * 2, h + PANEL_PAD * 2, (g) => drawPanel(g, PANEL_PAD, PANEL_PAD, w, h, style));
+    this.bg.setTexture(key);
     this.label?.setColor(this.enabled ? css(COLORS.text) : '#5a6680');
     this.redrawIcon();
   }
