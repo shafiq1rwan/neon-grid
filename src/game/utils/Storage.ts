@@ -1,3 +1,5 @@
+import { endlessStarsFor } from '../data/endless';
+
 /** Settings and progress persisted in LocalStorage (fails silently when unavailable). */
 export interface SaveData {
   muted: boolean;
@@ -16,6 +18,8 @@ export interface SaveData {
   perks: Record<string, number>;
   /** Completed sector challenges (ids from data/challenges.ts); each is worth a star. */
   challenges: string[];
+  /** Endless mode: best wave reached per map (index = sector). */
+  endlessBest: number[];
 }
 
 // Kept from before the rename to "Neon Wasteland": changing it would wipe players' saves.
@@ -33,6 +37,7 @@ const DEFAULTS: SaveData = {
   fastSpeed: false,
   perks: {},
   challenges: [],
+  endlessBest: [],
 };
 
 class Storage {
@@ -49,6 +54,8 @@ class Storage {
         }
         if (!Array.isArray(this.data.mapStars)) this.data.mapStars = [];
         if (!Array.isArray(this.data.challenges)) this.data.challenges = [];
+        if (!Array.isArray(this.data.endlessBest)) this.data.endlessBest = [];
+        this.data.endlessBest = this.data.endlessBest.map((n) => (typeof n === 'number' ? n : 0));
         this.data.challenges = this.data.challenges.filter((c) => typeof c === 'string');
         const perks = this.data.perks as unknown;
         if (!perks || typeof perks !== 'object' || Array.isArray(perks)) this.data.perks = {};
@@ -81,9 +88,38 @@ class Storage {
     return this.data.mapStars.reduce((a, b) => a + b, 0);
   }
 
-  /** Stars from sector ratings plus completed challenges (the Workshop currency). */
+  /** Stars from sector ratings, completed challenges and Endless milestones (the Workshop currency). */
   get earnedStars(): number {
-    return this.totalStars + this.data.challenges.length;
+    return this.totalStars + this.data.challenges.length + this.endlessStars;
+  }
+
+  /** Endless mode unlocks once Sector 1 is cleared. */
+  get endlessUnlocked(): boolean {
+    return this.starsFor(0) > 0;
+  }
+
+  endlessBestFor(mapIndex: number): number {
+    return this.data.endlessBest[mapIndex] ?? 0;
+  }
+
+  /** Best wave over every map. */
+  get endlessTop(): number {
+    return this.data.endlessBest.reduce((a, b) => Math.max(a, b), 0);
+  }
+
+  /** One star per Endless milestone reached by the best run on any map. */
+  get endlessStars(): number {
+    return endlessStarsFor(this.endlessTop);
+  }
+
+  /** Returns true when this is a new best for the map. */
+  recordEndless(mapIndex: number, wave: number): boolean {
+    if (wave <= this.endlessBestFor(mapIndex)) return false;
+    const list = [...this.data.endlessBest];
+    while (list.length <= mapIndex) list.push(0);
+    list[mapIndex] = wave;
+    this.update({ endlessBest: list });
+    return true;
   }
 
   hasChallenge(id: string): boolean {

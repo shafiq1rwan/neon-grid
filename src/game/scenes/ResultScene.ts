@@ -30,7 +30,8 @@ export class ResultScene extends Phaser.Scene {
     this.busy = false;
     centerCamera(this);
     const victory = data.victory;
-    const accent = victory ? COLORS.cyan : COLORS.red;
+    const endless = data.endless;
+    const accent = victory || endless?.newBest ? COLORS.cyan : COLORS.red;
     const cx = GAME_WIDTH / 2;
 
     const dim = this.add
@@ -54,7 +55,7 @@ export class ResultScene extends Phaser.Scene {
     root.add(g);
 
     root.add(
-      text(this, cx, py + 46, campaignDone ? 'CAMPAIGN COMPLETE' : victory ? 'SECTOR SECURED' : 'REACTOR LOST', 38, accent, {
+      text(this, cx, py + 46, endless ? (endless.newBest ? 'NEW BEST!' : 'RUN OVER') : campaignDone ? 'CAMPAIGN COMPLETE' : victory ? 'SECTOR SECURED' : 'REACTOR LOST', 38, accent, {
         stroke: '#05080f',
         strokeThickness: 6,
       }).setOrigin(0.5),
@@ -64,7 +65,9 @@ export class ResultScene extends Phaser.Scene {
         this,
         cx,
         py + 86,
-        campaignDone
+        endless
+          ? `Endless on ${MAPS[data.mapIndex].name}: wave ${endless.reached}.  Best: wave ${endless.best}.`
+          : campaignDone
           ? `All ${MAPS.length} sectors are safe. The wasteland is yours.`
           : victory
             ? `${MAPS[data.mapIndex].name} is safe. Sector ${data.mapIndex + 2} is now unlocked.`
@@ -85,6 +88,8 @@ export class ResultScene extends Phaser.Scene {
       sg.fillPoints(starPoints(sx, sy, 30), true);
       sg.lineStyle(2, 0x2a3550, 1);
       sg.strokePoints(starPoints(sx, sy, 30), true);
+      // endless: the stars are the wave 10 / 20 / 30 milestones
+      if (endless) root.add(text(this, sx, sy + 36, `W${(i + 1) * 10}`, 13, COLORS.textDim).setOrigin(0.5, 0));
       if (i < data.stars) {
         const star = this.add.graphics();
         star.fillStyle(COLORS.gold, 1);
@@ -102,7 +107,7 @@ export class ResultScene extends Phaser.Scene {
       .toString()
       .padStart(2, '0');
     const rows: [string, string][] = [
-      ['Waves survived', `${victory ? data.totalWaves : Math.max(0, data.wave - 1)} / ${data.totalWaves}`],
+      ['Waves survived', endless ? `${Math.max(0, endless.reached - 1)}` : `${victory ? data.totalWaves : Math.max(0, data.wave - 1)} / ${data.totalWaves}`],
       ['Machines destroyed', `${data.kills}`],
       ['Reactor HP', `${data.hp} / ${data.maxHp}`],
       ['Credits earned', `${data.earned}`],
@@ -134,7 +139,7 @@ export class ResultScene extends Phaser.Scene {
     if (showWorkshop) {
       const workshop = new NeonButton(this, cx + 104, secondY, 200, 46, {
         label: spare > 0 ? `WORKSHOP ★${spare}` : 'WORKSHOP', fontSize: 17, color: COLORS.gold,
-        onClick: () => this.toWorkshop(data.mapIndex),
+        onClick: () => this.toWorkshop(data.mapIndex, !!endless),
       });
       // after a loss, spending stars is the way back: make it hard to miss
       if (!victory && spare > 0) {
@@ -226,11 +231,11 @@ export class ResultScene extends Phaser.Scene {
   }
 
   /** Lose → upgrade → retry: the Workshop offers to restart this sector. */
-  private toWorkshop(mapIndex: number): void {
+  private toWorkshop(mapIndex: number, endless: boolean): void {
     if (this.busy) return;
     this.scene.stop(SCENES.ui);
     this.scene.stop(SCENES.game);
-    this.scene.start(SCENES.workshop, { retryMap: mapIndex });
+    this.scene.start(SCENES.workshop, { retryMap: mapIndex, retryEndless: endless });
   }
 
   private toMenu(): void {

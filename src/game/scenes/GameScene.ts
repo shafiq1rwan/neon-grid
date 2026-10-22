@@ -3,6 +3,7 @@ import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD, WAVE_TIMING } from '../config
 import { MAPS, type MapDef } from '../data/maps';
 import { challengeMet, challengesFor, emptyRunStats, needsWin, type RunStats } from '../data/challenges';
 import { perkEffects } from '../data/perks';
+import { ENDLESS, endlessDifficulty, endlessStarsFor, endlessWave } from '../data/endless';
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Tower } from '../entities/Tower';
 import { sfx } from '../audio/SoundSystem';
@@ -35,6 +36,8 @@ export interface ResultData {
   totalWaves: number;
   hp: number;
   maxHp: number;
+  /** Endless run: wave reached, best on this map, stars newly earned. */
+  endless?: { reached: number; best: number; newBest: boolean; newStars: number };
   /** The sector's challenges (graded on victory). */
   challenges: ChallengeResult[];
   kills: number;
@@ -111,6 +114,10 @@ export class GameScene extends Phaser.Scene {
   runStats: RunStats = emptyRunStats();
   /** Reactor HP at the start (20 plus Workshop plating). */
   maxHp: number = ECONOMY.startingHp;
+  /** Endless mode (generated waves, no last wave) instead of the campaign sector. */
+  endless = false;
+  /** Enemy HP multiplier for this run (sector difficulty, or the Endless map value). */
+  private difficulty = 1;
   /** Workshop wave-bonus multiplier for this run. */
   private bountyMult = 1;
   /** Poki Game Events: the sector attempt is open until complete/fail is sent. */
@@ -125,12 +132,16 @@ export class GameScene extends Phaser.Scene {
     super(SCENES.game);
   }
 
-  create(data?: { mapIndex?: number }): void {
+  create(data?: { mapIndex?: number; endless?: boolean }): void {
     // Scene instances are reused on restart, so reset all state here.
     const fromRegistry = this.registry.get('mapIndex') as number | undefined;
     this.mapIndex = Phaser.Math.Clamp(data?.mapIndex ?? fromRegistry ?? 0, 0, MAPS.length - 1);
     this.registry.set('mapIndex', this.mapIndex);
+    // a restart (no data) keeps the mode; any explicit start chooses it
+    this.endless = data ? (data.endless ?? false) : ((this.registry.get('endless') as boolean | undefined) ?? false);
+    this.registry.set('endless', this.endless);
     this.map = MAPS[this.mapIndex];
+    this.difficulty = this.endless ? endlessDifficulty(this.mapIndex) : this.map.difficulty;
     // Workshop perks are read once per run
     const perks = perkEffects();
     this.maxHp = ECONOMY.startingHp + perks.bonusHp;
@@ -163,7 +174,8 @@ export class GameScene extends Phaser.Scene {
     this.createReactor();
 
     this.effects = new Effects(this);
-    this.economy = new EconomySystem(this.map.startCredits + perks.bonusCredits);
+    const startCredits = this.endless ? Math.max(this.map.startCredits, ENDLESS.startCredits) : this.map.startCredits;
+    this.economy = new EconomySystem(startCredits + perks.bonusCredits);
     this.enemies = new EnemySystem(this, this.paths, this.map.roadWidth, this.effects, {
       onKilled: (e) => {
         this.hack.onKill();
@@ -200,13 +212,21 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
     this.towers = new TowerSystem(this, this.map.platforms, this.enemies, this.projectiles, this.effects);
     this.waves = new WaveSystem({
-      spawn: (type, hpScale, lane) => this.enemies.spawn(type, hpScale * this.map.difficulty, lane),
+      spawn: (type, hpScale, lane) => this.enemies.spawn(type, hpScale * this.difficulty, lane),
       waveStarted: (index) => {
         this.hack.onWaveStart(index);
-        // a wave counts as survived once the next one starts
-        if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'complete');
-        this.measuredWave = index + 1;
-        poki.measure('wave', this.waveId(this.measuredWave), 'start');
+        if (this.endless) {
+          // unbounded waves: only milestones every 5 waves
+          this.measuredWave = index + 1;
+          if (this.measuredWave % 5 === 0) {
+            poki.measure('endless-reach', `w${String(this.measuredWave).padStart(3, '0')}`, 'reached');
+          }
+        } else {
+          // a wave counts as survived once the next one starts
+          if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'complete');
+          this.measuredWave = index + 1;
+          poki.measure('wave', this.waveId(this.measuredWave), 'start');
+        }
         sfx.play('waveStart');
         this.events.emit(GameEvents.waveStart, index);
       },
@@ -217,7 +237,8 @@ export class GameScene extends Phaser.Scene {
           this.events.emit(GameEvents.waveBonus, bonus);
         }
       },
-    }, this.map.waves, this.paths.length);
+    }, this.endless ? [] : this.map.waves, this.paths.length,
+    this.endless ? (i: number) => endlessWave(this.mapIndex, i + 1) : null);
 
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.RANGE);
     this.selectRing = this.add
@@ -255,7 +276,7 @@ export class GameScene extends Phaser.Scene {
     storage.update({ plays: storage.data.plays + 1 });
     this.scene.stop(SCENES.result);
     this.scene.launch(SCENES.ui);
-    poki.measure('level', this.sectorId, 'start');
+    poki.measure(this.endless ? 'endless' : 'level', this.sectorId, 'start');
     poki.gameplayStart();
   }
 
@@ -271,6 +292,10 @@ export class GameScene extends Phaser.Scene {
   private measureFail(): void {
     if (!this.attemptOpen) return;
     this.attemptOpen = false;
+    if (this.endless) {
+      poki.measure('endless', this.sectorId, 'fail');
+      return;
+    }
     if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'fail');
     poki.measure('level', this.sectorId, 'fail');
   }
@@ -612,7 +637,20 @@ export class GameScene extends Phaser.Scene {
     // stars rate HP lost, so Workshop plating adds a cushion without moving the thresholds
     const lost = this.maxHp - this.hp;
     const stars = victory ? (lost <= 2 ? 3 : lost <= 10 ? 2 : 1) : 0;
-    const challenges: ChallengeResult[] = challengesFor(this.mapIndex).map((c) => {
+    // endless runs only end in defeat: record the best wave and milestone stars
+    let endlessResult: ResultData['endless'];
+    if (this.endless) {
+      const reached = this.waves.displayNumber;
+      const starsBefore = storage.endlessStars;
+      const newBest = storage.recordEndless(this.mapIndex, reached);
+      endlessResult = {
+        reached,
+        best: storage.endlessBestFor(this.mapIndex),
+        newBest,
+        newStars: storage.endlessStars - starsBefore,
+      };
+    }
+    const challenges: ChallengeResult[] = this.endless ? this.endlessMilestoneRows(endlessResult!) : challengesFor(this.mapIndex).map((c) => {
       const met = (victory || !needsWin(c)) && challengeMet(c, this.runStats);
       const isNew = met && !storage.hasChallenge(c.id);
       if (isNew) {
@@ -655,11 +693,12 @@ export class GameScene extends Phaser.Scene {
       totalWaves: this.waves.total,
       hp: this.hp,
       maxHp: this.maxHp,
+      endless: endlessResult,
       challenges,
       kills: this.enemies.kills,
       earned: this.economy.earned,
       time: this.playTime,
-      stars,
+      stars: endlessResult ? endlessStarsFor(endlessResult.reached) : stars,
       canRevive,
       mapIndex: this.mapIndex,
     };
@@ -667,6 +706,16 @@ export class GameScene extends Phaser.Scene {
       this.scene.pause();
       this.scene.launch(SCENES.result, data);
     });
+  }
+
+  /** Result rows for the Endless milestones this run reached (stars are earned once, by the best run). */
+  private endlessMilestoneRows(r: NonNullable<ResultData['endless']>): ChallengeResult[] {
+    const starsAfter = storage.endlessStars;
+    const starsBefore = starsAfter - r.newStars;
+    return ENDLESS.milestones
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => r.reached >= m)
+      .map(({ m, i }) => ({ text: `Reach wave ${m}`, met: true, isNew: i >= starsBefore && i < starsAfter }));
   }
 
   private updateSelectionVisuals(): void {

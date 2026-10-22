@@ -14,6 +14,8 @@ import { NeonButton, drawPanel, text } from '../ui/widgets';
 export interface WorkshopData {
   /** Opened from a result screen: offer to retry that sector. */
   retryMap?: number;
+  /** ...in Endless mode. */
+  retryEndless?: boolean;
 }
 
 interface PerkRow {
@@ -39,6 +41,7 @@ export class WorkshopScene extends Phaser.Scene {
   private resetArmed = false;
   private starting = false;
   private retryMap: number | undefined;
+  private retryEndless = false;
 
   constructor() {
     super(SCENES.workshop);
@@ -49,6 +52,7 @@ export class WorkshopScene extends Phaser.Scene {
     this.resetArmed = false;
     this.starting = false;
     this.retryMap = data?.retryMap;
+    this.retryEndless = data?.retryEndless ?? false;
     centerCamera(this);
     this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, bgKey(MAPS[0])).setOrigin(0);
     this.add.rectangle(-2000, -2000, GAME_WIDTH + 4000, 4720, 0x05080f, 0.82).setOrigin(0);
@@ -74,7 +78,7 @@ export class WorkshopScene extends Phaser.Scene {
       onClick: () => this.reset(),
     });
     const retry = this.retryMap;
-    const playLabel = retry !== undefined ? `RETRY SECTOR ${retry + 1}` : 'PLAY';
+    const playLabel = retry === undefined ? 'PLAY' : this.retryEndless ? 'RETRY ENDLESS' : `RETRY SECTOR ${retry + 1}`;
     new NeonButton(this, cx + 260, by, 340, 66, {
       label: playLabel, fontSize: 24, color: COLORS.green,
       onClick: () => void this.play(),
@@ -175,7 +179,7 @@ export class WorkshopScene extends Phaser.Scene {
     }
     fullscreen.enterOnTouchDevices();
     await poki.commercialBreak();
-    this.scene.start(SCENES.game, { mapIndex: retry ?? 0 });
+    this.scene.start(SCENES.game, { mapIndex: retry ?? 0, endless: this.retryEndless });
   }
 }
 

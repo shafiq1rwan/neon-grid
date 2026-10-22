@@ -107,7 +107,7 @@ export class MenuScene extends Phaser.Scene {
     const d = storage.data;
     const cleared = MAPS.filter((_, i) => storage.starsFor(i) > 0).length;
     const best = cleared > 0
-      ? `CAMPAIGN  \u2605 ${storage.totalStars} / ${MAPS.length * 3}  \u00b7  ${cleared} / ${MAPS.length} SECTORS CLEARED`
+      ? `CAMPAIGN  \u2605 ${storage.totalStars} / ${MAPS.length * 3}  \u00b7  ${cleared} / ${MAPS.length} SECTORS CLEARED${storage.endlessTop > 0 ? `  ·  ENDLESS BEST WAVE ${storage.endlessTop}` : ''}`
       : d.bestWave > 0 ? `BEST RUN  \u00b7  WAVE ${d.bestWave} / ${MAPS[0].waves.length}` : 'BUILD  \u00b7  UPGRADE  \u00b7  SURVIVE';
     text(this, cx, storage.earnedStars > 0 ? 630 : 607, best, 17, d.bestWave > 0 || d.wins > 0 ? COLORS.gold : COLORS.textDim)
       .setOrigin(0.5);

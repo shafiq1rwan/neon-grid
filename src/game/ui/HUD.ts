@@ -220,7 +220,7 @@ export class HUD {
       b.fillRoundedRect(-82, 12, Math.max(4, 164 * frac), 4, 2);
     }
 
-    const waveStr = `${waves.displayNumber}/${waves.total}`;
+    const waveStr = waves.endless ? `${waves.displayNumber}` : `${waves.displayNumber}/${waves.total}`;
     if (waveStr !== this.shownWave) {
       this.shownWave = waveStr;
       this.waveText.setText(waveStr);
@@ -267,11 +267,15 @@ export class HUD {
     const p = this.progress;
     p.clear();
     const cx0 = 40;
-    for (let i = 0; i < waves.total; i++) {
+    // endless: the dots count towards the next boss wave (every 10th)
+    const first = waves.endless ? Math.floor(Math.max(0, waves.index) / 10) * 10 : 0;
+    const count = waves.endless ? 10 : waves.total;
+    for (let n = 0; n < count; n++) {
+      const i = first + n;
       const done = i < waves.index || (i === waves.index && waves.state !== 'spawning');
       const current = i === waves.index && waves.state === 'spawning';
       const color = done ? COLORS.cyan : current ? COLORS.pink : 0x2a3550;
-      const x = cx0 + i * 9;
+      const x = cx0 + n * 9;
       p.fillStyle(color, current ? 0.6 + 0.4 * Math.sin(time * 0.01) : 1);
       p.fillRoundedRect(x, 84, 6, 3, 1);
     }

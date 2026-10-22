@@ -294,6 +294,16 @@ Stars are also a currency. Stars earned = sector stars (up to 12) + completed ch
 
 Everything costs 19 stars, so players who complete nearly everything can buy it all. RESET (two taps) refunds every star. The WORKSHOP button appears on the menu, sector select and result screens once the player has earned a star; from a result screen the Workshop offers RETRY SECTOR N. Balance numbers in BALANCING.md are measured **without** perks; perks only make things easier.
 
+### Endless mode (unreleased)
+
+Unlocks once Sector 1 is cleared. It is reached from the **ENDLESS** strip under the sector cards: pick any cleared sector's map, and waves never stop. It exists for playtime: engaged players can keep going long after a campaign sector would end.
+
+- **Waves** come from `data/endless.ts` (deterministic per map + wave number). Enemies join the pool as waves climb: Drones 1, Runners 3, Juggernauts 5, Specters 7, Spawners 9, Repair Drones 12, Burrowers 14. Every 10th wave is a **boss wave** with Titans (one per 10 waves) and, from wave 20, a Repair Drone escort. HP scale: 1 + 0.13·(n−1) + 0.0035·(n−1)². Clear bonus 30 + 4n (max 120). 12 s between waves (and the usual 3 s once the field is clear).
+- **Per-map difficulty** (map geometry differs): Sector 1 map 1.0, Sector 2 1.1, Sector 3 1.6, Sector 4 1.3. Start credits: at least 400.
+- **Rewards:** best wave per map is saved and shown (sector select, picker, menu). One Workshop star each when the best run on any map reaches waves **10, 20 and 30** (3 stars, so 23 stars in total with sectors and challenges). Workshop perks apply in Endless too.
+- **Result screen:** "NEW BEST!" or "RUN OVER", wave reached and best, the three milestone stars (W10/W20/W30), "+1 ★ NEW" rows. RETRY restarts Endless on the same map; the Workshop offers RETRY ENDLESS.
+- **Ads:** as everywhere: a commercial break when a run starts or restarts, the opt-in revive after a loss, never mid-run. No tutorial, challenges or build nudge in Endless.
+
 ### Challenges (v1.2.0)
 
 Each sector has two optional challenges (`data/challenges.ts`), each worth one Workshop star, once. The pause screen shows them with live progress.

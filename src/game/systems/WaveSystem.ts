@@ -35,10 +35,22 @@ export class WaveSystem {
     private readonly callbacks: WaveCallbacks,
     readonly waves: WaveDef[],
     private readonly laneCount = 1,
+    /** Endless mode: builds wave `index` on demand (there is no last wave). */
+    private readonly generate: ((index: number) => WaveDef) | null = null,
   ) {}
 
+  get endless(): boolean {
+    return this.generate !== null;
+  }
+
+  /** Number of waves (Infinity in endless mode). */
   get total(): number {
-    return this.waves.length;
+    return this.generate ? Number.POSITIVE_INFINITY : this.waves.length;
+  }
+
+  private waveAt(i: number): WaveDef {
+    if (this.generate && !this.waves[i]) this.waves[i] = this.generate(i);
+    return this.waves[i];
   }
 
   /** 1-based number of the wave shown in the HUD. */
@@ -85,7 +97,7 @@ export class WaveSystem {
     this.state = 'spawning';
     this.elapsed = 0;
     this.spawned = 0;
-    const def = this.waves[i];
+    const def = this.waveAt(i);
     this.totalInWave = waveEnemyCount(def);
     this.runs = def.groups.map((group) => ({ group, spawned: 0, timer: group.delay }));
     this.callbacks.waveStarted(i);

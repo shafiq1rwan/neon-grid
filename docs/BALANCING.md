@@ -76,6 +76,19 @@ The v1.2.0 player fit test (5m 23s average, vs 4m 56s for v1.0.1) still showed o
 
 No leaks in waves 1–4 for any strategy; the bots afford about 5 towers by wave 4 (4 before).
 
+### Endless mode (unreleased)
+
+Bot (`mixed` = builds everything and upgrades, no hacking), waves reached and game time at 1x:
+
+| Map (Endless difficulty) | mixed | other |
+| --- | --- | --- |
+| Sector 1 (1.0) | wave 23 (~11.6 min) | noup: wave 11 (~4.7 min); hacker: wave 23 |
+| Sector 2 (1.1) | waves 23, 24 (~12 min) | noup: wave 23 |
+| Sector 3 (1.6) | wave 25 (~12.6 min) | |
+| Sector 4 (1.3) | waves 23, 23 (~12 min) | |
+
+Target: a strong player lasts about 20–25 waves (~12 min) on every map, and even weak builds reach the wave-10 star. Sector 2's map is very sensitive (1.25 → wave 14, 1.0 → waves 27–29). Tune with `MAP_DIFFICULTY` and `endlessHpScale` in `data/endless.ts`. The Endless bot is `bot2.mjs` started with `{ mapIndex, endless: true }` and a longer time limit.
+
 **Bot tips:** run at most 3 bots in parallel; more makes frames lag, which coarsens the 6x simulation and adds noise. Results vary by a few HP between runs, so use 3 runs. The leak log tags a leak with the wave that is current when it reaches the reactor, so leaks from wave N often show up as wave N+1.
 
 ### Sector 4: Crossfire Junction (Repair Drone, Burrower)

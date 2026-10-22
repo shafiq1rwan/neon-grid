@@ -11,13 +11,16 @@ import { storage } from '../utils/Storage';
 import { centerCamera } from '../utils/View';
 import { NeonButton, drawPanel, text } from '../ui/widgets';
 import { availableStars } from '../data/perks';
+import { ENDLESS } from '../data/endless';
 
 /* Cards sit in a 2-column grid: schematic preview on the left, details on the right. */
 const CARD_W = 590;
-const CARD_H = 252;
+const CARD_H = 226;
 const GAP_X = 24;
-const GAP_Y = 22;
-const GRID_TOP = 146;
+const GAP_Y = 18;
+const GRID_TOP = 136;
+/** Endless strip under the sector grid. */
+const STRIP_H = 68;
 const PREVIEW_W = 300;
 const PREVIEW_H = (PREVIEW_W * GAME_HEIGHT) / GAME_WIDTH;
 const PAD = 18;
@@ -38,6 +41,7 @@ function starPoints(cx: number, cy: number, r: number): Phaser.Geom.Point[] {
 /** Campaign sector select: every sector in `MAPS` (2 per row), unlocked in order, with best stars. */
 export class SectorScene extends Phaser.Scene {
   private starting = false;
+  private picker: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super(SCENES.sectors);
@@ -45,6 +49,7 @@ export class SectorScene extends Phaser.Scene {
 
   create(): void {
     this.starting = false;
+    this.picker = null;
     centerCamera(this);
     this.add.image(-VIEW_PAD.x, -VIEW_PAD.y, bgKey(MAPS[0])).setOrigin(0);
     this.add.rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x05080f, 0.72).setOrigin(0);
@@ -65,6 +70,9 @@ export class SectorScene extends Phaser.Scene {
       this.createCard(map, i, left + CARD_W / 2, top);
     });
 
+    const gridBottom = GRID_TOP + rows * CARD_H + (rows - 1) * GAP_Y;
+    this.createEndlessStrip(gridBottom + 16);
+
     new NeonButton(this, 92, 60, 140, 52, {
       label: '‹  MENU',
       fontSize: 18,
@@ -82,7 +90,9 @@ export class SectorScene extends Phaser.Scene {
     }
 
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.code === 'Escape') this.scene.start(SCENES.menu);
+      if (ev.code !== 'Escape') return;
+      if (this.picker) this.closePicker();
+      else this.scene.start(SCENES.menu);
     };
     this.input.keyboard?.on('keydown', onKey);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.input.keyboard?.off('keydown', onKey));
@@ -231,13 +241,104 @@ export class SectorScene extends Phaser.Scene {
     g.fillCircle(clampX(map.reactor.x), py(map.reactor.y), 3.5);
   }
 
-  private async startSector(index: number): Promise<void> {
+  private async startSector(index: number, endless = false): Promise<void> {
     if (this.starting) return;
     this.starting = true;
     sfx.unlock();
     // still inside the tap gesture, so the browser allows fullscreen
     fullscreen.enterOnTouchDevices();
     await poki.commercialBreak();
-    this.scene.start(SCENES.game, { mapIndex: index });
+    this.scene.start(SCENES.game, { mapIndex: index, endless });
+  }
+
+  /* Endless ------------------------------------------------------------ */
+
+  /** Full-width strip under the sector cards: Endless mode, best wave, lock state. */
+  private createEndlessStrip(top: number): void {
+    const unlocked = storage.endlessUnlocked;
+    const w = CARD_W * 2 + GAP_X;
+    const x = GAME_WIDTH / 2 - w / 2;
+    const c = this.add.container(x, top);
+    const accent = unlocked ? COLORS.purple : 0x2a3550;
+    const frame = this.add.graphics();
+    drawPanel(frame, 0, 0, w, STRIP_H, { color: accent, fillAlpha: 0.96, radius: 14 });
+    c.add(frame);
+    c.add(text(this, 26, STRIP_H / 2, '\u221e ENDLESS', 28, unlocked ? COLORS.purple : COLORS.textDim).setOrigin(0, 0.5));
+    const info = unlocked
+      ? `How long can you hold? Stars at waves ${ENDLESS.milestones.join(', ')}.`
+      : 'Clear Sector 1 to unlock';
+    c.add(text(this, 220, STRIP_H / 2, info, 17, unlocked ? COLORS.text : COLORS.textDim, { fontStyle: 'normal' }).setOrigin(0, 0.5));
+    if (unlocked) {
+      const top = storage.endlessTop;
+      c.add(text(this, w - 150, STRIP_H / 2, top > 0 ? `BEST WAVE ${top}` : 'NEW', 19, COLORS.gold).setOrigin(1, 0.5));
+      c.add(text(this, w - 30, STRIP_H / 2, 'PLAY \u25b6', 20, COLORS.green).setOrigin(1, 0.5));
+    }
+    const hit = this.add.zone(w / 2, STRIP_H / 2, w, STRIP_H).setInteractive({ useHandCursor: unlocked });
+    c.add(hit);
+    hit.on('pointerup', () => {
+      if (this.picker) return;
+      if (!unlocked) {
+        sfx.play('error');
+        this.tweens.add({ targets: c, x: x + 6, duration: 50, yoyo: true, repeat: 2 });
+        return;
+      }
+      sfx.play('click');
+      this.openPicker();
+    });
+  }
+
+  /** Choose which cleared sector's map to play Endless on. */
+  private openPicker(): void {
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+    const c = this.add.container(0, 0).setDepth(50);
+    const dim = this.add.rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x03050a, 0.82)
+      .setOrigin(0).setInteractive();
+    dim.on('pointerup', () => this.closePicker());
+    const pw = 800;
+    const ph = 480;
+    const g = this.add.graphics();
+    drawPanel(g, cx - pw / 2, cy - ph / 2, pw, ph, { color: COLORS.purple, fillAlpha: 1, radius: 18 });
+    // swallow taps on the panel itself
+    const panelHit = this.add.zone(cx, cy, pw, ph).setInteractive();
+    c.add([dim, g, panelHit]);
+    c.add(text(this, cx, cy - ph / 2 + 44, '\u221e ENDLESS · CHOOSE A MAP', 28, COLORS.purple).setOrigin(0.5));
+    c.add(text(this, cx, cy - ph / 2 + 82, 'Waves never stop. Workshop upgrades apply.', 17, COLORS.textDim,
+      { fontStyle: 'normal' }).setOrigin(0.5));
+    const bw = 340;
+    const bh = 132;
+    MAPS.forEach((map, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const bx = cx + (col === 0 ? -1 : 1) * (bw / 2 + 12);
+      const by = cy - 40 + row * (bh + 20) + bh / 2 - 30;
+      const open = storage.starsFor(i) > 0;
+      const best = storage.endlessBestFor(i);
+      const label = open
+        ? `${map.name}\n${best > 0 ? `Best: wave ${best}` : 'Not played yet'}`
+        : `${map.name}\nClear Sector ${i + 1} first`;
+      const btn = new NeonButton(this, bx, by, bw, bh, {
+        label, fontSize: 20, color: open ? COLORS.purple : COLORS.textDim,
+        onClick: () => {
+          if (!open) return;
+          this.closePicker();
+          void this.startSector(i, true);
+        },
+      });
+      btn.label?.setAlign('center').setLineSpacing(8);
+      btn.setEnabled(open);
+      c.add(btn);
+    });
+    c.add(new NeonButton(this, cx + pw / 2 - 40, cy - ph / 2 + 40, 52, 52, {
+      label: '\u2715', fontSize: 22, color: COLORS.textDim,
+      panelStyle: { corners: false, glow: false },
+      onClick: () => this.closePicker(),
+    }));
+    this.picker = c;
+  }
+
+  private closePicker(): void {
+    this.picker?.destroy();
+    this.picker = null;
   }
 }

@@ -61,6 +61,8 @@ Poki records `game / loading` by itself; everything else in the dashboard's **Ga
 | `hack / perfect`, `hack / good` | `used` (custom) | Every successful hack, by timing result |
 | `challenge / s1-perfect` … `s4-early` | `complete` (custom) | A sector challenge is completed for the first time |
 | `workshop / budget-1` … `plating-2` | `purchased` (custom) | A Workshop upgrade level is bought |
+| `endless / sector-1` … `sector-4` | `start`, `fail` | An Endless run starts / ends (Endless runs only end in defeat) |
+| `endless-reach / w005`, `w010`, … | `reached` (custom) | Every 5th wave reached in Endless |
 | `nudge / build`, `nudge / upgrade` | `shown`, `followed` (custom) | The build nudge appears / the player builds or upgrades while it points |
 
 Rules kept by the code:

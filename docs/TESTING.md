@@ -81,6 +81,14 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] A tap just after an auto-resolve doesn't open the build drawer. Pause during a lock freezes it. Game over during a lock refunds the charge.
 - [ ] Works with touch on a phone-sized screen, and at 2x speed (the lock timing doesn't speed up).
 
+### Endless mode
+- [ ] Before Sector 1 is cleared, the ENDLESS strip on sector select is locked ("Clear Sector 1 to unlock") and shakes when tapped.
+- [ ] Unlocked: tapping it opens the map picker; only cleared sectors' maps can be chosen; each shows its best wave. ✕, tapping outside and Esc close it.
+- [ ] A run starts with at least 400 credits, no tutorial or build nudge; the HUD shows "WAVE 7" (no total) and dots counting to the next boss wave. Pause shows "Endless · Sector N map · Wave x · Best y" and no challenges.
+- [ ] Waves keep coming; every 10th is "BOSS WAVE N" (red banner) with Titans; new enemy types are announced as they join.
+- [ ] Defeat shows "NEW BEST!" / "RUN OVER", wave reached and best, W10/W20/W30 stars and "+1 ★ NEW" for new milestones. The best wave is saved per map and appears on the strip, in the picker and on the menu line.
+- [ ] RETRY and the Workshop's RETRY ENDLESS restart Endless on the same map (with the usual commercial break); Revive works as in the campaign.
+
 ### Build nudge
 - [ ] Save without Sector 1 cleared: about 4 s after the player can afford a tower with an empty platform, a hand + "Build another tower!" (or "Build a tower!" with no towers) points at a good platform. It hides while the drawer is open, during the tutorial, the hack hint, a hack lock and pause.
 - [ ] Ignored for 8 s, it disappears for 20 s. Building or upgrading makes it go away at once.

@@ -10,6 +10,7 @@ import { poki } from '../platform/PokiAdapter';
 import { enemyKey } from '../rendering/EnemyRenderer';
 import { storage } from '../utils/Storage';
 import { challengeProgress, challengesFor, needsWin } from '../data/challenges';
+import { isBossWave, newEndlessEnemies } from '../data/endless';
 import { HUD } from '../ui/HUD';
 import { WaveClearCard } from '../ui/WaveClearCard';
 import { TowerMenu } from '../ui/TowerMenu';
@@ -153,7 +154,7 @@ export class UIScene extends Phaser.Scene {
       if (this.gs.isPaused && (ev.code === 'Escape' || ev.code === 'KeyP')) this.gs.resumeGame();
     });
 
-    if (!storage.data.tutorialDone && this.gs.map.tutorialPlatform !== undefined) this.startTutorial();
+    if (!storage.data.tutorialDone && !this.gs.endless && this.gs.map.tutorialPlatform !== undefined) this.startTutorial();
     this.hackHint = storage.data.hackTipDone ? null : new HackHint(this);
     // players who haven't cleared Sector 1 yet get "build more" nudges
     this.buildNudge = storage.starsFor(0) > 0 ? null : new BuildNudge(this);
@@ -233,11 +234,13 @@ export class UIScene extends Phaser.Scene {
   private onWaveStart(index: number): void {
     this.summary.hide();
     const total = this.gs.waves.total;
+    const endless = this.gs.waves.endless;
     const isFinal = index === total - 1;
-    const fresh = newEnemiesInWave(this.gs.mapIndex, index).filter((t) => t !== 'mini');
+    const boss = endless && isBossWave(index + 1);
+    const fresh = (endless ? newEndlessEnemies(index + 1) : newEnemiesInWave(this.gs.mapIndex, index)).filter((t) => t !== 'mini');
     const introducesEnemy = fresh.length > 0;
-    this.bannerTitle.setText(isFinal ? 'FINAL WAVE' : `WAVE ${index + 1} / ${total}`);
-    this.bannerTitle.setColor(css(isFinal ? COLORS.red : COLORS.text));
+    this.bannerTitle.setText(isFinal ? 'FINAL WAVE' : boss ? `BOSS WAVE ${index + 1}` : endless ? `WAVE ${index + 1}` : `WAVE ${index + 1} / ${total}`);
+    this.bannerTitle.setColor(css(isFinal || boss ? COLORS.red : COLORS.text));
     this.bannerTitle.setFontSize(introducesEnemy ? 24 : 30);
     let w = 300;
     let h = 64;
@@ -265,7 +268,7 @@ export class UIScene extends Phaser.Scene {
     this.banner.setPosition(view.left + view.width / 2, view.top + 16 + h / 2);
     this.bannerBg.clear();
     drawPanel(this.bannerBg, -w / 2, -h / 2, w, h, {
-      color: isFinal ? COLORS.red : 0x344963,
+      color: isFinal || boss ? COLORS.red : 0x344963,
       fillAlpha: 0.98, corners: false, glow: false, radius: 14,
     });
     this.tweens.killTweensOf(this.banner);
@@ -429,7 +432,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updatePauseChallenges(): void {
-    const list = challengesFor(this.gs.mapIndex);
+    const list = this.gs.endless ? [] : challengesFor(this.gs.mapIndex);
     const g = this.pauseChallengeBg;
     g.clear();
     if (list.length === 0) {
@@ -454,6 +457,10 @@ export class UIScene extends Phaser.Scene {
     this.updatePauseSound();
     if (show) {
       this.pauseSummary.setText(`Sector ${this.gs.mapIndex + 1}   ·   Wave ${this.gs.waves.displayNumber} / ${this.gs.waves.total}   \u00b7   Reactor ${Math.max(0, this.gs.hp)} HP`);
+      if (this.gs.endless) {
+        const best = storage.endlessBestFor(this.gs.mapIndex);
+        this.pauseSummary.setText(`Endless · Sector ${this.gs.mapIndex + 1} map   ·   Wave ${this.gs.waves.displayNumber}   ·   Best ${best}`);
+      }
       this.updatePauseChallenges();
     }
     this.pauseLayer.setVisible(show);
