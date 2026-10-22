@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.2.2 — 2026-10-22
+
+Endless mode for longer sessions, and a smoother frame rate on phones.
 
 ### Added
 - **Endless mode** (unlocks after clearing Sector 1): pick any cleared sector's map and survive as long as you can. Generated waves bring in new machines as they climb, with a Titan boss wave every 10 waves. The best wave per map is saved and shown on sector select, in the map picker and on the menu. Reaching waves 10, 20 and 30 earns Workshop stars. Bot check: strong builds last about 23–25 waves (~12 min) on every map. New Game Events: `endless` start/fail and `endless-reach` every 5 waves.
