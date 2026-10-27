@@ -5,6 +5,7 @@
 Based on the partial v1.2.3 player fit test (~220 gameplays, 6m 13s and rising).
 
 ### Changed
+- **TRY ENDLESS stays on the victory screen** (beside NEXT SECTOR, Sectors 1–3) in the redesigned result screen: in the v1.2.3 fit test it started 19 of 24 Endless runs, the longest sessions.
 - **Calmer pause menu:** one filled Resume button, wave/reactor summary, quiet sound/restart/menu links, and an optional Challenges view. Pause keys are consumed once across scenes, and restarting keeps the overlay locked during an ad break.
 - **Clearer wave introductions:** a small wave label, larger enemy name and icon, one short counter-tip, and a subtle enemy-color accent. Ordinary waves use a compact pill; final and boss warnings stay red. Static banner and pause art are baked into textures.
 - **Simpler results screen:** outcome, campaign stars or wave reached, two key stats, and one primary action. Full stats, challenges, Replay and Endless move into Run details; Menu and Workshop become quiet footer links. Rewarded revive remains explicit and equal in size to Retry.

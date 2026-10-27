@@ -126,6 +126,14 @@ export class ResultScene extends Phaser.Scene {
       root.add(revive);
       root.add(text(this, cx + 122, actionY + 43, 'Watch an ad', 14, COLORS.textDim,
         { fontStyle: 'normal' }).setOrigin(0.5));
+    } else if (hasNext && offerEndless) {
+      // v1.2.3 fit test: this button started most Endless runs (the longest sessions), so it stays on the main screen
+      root.add(this.primaryAction(cx - 122, actionY, 220, 'NEXT SECTOR  →', () => void this.nextSector(data.mapIndex + 1)));
+      root.add(new NeonButton(this, cx + 122, actionY, 220, 62, {
+        label: 'TRY ENDLESS  ∞', fontSize: 19, color: COLORS.purple,
+        panelStyle: { corners: false, glow: false, radius: 12 },
+        onClick: () => void this.tryEndless(data.mapIndex),
+      }));
     } else {
       root.add(this.primaryAction(cx, actionY, 464,
         hasNext ? 'NEXT SECTOR  \u2192' : campaignDone && offerEndless ? 'PLAY ENDLESS  \u221e' : victory ? 'PLAY AGAIN' : 'RETRY',
