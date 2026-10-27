@@ -84,7 +84,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 ### Endless mode
 - [ ] Before Sector 1 is cleared, the ENDLESS strip on sector select is locked ("Clear Sector 1 to unlock") and shakes when tapped.
 - [ ] Unlocked: tapping it opens the map picker; only cleared sectors' maps can be chosen; each shows its best wave. ✕, tapping outside and Esc close it.
-- [ ] A run starts with at least 400 credits, no tutorial or build nudge; the HUD shows "WAVE 7" (no total) and dots counting to the next boss wave. Pause shows "Endless · Sector N map · Wave x · Best y" and no challenges.
+- [ ] A run starts with at least 400 credits, no tutorial or build nudge; the HUD shows "WAVE 7" (no total) and dots counting to the next boss wave. Pause shows sector, wave, reactor HP and personal best, with no Challenges link.
 - [ ] Waves keep coming; every 10th is "BOSS WAVE N" (red banner) with Titans; new enemy types are announced as they join.
 - [ ] Defeat shows "NEW BEST!" / "RUN OVER", wave reached and best, W10/W20/W30 stars and "+1 ★ NEW" for new milestones. The best wave is saved per map and appears on the strip, in the picker and on the menu line.
 - [ ] RETRY and the Workshop's RETRY ENDLESS restart Endless on the same map (with the usual commercial break); Revive works as in the campaign.
@@ -100,12 +100,12 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Workshop: buying a level spends the right stars, shows the new effect and level pips, and greys out when unaffordable or maxed. RESET needs two taps and refunds everything.
 - [ ] Perks apply on the next run: starting credits, wave bonus toast amounts, sell refund (upgrade panel and actual credits), starting hack charges, reactor HP (HUD and result "x / max").
 - [ ] Stars still rate HP lost (3 stars = lost at most 2 HP), so Reactor Plating adds a cushion without changing thresholds.
-- [ ] Pause shows the sector's two challenges with live progress; "(win)" marks the ones that need a victory; finished ones show "done".
+- [ ] Pause has one prominent Resume action. Challenges opens the sector's two goals with current progress, a Requires victory label where needed, and Done for previously earned stars. Back returns to pause; P / Esc resumes from either view.
 - [ ] Skill challenges (perfect hacks, combo, early calls) complete on defeat too; "win without..." ones only on victory. Each pays +1 star once ("+1 ★ NEW" on the result screen).
 - [ ] Defeat → WORKSHOP → RETRY SECTOR N restarts that sector (with a commercial break).
 
 ### Waves and endings
-- [ ] Wave banners appear, including NEW-enemy intros on waves 3, 5, 7 and 9, and FINAL WAVE on wave 10.
+- [ ] Ordinary waves use a compact pill; first-enemy introductions show wave, enemy name/icon and a short counter-tip without clipping. Boss and final-wave warnings stay red. Banners dismiss automatically and later waves replace them cleanly.
 - [ ] The countdown ring and early bonus show on the beacon.
 - [ ] When the field is clear between waves, the countdown drops to 3 s and a "WAVE N CLEARED" card shows kills, credits (plus perfect hacks / best combo when there were any). The card hides when the next wave starts.
 - [ ] A hack blast, missile or Tesla chain that destroys 3+ machines shows "xN COMBO!" (pink from x5).
@@ -115,7 +115,7 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Restarting several times leaves no duplicate listeners or leftover sprites.
 
 ### Controls and platform
-- [ ] 1x/2x speed affects movement, firing and effects. Pause freezes everything.
+- [ ] 1x/2x speed affects movement, firing and effects. Pause freezes everything. Pause sound persists; Resume and P / Esc work. During a pending restart ad break the pause overlay stays visible and blocks Resume and repeated navigation.
 - [ ] Switching tabs auto-pauses the game and silences audio.
 - [ ] Keyboard: Space, 1–6 (drawer order), U, S, F, P/Esc.
 - [ ] Mobile landscape: taps hit platforms, cards and buttons; text is readable.

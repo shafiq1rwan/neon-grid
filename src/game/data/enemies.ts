@@ -49,7 +49,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   drone: {
     type: 'drone',
     name: 'Corrupted Drone',
-    tip: 'Basic machine. Any tower works.',
+    tip: 'Any tower can stop it.',
     hp: 60,
     shield: 0,
     armor: 0,
@@ -62,7 +62,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   runner: {
     type: 'runner',
     name: 'Rift Runner',
-    tip: 'Very fast but fragile. Pulse towers shine.',
+    tip: 'Fast and fragile. Use Pulse towers.',
     hp: 44,
     shield: 0,
     armor: 0,
@@ -75,7 +75,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   juggernaut: {
     type: 'juggernaut',
     name: 'Wasteland Juggernaut',
-    tip: 'Heavy armor shrugs off small hits. Use Cannons or Lasers.',
+    tip: 'Armored. Use Cannons or Lasers.',
     hp: 560,
     shield: 0,
     armor: 5,
@@ -89,7 +89,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   specter: {
     type: 'specter',
     name: 'Shielded Specter',
-    tip: 'Energy shield absorbs damage. Tesla arcs deal double to shields.',
+    tip: 'Tesla deals double damage to shields.',
     hp: 120,
     shield: 130,
     armor: 0,
@@ -102,7 +102,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   spawner: {
     type: 'spawner',
     name: 'Swarm Spawner',
-    tip: 'Releases drones as it advances. Kill it fast!',
+    tip: 'Spawns swarmlings. Take it down early.',
     hp: 540,
     shield: 0,
     armor: 2,
@@ -129,7 +129,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   titan: {
     type: 'titan',
     name: 'Titan War Machine',
-    tip: 'Boss! Massive armor. Focus Cannons and Lasers on it.',
+    tip: 'Heavy armor. Focus Cannons and Lasers.',
     hp: 2600,
     shield: 0,
     armor: 8,
@@ -143,7 +143,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   medic: {
     type: 'medic',
     name: 'Repair Drone',
-    tip: 'Repairs machines near it. Hack it or hit it with splash first!',
+    tip: 'Heals allies. Hack it or use splash.',
     hp: 150,
     shield: 0,
     armor: 0,
@@ -157,7 +157,7 @@ export const ENEMIES: Record<EnemyType, EnemyDef> = {
   burrower: {
     type: 'burrower',
     name: 'Burrower',
-    tip: 'Digs under the road, out of reach. Hit it when it resurfaces.',
+    tip: 'Untargetable underground. Hit it on the surface.',
     hp: 200,
     shield: 0,
     armor: 3,

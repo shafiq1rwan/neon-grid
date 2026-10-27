@@ -396,6 +396,8 @@ export class GameScene extends Phaser.Scene {
           break;
         case 'KeyP':
         case 'Escape':
+          ev.stopPropagation();
+          if (ev.repeat) break;
           if (this.selection.kind !== 'none' && ev.code === 'Escape') this.deselect();
           else this.pauseGame();
           break;

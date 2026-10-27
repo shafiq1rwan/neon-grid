@@ -18,7 +18,7 @@ import { Tutorial } from '../ui/Tutorial';
 import { HackHint } from '../ui/HackHint';
 import { BuildNudge, type NudgeTarget } from '../ui/BuildNudge';
 import { UpgradePanel } from '../ui/UpgradePanel';
-import { NeonButton, drawPanel, text } from '../ui/widgets';
+import { NeonButton, bakeShape, drawPanel, text } from '../ui/widgets';
 import { GameEvents, type GameScene, type Selection, type WaveSummary } from './GameScene';
 
 /** Overlay scene for HUD, menus, banners, tutorial and the pause screen. */
@@ -37,16 +37,24 @@ export class UIScene extends Phaser.Scene {
   private cheapestTower = 0;
   private readonly nudgeTarget: NudgeTarget = { kind: 'build', x: 0, y: 0, first: false };
   private pauseLayer!: Phaser.GameObjects.Container;
-  private pauseSound!: NeonButton;
-  private pauseSummary!: Phaser.GameObjects.Text;
-  private pauseChallenges!: Phaser.GameObjects.Text;
-  private pauseChallengeBg!: Phaser.GameObjects.Graphics;
+  private pauseContent!: Phaser.GameObjects.Container;
+  private pauseDetails!: Phaser.GameObjects.Container;
+  private pauseSound!: Phaser.GameObjects.Text;
+  private pauseContext!: Phaser.GameObjects.Text;
+  private pauseWave!: Phaser.GameObjects.Text;
+  private pauseReactor!: Phaser.GameObjects.Text;
+  private pauseHint!: Phaser.GameObjects.Text;
+  private pauseChallengeLink!: Phaser.GameObjects.Container;
+  private pauseChallengeRows!: Phaser.GameObjects.Container;
+  private pauseEndlessBest!: Phaser.GameObjects.Text;
+  private pauseResume!: NeonButton;
+  private pauseLeaving = false;
   private banner!: Phaser.GameObjects.Container;
   private bannerTitle!: Phaser.GameObjects.Text;
   private bannerSub!: Phaser.GameObjects.Text;
   private bannerEnemy!: Phaser.GameObjects.Text;
   private bannerIcon!: Phaser.GameObjects.Image;
-  private bannerBg!: Phaser.GameObjects.Graphics;
+  private bannerBg!: Phaser.GameObjects.Image;
   private bannerHeight = 64;
   private summary!: WaveClearCard;
   private unsubscribe: (() => void)[] = [];
@@ -59,6 +67,7 @@ export class UIScene extends Phaser.Scene {
     this.gs = this.scene.get(SCENES.game) as GameScene;
     this.tutorial = null;
     this.unsubscribe = [];
+    this.pauseLeaving = false;
 
     this.hud = new HUD(this, this.gs, {
       onPause: () => this.gs.pauseGame(),
@@ -92,6 +101,8 @@ export class UIScene extends Phaser.Scene {
     centerCamera(this, (view) => {
       this.hud.layout(view);
       this.summary.layout(view);
+      this.pauseHint.setVisible(this.scale.canvas.clientWidth >= 1000
+        && !window.matchMedia('(pointer: coarse)').matches);
       this.banner.setPosition(view.left + view.width / 2, view.top + 16 + this.bannerHeight / 2);
       // drawers are positioned when opened; close them if the screen changes shape
       const displayed = this.scale.canvas.getBoundingClientRect();
@@ -150,9 +161,14 @@ export class UIScene extends Phaser.Scene {
     });
 
     const kb = this.input.keyboard;
-    kb?.on('keydown', (ev: KeyboardEvent) => {
-      if (this.gs.isPaused && (ev.code === 'Escape' || ev.code === 'KeyP')) this.gs.resumeGame();
-    });
+    const onPauseKey = (ev: KeyboardEvent) => {
+      if (this.gs.isPaused && (ev.code === 'Escape' || ev.code === 'KeyP')) {
+        ev.stopPropagation();
+        if (!ev.repeat && !this.pauseLeaving && !poki.isAdPlaying) this.gs.resumeGame();
+      }
+    };
+    kb?.on('keydown', onPauseKey);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => kb?.off('keydown', onPauseKey));
 
     if (!storage.data.tutorialDone && !this.gs.endless && this.gs.map.tutorialPlatform !== undefined) this.startTutorial();
     this.hackHint = storage.data.hackTipDone ? null : new HackHint(this);
@@ -221,13 +237,13 @@ export class UIScene extends Phaser.Scene {
 
   private createBanner(): void {
     this.banner = this.add.container(GAME_WIDTH / 2, 210).setVisible(false).setDepth(30);
-    this.bannerBg = this.add.graphics();
-    this.bannerTitle = text(this, 0, 0, '', 32, COLORS.text).setOrigin(0.5);
-    this.bannerEnemy = text(this, -132, -28, '', 18, COLORS.cyan).setVisible(false);
-    this.bannerSub = text(this, -132, 14, '', 18, COLORS.text, {
-      fontStyle: 'normal', wordWrap: { width: 312 }, lineSpacing: 3,
+    this.bannerBg = this.add.image(0, 0, '__DEFAULT');
+    this.bannerTitle = text(this, 0, 0, '', 22, COLORS.text).setOrigin(0.5);
+    this.bannerEnemy = text(this, -96, -12, '', 22, COLORS.text).setVisible(false);
+    this.bannerSub = text(this, -96, 18, '', 16, COLORS.textDim, {
+      fontStyle: 'normal', wordWrap: { width: 272 }, lineSpacing: 3,
     }).setVisible(false);
-    this.bannerIcon = this.add.image(-164, 16, enemyKey('drone')).setVisible(false);
+    this.bannerIcon = this.add.image(-148, 0, enemyKey('drone')).setVisible(false);
     this.banner.add([this.bannerBg, this.bannerTitle, this.bannerEnemy, this.bannerIcon, this.bannerSub]);
   }
 
@@ -235,48 +251,57 @@ export class UIScene extends Phaser.Scene {
     this.summary.hide();
     const total = this.gs.waves.total;
     const endless = this.gs.waves.endless;
-    const isFinal = index === total - 1;
+    const isFinal = !endless && index === total - 1;
     const boss = endless && isBossWave(index + 1);
     const fresh = (endless ? newEndlessEnemies(index + 1) : newEnemiesInWave(this.gs.mapIndex, index)).filter((t) => t !== 'mini');
     const introducesEnemy = fresh.length > 0;
-    this.bannerTitle.setText(isFinal ? 'FINAL WAVE' : boss ? `BOSS WAVE ${index + 1}` : endless ? `WAVE ${index + 1}` : `WAVE ${index + 1} / ${total}`);
-    this.bannerTitle.setColor(css(isFinal || boss ? COLORS.red : COLORS.text));
-    this.bannerTitle.setFontSize(introducesEnemy ? 24 : 30);
-    let w = 300;
-    let h = 64;
+    const waveLabel = isFinal ? 'FINAL WAVE' : boss ? `BOSS WAVE ${index + 1}`
+      : endless ? `WAVE ${index + 1}` : `WAVE ${index + 1} / ${total}`;
+    const accent = isFinal || boss ? COLORS.red : introducesEnemy ? ENEMIES[fresh[0]].color : COLORS.cyan;
+    this.bannerTitle.setText(introducesEnemy ? `${waveLabel}  /  NEW ENEMY` : waveLabel);
+    this.bannerTitle.setColor(css(isFinal || boss ? COLORS.red : introducesEnemy ? COLORS.textDim : COLORS.text));
+    this.bannerTitle.setFontSize(introducesEnemy ? 12 : 22);
+    this.bannerTitle.setLetterSpacing(introducesEnemy ? 1 : 0);
+    const w = introducesEnemy ? 400 : 248;
+    let h = 56;
     this.bannerEnemy.setVisible(introducesEnemy);
     this.bannerSub.setVisible(introducesEnemy);
     this.bannerIcon.setVisible(introducesEnemy);
     if (introducesEnemy) {
       const def = ENEMIES[fresh[0]];
-      this.bannerEnemy.setText(`NEW: ${def.name}`).setColor(css(def.color));
+      this.bannerEnemy.setText(def.name).setFontSize(22);
+      if (this.bannerEnemy.width > 272) this.bannerEnemy.setFontSize(20);
       this.bannerSub.setText(def.tip);
       this.bannerIcon.setTexture(enemyKey(def.type)).setScale(def.radius > 15 ? 0.65 : 1);
-      // Fit between the resource HUD and right-side controls at the top edge.
-      w = 400;
-      // Let wrapped tips determine card height, preserving the bottom padding.
-      h = Math.max(128, 74 + this.bannerSub.height + 14);
-      this.bannerEnemy.setY(-h / 2 + 44);
-      this.bannerSub.setY(-h / 2 + 74);
-      this.bannerIcon.setY(-h / 2 + 80);
-      this.bannerTitle.setPosition(-180, -h / 2 + 12).setOrigin(0);
+      h = Math.max(104, 78 + this.bannerSub.height);
+      this.bannerTitle.setPosition(-96, -h / 2 + 16).setOrigin(0);
+      this.bannerEnemy.setPosition(-96, -h / 2 + 36);
+      this.bannerSub.setPosition(-96, -h / 2 + 66);
+      this.bannerIcon.setPosition(-148, 0);
     } else {
       this.bannerTitle.setPosition(0, 0).setOrigin(0.5);
     }
+    const key = bakeShape(this, `wave_banner|${w}|${h}|${accent}`, w + 16, h + 16, (g) => {
+      drawPanel(g, 8, 8, w, h, {
+        color: COLORS.raised, fill: COLORS.panel, fillAlpha: 0.98, corners: false, glow: false, radius: 14,
+      });
+      g.fillStyle(accent, 0.85);
+      g.fillRoundedRect(8, 28, 3, h - 40, 1.5);
+      if (introducesEnemy) {
+        g.fillStyle(accent, 0.08);
+        g.fillCircle(60, h / 2 + 8, 30);
+      }
+    });
+    this.bannerBg.setTexture(key);
     this.bannerHeight = h;
     const view = viewBounds(this);
     this.banner.setPosition(view.left + view.width / 2, view.top + 16 + h / 2);
-    this.bannerBg.clear();
-    drawPanel(this.bannerBg, -w / 2, -h / 2, w, h, {
-      color: isFinal || boss ? COLORS.red : 0x344963,
-      fillAlpha: 0.98, corners: false, glow: false, radius: 14,
-    });
     this.tweens.killTweensOf(this.banner);
-    this.banner.setVisible(true).setAlpha(0).setScale(1.18);
-    this.tweens.add({ targets: this.banner, alpha: 1, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    this.banner.setVisible(true).setAlpha(0).setScale(1);
+    this.tweens.add({ targets: this.banner, alpha: 1, duration: 180, ease: 'Cubic.easeOut' });
     this.tweens.add({
       targets: this.banner, alpha: 0,
-      delay: introducesEnemy ? 2800 : 1200,
+      delay: introducesEnemy ? 3200 : 1200,
       duration: 200, onComplete: () => this.banner.setVisible(false),
     });
   }
@@ -366,118 +391,160 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createPauseLayer(): void {
-    const c = this.add.container(0, 0).setDepth(50).setVisible(false);
-    const dim = this.add
-      .rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x03050a, 0.72)
-      .setOrigin(0)
-      .setInteractive();
-    const g = this.add.graphics();
-    const pw = 480;
-    const ph = 376;
-    const px = (GAME_WIDTH - pw) / 2;
-    const py = (GAME_HEIGHT - ph) / 2;
-    drawPanel(g, px, py, pw, ph, {
-      color: 0x344963, fillAlpha: 1, radius: 18, glow: false, corners: false,
-    });
-    g.lineStyle(1, 0x344963, 0.65);
-    g.lineBetween(px + 36, py + 278, px + pw - 36, py + 278);
-    const title = text(this, GAME_WIDTH / 2, py + 48, 'PAUSED', 32, COLORS.text).setOrigin(0.5);
     const cx = GAME_WIDTH / 2;
-    this.pauseSummary = text(this, cx, py + 86, '', 17, COLORS.textDim, { fontStyle: 'normal' })
-      .setOrigin(0.5);
-    const resume = new NeonButton(this, cx, py + 150, 408, 68, {
-      label: 'RESUME',
-      fontSize: 25,
-      color: COLORS.green,
-      panelStyle: { corners: false, radius: 12 },
-      onClick: () => this.gs.resumeGame(),
+    const py = (GAME_HEIGHT - 448) / 2;
+    const c = this.add.container(0, 0).setDepth(50).setVisible(false);
+    const dim = this.add.rectangle(-2000, -2000, GAME_WIDTH + 4000, GAME_HEIGHT + 4000, 0x03050a, 0.82)
+      .setOrigin(0).setInteractive();
+    const frame = bakeShape(this, 'pause_panel_v2', 496, 464, (g) => {
+      drawPanel(g, 8, 8, 480, 448, {
+        color: COLORS.raised, fill: COLORS.panel, fillAlpha: 1, radius: 20, glow: false, corners: false,
+      });
+      g.fillStyle(COLORS.cyan, 0.9);
+      g.fillRoundedRect(212, 8, 72, 3, 1.5);
     });
-    const secondaryStyle = { corners: false, glow: false, radius: 10 };
-    const restart = new NeonButton(this, cx - 106, py + 228, 196, 52, {
-      label: 'RESTART',
-      fontSize: 17,
-      color: COLORS.textDim,
-      panelStyle: secondaryStyle,
-      onClick: () => void this.restart(),
+    c.add([dim, this.add.image(cx, GAME_HEIGHT / 2, frame)]);
+    const main = this.add.container(0, 0);
+    this.pauseContext = text(this, cx, py + 32, '', 13, COLORS.textDim, { letterSpacing: 1.5 }).setOrigin(0.5);
+    const title = text(this, cx, py + 80, 'PAUSED', 38, COLORS.cyan).setOrigin(0.5);
+    const stats = bakeShape(this, 'pause_stats_v2', 408, 72, (g) => {
+      g.fillStyle(COLORS.raised, 0.28);
+      g.fillRoundedRect(0, 0, 408, 72, 10);
+      g.lineStyle(1, COLORS.textDim, 0.18);
+      g.lineBetween(204, 16, 204, 56);
     });
-    const menu = new NeonButton(this, cx + 106, py + 228, 196, 52, {
-      label: 'MAIN MENU',
-      fontSize: 17,
-      color: COLORS.textDim,
-      panelStyle: secondaryStyle,
-      onClick: () => this.quitToMenu(),
+    main.add(this.add.image(cx, py + 154, stats));
+    this.pauseWave = text(this, cx - 102, py + 143, '', 25, COLORS.text).setOrigin(0.5);
+    this.pauseReactor = text(this, cx + 102, py + 143, '', 25, COLORS.text).setOrigin(0.5);
+    main.add([this.pauseContext, title, this.pauseWave, this.pauseReactor,
+      text(this, cx - 102, py + 170, 'WAVE', 12, COLORS.textDim, { letterSpacing: 1 }).setOrigin(0.5),
+      text(this, cx + 102, py + 170, 'REACTOR HP', 12, COLORS.textDim, { letterSpacing: 1 }).setOrigin(0.5),
+    ]);
+    const sound = this.pauseLink(cx - 106, py + 220, 196, '', () => {
+      this.toggleMute();
+      this.updatePauseSound();
     });
-    this.pauseSound = new NeonButton(this, cx - 108, py + 322, 192, 44, {
-      label: '',
-      fontSize: 16,
-      color: COLORS.textDim,
-      panelStyle: secondaryStyle,
+    this.pauseSound = sound.getAt<Phaser.GameObjects.Text>(0);
+    this.pauseChallengeLink = this.pauseLink(cx + 106, py + 220, 196, 'Challenges  \u2192', () => {
+      main.setVisible(false);
+      this.pauseDetails.setVisible(true);
+    });
+    this.pauseEndlessBest = text(this, cx + 106, py + 220, '', 16, COLORS.textDim,
+      { fontStyle: 'normal' }).setOrigin(0.5).setVisible(false);
+    this.pauseResume = new NeonButton(this, cx, py + 296, 408, 62, {
+      label: 'RESUME  \u2192', fontSize: 21, color: COLORS.cyan, fill: COLORS.cyan,
+      panelStyle: { corners: false, glow: false, radius: 12 },
+      onClick: () => { if (!this.pauseLeaving) this.gs.resumeGame(); },
+    });
+    this.pauseResume.label?.setColor(css(COLORS.bg));
+    this.pauseHint = text(this, cx, py + 341, 'P / Esc to resume', 13, COLORS.textDim,
+      { fontStyle: 'normal' }).setOrigin(0.5);
+    main.add([sound, this.pauseChallengeLink, this.pauseEndlessBest, this.pauseResume, this.pauseHint,
+      this.add.rectangle(cx, py + 370, 408, 1, COLORS.raised),
+      this.pauseLink(cx - 106, py + 402, 196, 'Restart', () => void this.restart()),
+      this.pauseLink(cx + 106, py + 402, 196, 'Main menu', () => this.quitToMenu()),
+    ]);
+
+    this.pauseDetails = this.add.container(0, 0).setVisible(false);
+    this.pauseChallengeRows = this.add.container(0, 0);
+    const back = new NeonButton(this, cx, py + 374, 408, 56, {
+      label: 'BACK TO PAUSE', fontSize: 19, color: COLORS.cyan,
+      panelStyle: { corners: false, glow: false, radius: 12 },
       onClick: () => {
-        this.toggleMute();
-        this.updatePauseSound();
+        this.pauseDetails.setVisible(false);
+        main.setVisible(true);
       },
     });
-    const hint = text(this, cx + 108, py + 322, 'P / Esc to resume', 16, COLORS.textDim,
-      { fontStyle: 'normal' }).setOrigin(0.5);
-    // this sector's optional challenges, under the pause card
-    this.pauseChallengeBg = this.add.graphics();
-    this.pauseChallenges = text(this, px + 28, py + ph + 30, '', 16, COLORS.text, { fontStyle: 'normal', lineSpacing: 8 });
-    c.add([dim, g, title, this.pauseSummary, resume, restart, menu, this.pauseSound, hint,
-      this.pauseChallengeBg, this.pauseChallenges]);
+    this.pauseDetails.add([
+      text(this, cx, py + 56, 'CHALLENGES', 30, COLORS.text).setOrigin(0.5),
+      text(this, cx, py + 98, 'Earn one Workshop star per challenge.', 16, COLORS.textDim,
+        { fontStyle: 'normal' }).setOrigin(0.5),
+      this.pauseChallengeRows, back,
+    ]);
+    c.add([main, this.pauseDetails]);
+    this.pauseContent = main;
     this.pauseLayer = c;
   }
 
+  /** Quiet links keep a full-sized touch target. */
+  private pauseLink(x: number, y: number, width: number, label: string, onClick: () => void): Phaser.GameObjects.Container {
+    const link = this.add.container(x, y);
+    const labelText = text(this, 0, 0, label, 16, COLORS.textDim, { fontStyle: 'normal' }).setOrigin(0.5);
+    const hit = this.add.zone(0, 0, width, 48).setInteractive({ useHandCursor: true });
+    let pressed = false;
+    hit.on('pointerdown', () => { pressed = true; });
+    hit.on('pointerover', () => labelText.setColor(css(COLORS.text)));
+    hit.on('pointerout', () => { pressed = false; labelText.setColor(css(COLORS.textDim)); });
+    hit.on('pointerup', () => {
+      if (!pressed || this.pauseLeaving) return;
+      pressed = false;
+      sfx.play('click');
+      onClick();
+    });
+    link.add([labelText, hit]);
+    return link;
+  }
+
   private updatePauseSound(): void {
-    this.pauseSound.setLabel(sfx.isMuted() ? 'SOUND: OFF' : 'SOUND: ON');
+    this.pauseSound.setText(sfx.isMuted() ? 'Sound off' : 'Sound on');
   }
 
   private updatePauseChallenges(): void {
+    this.pauseChallengeRows.removeAll(true);
     const list = this.gs.endless ? [] : challengesFor(this.gs.mapIndex);
-    const g = this.pauseChallengeBg;
-    g.clear();
-    if (list.length === 0) {
-      this.pauseChallenges.setText('');
-      return;
-    }
-    const lines = ['CHALLENGES  (each earns a Workshop star once)'];
-    for (const c of list) {
-      const status = storage.hasChallenge(c.id) ? '✔ done' : challengeProgress(c, this.gs.runStats);
-      lines.push(`${c.text}${needsWin(c) ? ' (win)' : ''}   ·   ${status}`);
-    }
-    this.pauseChallenges.setText(lines.join('\n'));
-    const t = this.pauseChallenges;
-    const pw = 480;
-    const x = (GAME_WIDTH - pw) / 2;
-    drawPanel(g, x, t.y - 16, pw, t.height + 32, {
-      color: COLORS.gold, fillAlpha: 0.96, radius: 14, glow: false, corners: false,
+    const cx = GAME_WIDTH / 2;
+    const py = (GAME_HEIGHT - 448) / 2;
+    const card = bakeShape(this, 'pause_challenge_v2', 408, 80, (g) => {
+      g.fillStyle(COLORS.raised, 0.28);
+      g.fillRoundedRect(0, 0, 408, 80, 10);
+    });
+    list.forEach((challenge, i) => {
+      const y = py + 178 + i * 96;
+      const done = storage.hasChallenge(challenge.id);
+      this.pauseChallengeRows.add([
+        this.add.image(cx, y, card),
+        text(this, cx - 184, y - 14, challenge.text, 18, COLORS.text).setOrigin(0, 0.5),
+        text(this, cx - 184, y + 16, done ? 'Star already earned' : needsWin(challenge) ? 'Requires victory' : 'Progress this run',
+          14, COLORS.textDim, { fontStyle: 'normal' }).setOrigin(0, 0.5),
+        text(this, cx + 184, y + 16, done ? '\u2713 Done' : challengeProgress(challenge, this.gs.runStats),
+          16, done ? COLORS.green : COLORS.gold).setOrigin(1, 0.5),
+      ]);
     });
   }
 
   private showPause(show: boolean): void {
-    this.updatePauseSound();
     if (show) {
-      this.pauseSummary.setText(`Sector ${this.gs.mapIndex + 1}   ·   Wave ${this.gs.waves.displayNumber} / ${this.gs.waves.total}   \u00b7   Reactor ${Math.max(0, this.gs.hp)} HP`);
-      if (this.gs.endless) {
-        const best = storage.endlessBestFor(this.gs.mapIndex);
-        this.pauseSummary.setText(`Endless · Sector ${this.gs.mapIndex + 1} map   ·   Wave ${this.gs.waves.displayNumber}   ·   Best ${best}`);
-      }
+      this.updatePauseSound();
+      this.pauseContext.setText(`SECTOR ${String(this.gs.mapIndex + 1).padStart(2, '0')}  /  ${this.gs.map.name.toUpperCase()}${this.gs.endless ? '  /  ENDLESS' : ''}`)
+        .setFontSize(13);
+      if (this.pauseContext.width > 408) this.pauseContext.setFontSize(11);
+      this.pauseWave.setText(this.gs.endless ? `${this.gs.waves.displayNumber}`
+        : `${this.gs.waves.displayNumber} / ${this.gs.waves.total}`);
+      this.pauseReactor.setText(`${Math.max(0, this.gs.hp)} / ${this.gs.maxHp}`);
+      this.pauseChallengeLink.setVisible(!this.gs.endless && challengesFor(this.gs.mapIndex).length > 0);
+      this.pauseEndlessBest.setVisible(this.gs.endless).setText(`Best wave ${storage.endlessBestFor(this.gs.mapIndex)}`);
       this.updatePauseChallenges();
-    }
-    this.pauseLayer.setVisible(show);
-    if (show) {
+      this.pauseContent.setVisible(true);
+      this.pauseDetails.setVisible(false);
       this.menu.close();
       this.panel.close();
     }
+    this.pauseLayer.setVisible(show);
   }
 
   private async restart(): Promise<void> {
-    this.pauseLayer.setVisible(false);
+    if (this.pauseLeaving) return;
+    this.pauseLeaving = true;
+    this.pauseResume.setLabel('RESTARTING...').setEnabled(false);
+    this.pauseHint.setVisible(false);
     await poki.commercialBreak();
     this.scene.stop(SCENES.result);
     this.gs.scene.restart();
   }
 
   private quitToMenu(): void {
+    if (this.pauseLeaving) return;
+    this.pauseLeaving = true;
     poki.gameplayStop();
     this.scene.stop(SCENES.game);
     this.scene.start(SCENES.menu);
