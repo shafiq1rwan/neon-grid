@@ -34,7 +34,11 @@ export type SfxName =
   | 'hackCharge'
   | 'hackDeny'
   | 'heal'
-  | 'burrow';
+  | 'burrow'
+  | 'star1'
+  | 'star2'
+  | 'star3'
+  | 'stamp';
 
 /** Minimum milliseconds between two plays of the same sound. */
 const THROTTLE: Partial<Record<SfxName, number>> = {
@@ -158,6 +162,22 @@ class SoundSystem {
       case 'laser':
         this.tone('sawtooth', 880, 1320, t, 0.18, 0.05);
         this.tone('sine', 440, 660, t, 0.2, 0.08);
+        break;
+      case 'star1':
+      case 'star2':
+      case 'star3': {
+        // result-screen star: a bright ding that rises with each star
+        const base = name === 'star1' ? 880 : name === 'star2' ? 1047 : 1319;
+        this.tone('triangle', base, base, t, 0.22, 0.13);
+        this.tone('sine', base * 2, base * 2, t + 0.02, 0.16, 0.05);
+        if (name === 'star3') this.tone('sine', base * 1.5, base * 1.5, t + 0.1, 0.3, 0.05);
+        break;
+      }
+      case 'stamp':
+        // "PERFECT!" stamp: a soft thump plus a shine
+        this.tone('triangle', 260, 140, t, 0.16, 0.16);
+        this.noiseBurst(t, 0.1, 1600, 'bandpass', 0.12);
+        [1568, 2093].forEach((f, i) => this.tone('sine', f, f, t + 0.1 + i * 0.07, 0.3, 0.05));
         break;
       case 'heal':
         // soft rising two-note chime: a machine is being repaired
