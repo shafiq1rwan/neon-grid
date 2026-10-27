@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, DEPTH, ECONOMY, SCENES, VIEW_PAD, WAVE_TIMING } from '../config';
 import { MAPS, type MapDef } from '../data/maps';
+import { densify } from '../data/waves';
 import { challengeMet, challengesFor, emptyRunStats, needsWin, type RunStats } from '../data/challenges';
 import { perkEffects } from '../data/perks';
 import { ENDLESS, endlessDifficulty, endlessStarsFor, endlessWave } from '../data/endless';
@@ -148,8 +149,8 @@ export class GameScene extends Phaser.Scene {
     this.hp = this.maxHp;
     this.bountyMult = perks.bountyMult;
     this.runStats = emptyRunStats();
-    // the player's last speed choice carries over between waves and sectors
-    this.speed = storage.data.fastSpeed ? 2 : 1;
+    // every sector starts at 1x (a remembered 2x halved playtime for its users)
+    this.speed = 1;
     this.waveStats = { kills: 0, earned: 0, perfectHacks: 0, bestCombo: 0, cleared: -1 };
     this.over = false;
     this.victory = false;
@@ -179,8 +180,9 @@ export class GameScene extends Phaser.Scene {
     this.enemies = new EnemySystem(this, this.paths, this.map.roadWidth, this.effects, {
       onKilled: (e) => {
         this.hack.onKill();
-        this.economy.earn(e.def.reward);
-        this.effects.popup(e.x, e.y - 14, `+${e.def.reward}`);
+        const reward = Math.max(1, Math.round(e.def.reward * e.rewardMult));
+        this.economy.earn(reward);
+        this.effects.popup(e.x, e.y - 14, `+${reward}`);
         this.events.emit(GameEvents.coins, e.x, e.y - 14);
       },
       onEscaped: (e) => this.reactorHit(e.def.leakDamage),
@@ -212,7 +214,9 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
     this.towers = new TowerSystem(this, this.map.platforms, this.enemies, this.projectiles, this.effects);
     this.waves = new WaveSystem({
-      spawn: (type, hpScale, lane) => this.enemies.spawn(type, hpScale * this.difficulty, lane),
+      spawn: (type, hpScale, lane, rewardMult) => {
+        this.enemies.spawn(type, hpScale * this.difficulty, lane).rewardMult = rewardMult;
+      },
       waveStarted: (index) => {
         this.hack.onWaveStart(index);
         if (this.endless) {
@@ -237,8 +241,8 @@ export class GameScene extends Phaser.Scene {
           this.events.emit(GameEvents.waveBonus, bonus);
         }
       },
-    }, this.endless ? [] : this.map.waves, this.paths.length,
-    this.endless ? (i: number) => endlessWave(this.mapIndex, i + 1) : null);
+    }, this.endless ? [] : this.map.waves.map(densify), this.paths.length,
+    this.endless ? (i: number) => densify(endlessWave(this.mapIndex, i + 1)) : null);
 
     this.rangeGfx = this.add.graphics().setDepth(DEPTH.RANGE);
     this.selectRing = this.add
@@ -515,7 +519,7 @@ export class GameScene extends Phaser.Scene {
 
   toggleSpeed(): void {
     this.speed = this.speed === 1 ? 2 : 1;
-    storage.update({ fastSpeed: this.speed === 2 });
+    if (this.speed === 2) poki.measure('speed', '2x', 'selected');
     this.fxScale = this.speed * this.hack.warp;
     this.tweens.timeScale = this.fxScale;
     this.effects.setTimeScale(this.fxScale);

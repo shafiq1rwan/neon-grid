@@ -47,7 +47,7 @@ export class SectorScene extends Phaser.Scene {
     super(SCENES.sectors);
   }
 
-  create(): void {
+  create(data?: { openEndless?: boolean }): void {
     this.starting = false;
     this.picker = null;
     centerCamera(this);
@@ -72,6 +72,8 @@ export class SectorScene extends Phaser.Scene {
 
     const gridBottom = GRID_TOP + rows * CARD_H + (rows - 1) * GAP_Y;
     this.createEndlessStrip(gridBottom + 16);
+    // from the menu's ENDLESS button: go straight to the map picker
+    if (data?.openEndless && storage.endlessUnlocked) this.openPicker();
 
     new NeonButton(this, 92, 60, 140, 52, {
       label: '‹  MENU',

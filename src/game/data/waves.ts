@@ -1,4 +1,5 @@
 import type { EnemyType } from './enemies';
+import { WAVE_TIMING } from '../config';
 
 export interface WaveGroup {
   type: EnemyType;
@@ -12,6 +13,8 @@ export interface WaveGroup {
    * spawns between all lanes.
    */
   lane?: number;
+  /** Extra HP multiplier for this group (set by `densify`). */
+  hpMult?: number;
 }
 
 export interface WaveDef {
@@ -22,6 +25,25 @@ export interface WaveDef {
   clearBonus: number;
   /** Seconds from the end of spawning to the next wave (default WAVE_TIMING.betweenWaves). */
   gap?: number;
+}
+
+/** Machines that come in bigger, softer groups (heavies keep their count and HP). */
+const LIGHT: ReadonlySet<EnemyType> = new Set<EnemyType>(['drone', 'runner', 'specter', 'mini', 'medic', 'burrower']);
+
+/**
+ * More machines with less HP each for the light types: longer, busier waves
+ * (more kills, coins and combos) at about the same total threat. Spawn
+ * intervals are kept, so the wave lasts longer instead of bunching up.
+ */
+export function densify(def: WaveDef): WaveDef {
+  return {
+    ...def,
+    groups: def.groups.map((gr) =>
+      LIGHT.has(gr.type) && gr.count >= 3
+        ? { ...gr, count: Math.round(gr.count * WAVE_TIMING.lightCountMult), hpMult: WAVE_TIMING.lightHpMult }
+        : gr,
+    ),
+  };
 }
 
 const g = (type: EnemyType, count: number, interval: number, delay = 0, lane?: number): WaveGroup => ({
@@ -40,7 +62,7 @@ export const WAVES_SECTOR_1: WaveDef[] = [
   { hpScale: 1, clearBonus: 35, gap: 8, groups: [g('drone', 9, 1.1)] },
   { hpScale: 1.1, clearBonus: 40, gap: 8, groups: [g('drone', 10, 1.0), g('drone', 6, 0.6, 10)] },
   // 3–4: fast runners
-  { hpScale: 1.2, clearBonus: 40, gap: 8, groups: [g('drone', 10, 1.0), g('runner', 6, 0.9, 5)] },
+  { hpScale: 1.2, clearBonus: 40, groups: [g('drone', 10, 1.0), g('runner', 6, 0.9, 5)] },
   // v1.2.1: fewer runners (12% of fit-test players lost here)
   {
     hpScale: 1.28,
@@ -87,15 +109,15 @@ export const WAVES_SECTOR_1: WaveDef[] = [
       g('runner', 10, 0.5, 14),
     ],
   },
-  // 10: final mixed assault
+  // 10: final mixed assault (v1.2.3: 17% of fit-test players lost here)
   {
-    hpScale: 1.98,
+    hpScale: 1.86,
     clearBonus: 0,
     groups: [
       g('drone', 16, 0.65),
       g('runner', 14, 0.5, 4),
       g('juggernaut', 3, 5, 6),
-      g('specter', 6, 1.5, 10),
+      g('specter', 5, 1.5, 10),
       g('spawner', 2, 8, 14),
       g('juggernaut', 1, 1, 30),
     ],
@@ -113,10 +135,11 @@ export const WAVES_SECTOR_2: WaveDef[] = [
     groups: [g('juggernaut', 2, 6, 0, 0), g('drone', 14, 0.8, 2, 1), g('runner', 8, 0.5, 12)],
   },
   { hpScale: 1.6, clearBonus: 50, groups: [g('specter', 6, 1.5), g('runner', 12, 0.5, 6), g('drone', 8, 0.8, 12)] },
+  // v1.2.3: 20% of fit-test players lost here
   {
-    hpScale: 1.75,
+    hpScale: 1.65,
     clearBonus: 60,
-    groups: [g('juggernaut', 3, 5), g('specter', 6, 1.4, 4), g('drone', 14, 0.7, 10)],
+    groups: [g('juggernaut', 2, 6), g('specter', 6, 1.4, 4), g('drone', 14, 0.7, 10)],
   },
   {
     hpScale: 1.9,

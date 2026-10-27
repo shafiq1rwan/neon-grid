@@ -69,6 +69,12 @@ export const WAVE_TIMING = {
   betweenWaves: 14,
   /** Once the field is clear between waves, the next wave starts within this many seconds. */
   afterFieldClear: 3,
+  /**
+   * v1.2.3: light machines come in bigger, softer groups (more action per
+   * wave, about the same total threat). Heavies are unchanged.
+   */
+  lightCountMult: 1.35,
+  lightHpMult: 0.75,
   /** Kills from one blast / splash / chain that count as a combo. */
   comboMin: 3,
 } as const;

@@ -11,7 +11,8 @@ interface GroupRun {
 }
 
 export interface WaveCallbacks {
-  spawn(type: EnemyType, hpScale: number, lane: number): void;
+  /** `rewardMult` < 1 for machines in densified groups (same credits per wave). */
+  spawn(type: EnemyType, hpScale: number, lane: number, rewardMult: number): void;
   waveStarted(index: number): void;
   waveSpawned(index: number, def: WaveDef): void;
 }
@@ -117,7 +118,13 @@ export class WaveSystem {
           lane = this.nextLane;
           this.nextLane = (this.nextLane + 1) % this.laneCount;
         }
-        this.callbacks.spawn(run.group.type, def.hpScale, Math.min(lane, this.laneCount - 1));
+        const dense = run.group.hpMult !== undefined;
+        this.callbacks.spawn(
+          run.group.type,
+          def.hpScale * (run.group.hpMult ?? 1),
+          Math.min(lane, this.laneCount - 1),
+          dense ? 1 / WAVE_TIMING.lightCountMult : 1,
+        );
         run.spawned++;
         this.spawned++;
         run.timer += run.group.interval;

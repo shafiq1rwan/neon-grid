@@ -26,7 +26,7 @@ The machines broke loose after a technological collapse. You control the last au
 | Sell refund | 70% of total investment | `ECONOMY.sellRefund` |
 | First wave countdown | 25 s, cut to 6 s once the first tower is built | `WAVE_TIMING.firstWaveCountdown`, `afterFirstTower` |
 | Gap between waves | 14 s after the previous wave finishes spawning; cut to 3 s as soon as the field is clear | `WAVE_TIMING.betweenWaves`, `afterFieldClear` |
-| Game speed | 1x / 2x; the last choice is saved and kept across waves and sectors | `storage.fastSpeed` |
+| Game speed | 1x / 2x; every sector starts at 1x (v1.2.3; it used to be remembered, which shortened sessions) | `GameScene.toggleSpeed` |
 | Combo | One hack blast, missile splash or Tesla chain that destroys 3+ machines shows "xN COMBO!" (feedback only, no bonus) | `WAVE_TIMING.comboMin` |
 | Wave summary | When the field is clear between waves: kills, credits earned, perfect hacks and best combo since the last summary | `GameEvents.waveCleared` |
 | Early-call bonus | 2 credits per remaining countdown second | `ECONOMY.earlyCallBonusPerSecond` |
@@ -197,7 +197,9 @@ Times are at 1x speed with natural wave pacing. Wave lists for Sectors 2–4 are
 | 9 | 1.86 | 29 | **Swarm Spawners introduced** | 80 |
 | 10 | 1.98 | 42 | Final mixed assault | — |
 
-Waves 1–3 use an 8 s gap (`gap` in `WaveDef`); every other wave uses `WAVE_TIMING.betweenWaves`. Waves 6–10 and the sector `difficulty` (1.19 → 1.05) were lowered in v1.1.2 after the web fit test: only 22% of players cleared Sector 1, and a third of those who reached wave 8 lost there.
+Waves 1–2 use an 8 s gap (`gap` in `WaveDef`); every other wave uses `WAVE_TIMING.betweenWaves`.
+
+**Denser waves (v1.2.3, all sectors and Endless):** `densify()` in `data/waves.ts` turns every light group (Drones, Runners, Specters, Swarmlings, Repair Drones, Burrowers; 3 or more) into 1.35× as many machines at 0.75× HP (`WAVE_TIMING.lightCountMult` / `lightHpMult`), with kill rewards × 1/1.35 so credits per wave stay the same. Spawn intervals are kept, so waves last longer. The tables list the base counts before this rule. Sector 1 wave 10 (HP × 1.86, 5 Specters) and Sector 2 wave 6 (HP × 1.65, 2 Juggernauts) were softened in v1.2.3. Waves 6–10 and the sector `difficulty` (1.19 → 1.05) were lowered in v1.1.2 after the web fit test: only 22% of players cleared Sector 1, and a third of those who reached wave 8 lost there.
 
 The clear bonus is paid as soon as a wave has finished spawning. A banner announces each wave, and when a new enemy type first appears it shows that enemy's icon and a counter-tip.
 

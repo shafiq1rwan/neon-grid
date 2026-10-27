@@ -94,7 +94,18 @@ export class MenuScene extends Phaser.Scene {
     if (storage.earnedStars > 0) {
       // returning players: spend stars on permanent upgrades
       const spare = availableStars();
-      const workshop = new NeonButton(this, cx, 568, 300, 50, {
+      // once unlocked, Endless sits beside the Workshop
+      const endless = storage.endlessUnlocked;
+      if (endless) {
+        new NeonButton(this, cx + 152, 568, 288, 50, {
+          label: storage.endlessTop > 0 ? `ENDLESS \u221e  BEST ${storage.endlessTop}` : 'ENDLESS \u221e', fontSize: 20, color: COLORS.purple,
+          onClick: () => {
+            poki.measure('endless-entry', 'menu', 'clicked');
+            this.scene.start(SCENES.sectors, { openEndless: true });
+          },
+        });
+      }
+      const workshop = new NeonButton(this, endless ? cx - 152 : cx, 568, endless ? 288 : 300, 50, {
         label: spare > 0 ? `WORKSHOP   ★ ${spare}` : 'WORKSHOP', fontSize: 20, color: COLORS.gold,
         onClick: () => this.scene.start(SCENES.workshop),
       });

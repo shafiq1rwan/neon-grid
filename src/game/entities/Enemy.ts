@@ -51,6 +51,8 @@ export class Enemy {
   hackGlow: Phaser.GameObjects.Image | null = null;
   readonly phase = Math.random() * Math.PI * 2;
   damagedLook = false;
+  /** Kill reward multiplier (machines in densified wave groups pay less each). */
+  rewardMult = 1;
   /** Set by HackSystem while a lock-on targets this machine (a Burrower won't dig in mid-lock). */
   hackLock = false;
 

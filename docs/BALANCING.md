@@ -89,6 +89,23 @@ Bot (`mixed` = builds everything and upgrades, no hacking), waves reached and ga
 
 Target: a strong player lasts about 20–25 waves (~12 min) on every map, and even weak builds reach the wave-10 star. Sector 2's map is very sensitive (1.25 → wave 14, 1.0 → waves 27–29). Tune with `MAP_DIFFICULTY` and `endlessHpScale` in `data/endless.ts`. The Endless bot is `bot2.mjs` started with `{ mapIndex, endless: true }` and a longer time limit.
 
+### v1.2.3: denser waves
+
+From the v1.2.2 fit test: progress improved but playtime stayed flat, because faster pacing shortened runs. Light machines now come 1.35× as many at 0.75× HP with kill rewards × 1/1.35. Tuning lessons:
+- Without the reward scaling, the extra kills paid ~35% more credits and the game got much easier (Sectors 2–4 ended with 17–20 HP).
+- With reward scaling but 0.9× HP (1.22× total threat), Sectors 2–4 were lost.
+- 0.75× HP with reward scaling keeps the threat and economy about equal:
+
+| Sector | v1.2.2 (bot) | v1.2.3 (bot) | Sector time |
+| --- | --- | --- | --- |
+| 1 (noup / pulse) | 15–20 HP | 20 / 20 | +8% |
+| 2 (mixed) | 6–10 HP | 13 / 13 (wave 6 softened) | +8% |
+| 3 (mixed) | 2–6 HP | 12 / 15 | +6% |
+| 4 (mixed / hacker) | 4–9 / 11 HP | 9 / 9 / 11 | +7% |
+| Endless (mixed, maps 1–2) | wave 23–24 | wave 23 / 23 | +10% |
+
+Sectors 2 and 3 end a little easier on purpose: they were the next walls in the fit test.
+
 **Bot tips:** run at most 3 bots in parallel; more makes frames lag, which coarsens the 6x simulation and adds noise. Results vary by a few HP between runs, so use 3 runs. The leak log tags a leak with the wave that is current when it reaches the reactor, so leaks from wave N often show up as wave N+1.
 
 ### Sector 4: Crossfire Junction (Repair Drone, Burrower)

@@ -170,11 +170,13 @@ export class ResultScene extends Phaser.Scene {
       }).setOrigin(0.5, 0);
       root.add([again, revive, note]);
     } else if (hasNext) {
+      // Endless keeps engaged players for 10+ minutes: offer it right after a win
+      const offerEndless = storage.endlessUnlocked;
       const replay = new NeonButton(this, cx - 128, by, 236, 60, {
-        label: 'REPLAY',
+        label: offerEndless ? 'TRY ENDLESS \u221e' : 'REPLAY',
         fontSize: 20,
-        color: COLORS.textDim,
-        onClick: () => void this.playAgain(),
+        color: offerEndless ? COLORS.purple : COLORS.textDim,
+        onClick: () => (offerEndless ? void this.tryEndless(data.mapIndex) : void this.playAgain()),
       });
       const next = new NeonButton(this, cx + 128, by, 236, 60, {
         label: 'NEXT SECTOR  ▶',
@@ -184,13 +186,21 @@ export class ResultScene extends Phaser.Scene {
       });
       root.add([replay, next]);
     } else {
-      const again = new NeonButton(this, cx, by, 260, 60, {
+      // campaign complete: Endless is the natural next step
+      const offerEndless = victory && !endless && storage.endlessUnlocked;
+      const again = new NeonButton(this, offerEndless ? cx - 128 : cx, by, offerEndless ? 236 : 260, 60, {
         label: victory ? 'PLAY AGAIN' : 'RETRY',
         fontSize: 20,
         color: COLORS.green,
         onClick: () => void this.playAgain(),
       });
       root.add(again);
+      if (offerEndless) {
+        root.add(new NeonButton(this, cx + 128, by, 236, 60, {
+          label: 'TRY ENDLESS \u221e', fontSize: 20, color: COLORS.purple,
+          onClick: () => void this.tryEndless(data.mapIndex),
+        }));
+      }
     }
 
     root.setAlpha(0).setY(30);
@@ -220,6 +230,16 @@ export class ResultScene extends Phaser.Scene {
     await poki.commercialBreak();
     this.scene.stop();
     this.gameScene.scene.restart();
+  }
+
+  /** Start Endless on the map that was just cleared. */
+  private async tryEndless(mapIndex: number): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    poki.measure('endless-entry', 'result', 'clicked');
+    await poki.commercialBreak();
+    this.scene.stop();
+    this.gameScene.scene.restart({ mapIndex, endless: true });
   }
 
   private async nextSector(index: number): Promise<void> {

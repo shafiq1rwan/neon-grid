@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.3 — 2026-10-27
+
+Based on the v1.2.2 player fit test (5m 53s). Sector 1 completion rose to 34% and wave-2 exits fell to 5%, but playtime stayed flat: the faster pacing (shorter gaps, auto-start, remembered 2x) shortened each run. This build turns waiting time into action time and puts Endless in front of the players who reach it.
+
+### Changed
+- **Denser waves, same difficulty:** light machines (Drones, Runners, Specters, Swarmlings, Repair Drones, Burrowers) come 1.35× as many at 0.75× HP and pay proportionally less per kill, so the money per wave is unchanged. Heavies (Juggernauts, Spawners, Titans) are unchanged. Waves last longer and give more kills, coins and combos. Applies to the campaign and Endless.
+- **Game speed resets to 1x at the start of each sector** (it used to be remembered everywhere). New Game Event `speed / 2x / selected`.
+- **Softer walls from the fit test:** Sector 1 wave 10 (17% of players lost there) and Sector 2 wave 6 (20%).
+- Only Sector 1 waves 1–2 keep the short 8 s gap; wave 3 is back to the normal gap.
+
+### Added
+- **TRY ENDLESS** on the victory screen (beside NEXT SECTOR, or beside PLAY AGAIN after the last sector) starts Endless on the map just cleared.
+- **ENDLESS button on the main menu** (beside WORKSHOP) once Endless is unlocked; it opens the map picker. Endless players in the fit test played deep (7 of ~18 runs reached wave 20), but few found the mode.
+- Game Events `endless-entry / result|menu / clicked`.
+
 ## 1.2.2 — 2026-10-22
 
 Endless mode for longer sessions, and a smoother frame rate on phones.
