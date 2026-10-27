@@ -25,6 +25,8 @@ export interface WaveDef {
   clearBonus: number;
   /** Seconds from the end of spawning to the next wave (default WAVE_TIMING.betweenWaves). */
   gap?: number;
+  /** Keep this wave as authored (no `densify`): the short opening waves stay short. */
+  noDensify?: boolean;
 }
 
 /** Machines that come in bigger, softer groups (heavies keep their count and HP). */
@@ -36,6 +38,7 @@ const LIGHT: ReadonlySet<EnemyType> = new Set<EnemyType>(['drone', 'runner', 'sp
  * intervals are kept, so the wave lasts longer instead of bunching up.
  */
 export function densify(def: WaveDef): WaveDef {
+  if (def.noDensify) return def;
   return {
     ...def,
     groups: def.groups.map((gr) =>
@@ -59,8 +62,9 @@ export const WAVES_SECTOR_1: WaveDef[] = [
   // 1–2: basic drones (short gaps: fit-test players left during these easy waves)
   // v1.2.1: shorter, busier and better paid, so a second and third tower come
   // within the first minute (fit test: 19% of players left during wave 2)
-  { hpScale: 1, clearBonus: 35, gap: 8, groups: [g('drone', 9, 1.1)] },
-  { hpScale: 1.1, clearBonus: 40, gap: 8, groups: [g('drone', 10, 1.0), g('drone', 6, 0.6, 10)] },
+  // v1.2.4: not densified (denser drone waves made wave 2 longer and exits rose again)
+  { hpScale: 1, clearBonus: 35, gap: 8, noDensify: true, groups: [g('drone', 9, 1.1)] },
+  { hpScale: 1.1, clearBonus: 40, gap: 8, noDensify: true, groups: [g('drone', 10, 1.0), g('drone', 6, 0.6, 10)] },
   // 3–4: fast runners
   { hpScale: 1.2, clearBonus: 40, groups: [g('drone', 10, 1.0), g('runner', 6, 0.9, 5)] },
   // v1.2.1: fewer runners (12% of fit-test players lost here)
@@ -118,8 +122,8 @@ export const WAVES_SECTOR_1: WaveDef[] = [
       g('runner', 14, 0.5, 4),
       g('juggernaut', 3, 5, 6),
       g('specter', 5, 1.5, 10),
-      g('spawner', 2, 8, 14),
-      g('juggernaut', 1, 1, 30),
+      // v1.2.4: one Spawner and no late Juggernaut (still 17–18% lost here in v1.2.2/1.2.3)
+      g('spawner', 1, 1, 14),
     ],
   },
 ];

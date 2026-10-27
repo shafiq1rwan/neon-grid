@@ -199,9 +199,9 @@ Times are at 1x speed with natural wave pacing. Wave lists for Sectors 2–4 are
 
 Waves 1–2 use an 8 s gap (`gap` in `WaveDef`); every other wave uses `WAVE_TIMING.betweenWaves`.
 
-**Denser waves (v1.2.3, all sectors and Endless):** `densify()` in `data/waves.ts` turns every light group (Drones, Runners, Specters, Swarmlings, Repair Drones, Burrowers; 3 or more) into 1.35× as many machines at 0.75× HP (`WAVE_TIMING.lightCountMult` / `lightHpMult`), with kill rewards × 1/1.35 so credits per wave stay the same. Spawn intervals are kept, so waves last longer. The tables list the base counts before this rule. Sector 1 wave 10 (HP × 1.86, 5 Specters) and Sector 2 wave 6 (HP × 1.65, 2 Juggernauts) were softened in v1.2.3. Waves 6–10 and the sector `difficulty` (1.19 → 1.05) were lowered in v1.1.2 after the web fit test: only 22% of players cleared Sector 1, and a third of those who reached wave 8 lost there.
+**Denser waves (v1.2.3, all sectors and Endless):** `densify()` in `data/waves.ts` turns every light group (Drones, Runners, Specters, Swarmlings, Repair Drones, Burrowers; 3 or more) into 1.35× as many machines at 0.75× HP (`WAVE_TIMING.lightCountMult` / `lightHpMult`), with kill rewards × 1/1.35 so credits per wave stay the same. Spawn intervals are kept, so waves last longer. The tables list the base counts before this rule. Sector 1 wave 10 (HP × 1.86, 5 Specters) and Sector 2 wave 6 (HP × 1.65, 2 Juggernauts) were softened in v1.2.3. In v1.2.4, Sector 1 waves 1–2 are exempt from densifying (`noDensify`) and wave 10 has one Spawner and no late Juggernaut. Waves 6–10 and the sector `difficulty` (1.19 → 1.05) were lowered in v1.1.2 after the web fit test: only 22% of players cleared Sector 1, and a third of those who reached wave 8 lost there.
 
-The clear bonus is paid as soon as a wave has finished spawning. A banner announces each wave, and when a new enemy type first appears it shows that enemy's icon and a counter-tip.
+The clear bonus is paid as soon as a wave has finished spawning. Normal wave announcements use a compact pill. A first-enemy introduction uses a small wave label, larger enemy name and icon, and one short counter-tip with a subtle enemy-color accent. Final and boss wave labels stay red.
 
 ## Maps
 
@@ -254,8 +254,8 @@ The clear bonus is paid as soon as a wave has finished spawning. A banner announ
 - **Build drawer:** one card per tower the sector allows (4–6), showing name, icon, cost and a short role. Unaffordable cards are greyed out and their cost turns red. The drawer docks at the top or bottom, whichever is away from the selected platform.
 - **Upgrade panel:** stat columns (current → next), perk line, Upgrade button with cost, Sell button with refund. The map shows the current range and, faintly, the next level's range.
 - **Sector select:** a 2×2 grid of cards (schematic preview on the left; sector number, name, twist, wave count and best stars on the right), a lock on each locked sector, and one "what's new" chip: NEW TOWER, or the new machines when a sector adds no tower (Sector 4).
-- **Pause:** a run summary (sector, wave, reactor HP), Resume, Restart, Main Menu, sound.
-- **Result:** stars and stats. On victory: NEXT SECTOR / REPLAY / MENU, or CAMPAIGN COMPLETE after the last sector (Sector 4). On defeat: RETRY plus 🎬 REVIVE (rewarded ad) side by side, and MENU.
+- **Pause:** one filled cyan Resume button, wave/reactor summary, quiet Sound/Restart/Main menu links, and an optional Challenges view. Endless shows the personal-best wave instead of Challenges. P / Esc resumes; restart keeps the overlay locked while its ad break resolves.
+- **Result:** compact summary with the outcome, campaign stars (or wave reached on defeat), two key stats, and one primary action: NEXT SECTOR on victory, RETRY on defeat, or PLAY ENDLESS after Sector 4. Menu, Run details and Workshop are quiet footer links. Run details holds all five stats, challenge rewards, REPLAY SECTOR and TRY ENDLESS. Available rewarded REVIVE remains beside an equal-size RETRY with a video icon and explicit ad label.
 
 ### Tutorial (first run, Sector 1 only; never blocks)
 
@@ -303,12 +303,12 @@ Unlocks once Sector 1 is cleared. It is reached from the **ENDLESS** strip under
 - **Waves** come from `data/endless.ts` (deterministic per map + wave number). Enemies join the pool as waves climb: Drones 1, Runners 3, Juggernauts 5, Specters 7, Spawners 9, Repair Drones 12, Burrowers 14. Every 10th wave is a **boss wave** with Titans (one per 10 waves) and, from wave 20, a Repair Drone escort. HP scale: 1 + 0.13·(n−1) + 0.0035·(n−1)². Clear bonus 30 + 4n (max 120). 12 s between waves (and the usual 3 s once the field is clear).
 - **Per-map difficulty** (map geometry differs): Sector 1 map 1.0, Sector 2 1.1, Sector 3 1.6, Sector 4 1.3. Start credits: at least 400.
 - **Rewards:** best wave per map is saved and shown (sector select, picker, menu). One Workshop star each when the best run on any map reaches waves **10, 20 and 30** (3 stars, so 23 stars in total with sectors and challenges). Workshop perks apply in Endless too.
-- **Result screen:** "NEW BEST!" or "RUN OVER", wave reached and best, the three milestone stars (W10/W20/W30), "+1 ★ NEW" rows. RETRY restarts Endless on the same map; the Workshop offers RETRY ENDLESS.
+- **Result screen:** "NEW BEST!" or "RUN OVER", wave reached and personal best, machines destroyed, time survived, and a short summary of new milestone stars. Run details holds the milestone breakdown. RETRY restarts Endless on the same map; the Workshop offers RETRY ENDLESS.
 - **Ads:** as everywhere: a commercial break when a run starts or restarts, the opt-in revive after a loss, never mid-run. No tutorial, challenges or build nudge in Endless.
 
 ### Challenges (v1.2.0)
 
-Each sector has two optional challenges (`data/challenges.ts`), each worth one Workshop star, once. The pause screen shows them with live progress.
+Each sector has two optional challenges (`data/challenges.ts`), each worth one Workshop star, once. The pause menu's Challenges view shows their current progress and whether victory is required.
 
 | Sector | Challenges |
 | --- | --- |

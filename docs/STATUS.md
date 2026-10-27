@@ -31,6 +31,10 @@ Nothing else is machine-specific: there are no asset files to download, no envir
 
 ## What the game contains (v1.0.1)
 
+- **Local pause/banner redesign (2026-10-27):** pause matches the results card with one prominent Resume action and optional Challenges; enemy introductions prioritize name/icon and a short counter-tip. Build and desktop/phone checks pass for pause/resume, sound persistence, challenges, repeated restarts, pending-ad protection, all eight enemy introductions, and portrait touch/rotation. Previews: `output/mockups/pause/pause-desktop.png` and `output/mockups/pause/banner-drone-desktop.png`.
+
+- **Local results redesign (2026-10-27):** compact outcome, rating/wave, two key stats and one primary action; full stats and challenges in Run details, with quiet Menu/Workshop links. Keeps star celebration and explicit, equal-size rewarded revive. Preview: `output/mockups/results/result-victory-desktop.png`.
+
 - **Local wave-clear celebration (2026-10-13):** medal, contextual congratulations, count-up stats, perfect-hack/combo highlights, sparks, and a success chime. Build and desktop/mobile browser checks pass, including automatic dismissal and next-wave cleanup. Previews: `output/wave-clear-desktop.png` and `output/wave-clear-mobile.png`.
 
 - **Local art update (2026-10-12):** revised Juggernaut/Titan chassis and damaged textures for clearer silhouettes. Production build and browser texture checks pass; preview at `output/tank-design-preview.png`.
@@ -69,7 +73,8 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | v1.2.0 **player fit test** | ✅ 500 gameplays, **5m 23s** (v1.0.1: 4m 56s). Sector 1 completion still 22%: 19% left during wave 2, 12% lost at wave 4, 29% at wave 8. Hacking used in ~77% of gameplays, perfect hacks ~12%, Workshop purchases ~2–3% |
 | v1.2.1: build nudge, new pointer, punchier opening, softer S1 waves 4/7–8, "Hack 3 machines" challenge, coin/juice effects, Workshop prompt after a loss | ✅ Player fit test: 500 gameplays, **5m 52s** (v1.2.0: 5m 23s; v1.0.1: 4m 56s). Roughly 8:15–8:50 on the web by the ~1.4–1.5× web/player ratio, so still short of ~9:57: don't spend the web retry on it |
 | v1.2.2: Endless mode + frame-rate fix (UI art baked into textures; playtest median FPS was 57) | ✅ Player fit test: **5m 53s**. Sector 1 completion 34% (was 22%), wave-2 exits 5% (was 19%), build nudge followed ~90% of the time; but playtime flat (faster pacing shortened runs). Endless: few runs (~18) but deep (7 reached wave 20) |
-| v1.2.3: denser waves (same difficulty), 1x speed per sector, softer S1 w10 / S2 w6, TRY ENDLESS + menu ENDLESS | ⏳ Built (`release/neon-wasteland-v1.2.3.zip`). Next: player fit test; target ≥ 7:00 |
+| v1.2.3: denser waves (same difficulty), 1x speed per sector, softer S1 w10 / S2 w6, TRY ENDLESS + menu ENDLESS | ⏳ Player fit test running: **6m 13s at 243 gameplays** (the best so far). Partial data: Endless entries working (11), S2 w6 fails 20% → 9%, but S1 w10 still 18% and wave-2 exits up to 11% |
+| v1.2.4: S1 waves 1–2 not densified, S1 w10 cut further | ⏳ Built locally (`release/neon-wasteland-v1.2.4.zip`). Upload only after the v1.2.3 test finishes; drop the waves 1–2 change if wave-2 exits fall back to ~5% at 500 gameplays |
 | **v1.2.0** for the **last** web fit test retry: Sector 1 rebalance, Workshop + challenges, Sector 4 with two new enemies | ⏳ Built (`release/neon-wasteland-v1.2.0.zip`). Next: upload and request the final web fit test. Compare: S1 completion (was 22%), S1 w08 fails (was 33%), average playtime (was 7:32, target ~10:00) |
 | Final review | Not started |
 

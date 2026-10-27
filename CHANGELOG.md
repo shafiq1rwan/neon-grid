@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.4 — 2026-10-27
+
+Based on the partial v1.2.3 player fit test (~220 gameplays, 6m 13s and rising).
+
+### Changed
+- **Calmer pause menu:** one filled Resume button, wave/reactor summary, quiet sound/restart/menu links, and an optional Challenges view. Pause keys are consumed once across scenes, and restarting keeps the overlay locked during an ad break.
+- **Clearer wave introductions:** a small wave label, larger enemy name and icon, one short counter-tip, and a subtle enemy-color accent. Ordinary waves use a compact pill; final and boss warnings stay red. Static banner and pause art are baked into textures.
+- **Simpler results screen:** outcome, campaign stars or wave reached, two key stats, and one primary action. Full stats, challenges, Replay and Endless move into Run details; Menu and Workshop become quiet footer links. Rewarded revive remains explicit and equal in size to Retry.
+- **Sector 1 waves 1–2 are no longer densified** (`noDensify` on the wave). Denser drone waves made wave 2 longer, and exits during it rose from 5% to 11%; the opening should stay short and punchy.
+- **Sector 1 wave 10 cut further:** one Spawner instead of two and no late Juggernaut. It was still the biggest Sector 1 wall (17–18% of players reaching it lost there in v1.2.2 and v1.2.3). Bot: every strategy still clears Sector 1 with 20 HP.
+
+### Added
+- **Victory celebration:** the title punches in, neon confetti falls behind the panel, each star lands with its own rising "ding" and a sparkle, a 3-star win gets a compact **PERFECT DEFENSE** label, and the machines-destroyed total counts up above a single prominent next action. A new Endless best gets the confetti and title punch too.
+
 ## 1.2.3 — 2026-10-27
 
 Based on the v1.2.2 player fit test (5m 53s). Sector 1 completion rose to 34% and wave-2 exits fell to 5%, but playtime stayed flat: the faster pacing (shorter gaps, auto-start, remembered 2x) shortened each run. This build turns waiting time into action time and puts Endless in front of the players who reach it.
