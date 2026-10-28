@@ -101,6 +101,13 @@ export class HackSystem {
     if (index > 0 && index % 3 === 0) this.addCharge();
   }
 
+  /** Give a charge from outside (supply drops). Returns false when already full. */
+  grantCharge(): boolean {
+    if (this.charges >= HACK.maxCharges) return false;
+    this.addCharge();
+    return true;
+  }
+
   private addCharge(): void {
     if (this.charges >= HACK.maxCharges) return;
     this.charges++;

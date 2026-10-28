@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.2.5 — 2026-10-28
+
+Early-game hook. In the v1.2.3 / v1.2.4 player fit tests (6m 47s / 6m 32s), about 38% of players stopped before wave 6 of Sector 1 without losing: nothing to do between waves.
+
+### Added
+- **Supply drops:** a glowing pod crashes onto empty ground after some waves and pays a bonus when tapped: credits (30 + 8 × wave), and every third pod a hack charge (if not full). Sector 1: after waves 1, 3, 5, 7 and 9 (the first lands within the first minute); later sectors every 3rd wave; Endless every 4th. Pods power down after about 12 seconds if ignored, never land on roads, platforms, the reactor or the beacon, and never block other taps. Game Events `supply / drop / shown` and `supply / credits|hack / collected`.
+- **More juice:**
+  - Kill-streak dings: quick kills in a row ring a semitone higher each time.
+  - The credits counter rolls up (and flashes on a big haul); spending still updates instantly.
+  - The last kill of a wave triggers half a second of slow motion and a bigger burst.
+  - Hit-stop: the world freezes for a few frames on a Perfect Hack, a x5+ combo and Juggernaut / Titan kills.
+  - Below 30% reactor HP the screen edges pulse red with a heartbeat, faster below 15%.
+
+### Fixed
+- **Wave-cleared card** no longer overlaps the HUD or covers the road: it now has the same footprint as the wave banner (400 wide, 104–128 tall instead of 500 × 208), a compact header + stats row with even spacing, and baked art.
+- **REACTOR LOST glitch title:** on a campaign defeat the "REACTOR LOST" title splits into red / cyan and jitters like a lost signal (with a glitch sound once), then settles; small silent glitches recur every few seconds. The rest of the panel is unchanged.
+- **Neon rating stars:** glowing gold with a bevelled face and sparkle; unearned stars are dim neon slots.
+- **REVIVE button icon:** the small 🎬 emoji is replaced by a larger drawn neon clapperboard (still a clear video/ad icon, per Poki's rewarded-ad rule).
+- **Result screen spacing:** one vertical rhythm (about 24 px between groups, 10–13 px within a group) for victory, defeat and Endless, with or without the Revive note; removed the faint "sheen" line that cut through the middle of the panel (new `sheen: false` panel option).
+
 ## 1.2.4 — 2026-10-27
 
 Based on the partial v1.2.3 player fit test (~220 gameplays, 6m 13s and rising).

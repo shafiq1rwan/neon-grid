@@ -2,7 +2,7 @@
 
 Where the project stands, what's in flight and what to do next. Read this first when picking the project up on a new machine (or in a new AI-assistant session).
 
-_Last updated: 2026-10-27 · version **1.2.3** (denser waves + Endless offers; the last web fit test retry is still unused)_
+_Last updated: 2026-10-28 · version **1.2.5** (supply drops; v1.2.3 submitted for web fit test #2)_
 
 ## Set up on a new PC
 
@@ -73,8 +73,10 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | v1.2.0 **player fit test** | ✅ 500 gameplays, **5m 23s** (v1.0.1: 4m 56s). Sector 1 completion still 22%: 19% left during wave 2, 12% lost at wave 4, 29% at wave 8. Hacking used in ~77% of gameplays, perfect hacks ~12%, Workshop purchases ~2–3% |
 | v1.2.1: build nudge, new pointer, punchier opening, softer S1 waves 4/7–8, "Hack 3 machines" challenge, coin/juice effects, Workshop prompt after a loss | ✅ Player fit test: 500 gameplays, **5m 52s** (v1.2.0: 5m 23s; v1.0.1: 4m 56s). Roughly 8:15–8:50 on the web by the ~1.4–1.5× web/player ratio, so still short of ~9:57: don't spend the web retry on it |
 | v1.2.2: Endless mode + frame-rate fix (UI art baked into textures; playtest median FPS was 57) | ✅ Player fit test: **5m 53s**. Sector 1 completion 34% (was 22%), wave-2 exits 5% (was 19%), build nudge followed ~90% of the time; but playtime flat (faster pacing shortened runs). Endless: few runs (~18) but deep (7 reached wave 20) |
-| v1.2.3: denser waves (same difficulty), 1x speed per sector, softer S1 w10 / S2 w6, TRY ENDLESS + menu ENDLESS | ⏳ Player fit test running: **6m 13s at 243 gameplays** (the best so far). Partial data: Endless entries working (11), S2 w6 fails 20% → 9%, but S1 w10 still 18% and wave-2 exits up to 11% |
-| v1.2.4: S1 waves 1–2 not densified, S1 w10 cut further | ⏳ Built locally (`release/neon-wasteland-v1.2.4.zip`). Upload only after the v1.2.3 test finishes; drop the waves 1–2 change if wave-2 exits fall back to ~5% at 500 gameplays |
+| v1.2.3: denser waves (same difficulty), 1x speed per sector, softer S1 w10 / S2 w6, TRY ENDLESS + menu ENDLESS | ✅ Player fit test: **6m 47s** (best so far). Extra time came mostly from Endless (≈2.5× more runs, ~half reach wave 20) and longer runs, not more Sector 1 clears (~31%) |
+| v1.2.4: S1 waves 1–2 not densified, S1 w10 cut further, result/pause redesign (Codex), TRY ENDLESS kept on the victory screen | ✅ Player fit test: **6m 32s** (within noise of v1.2.3). Sector 1 completion 29%, w10 fails still 17% (fails land where HP runs out, after leaks over waves 8–10), wave 2–3 exits ~6–8%. About 38% of players stop before wave 6 without losing: the main remaining gap is engagement in the first 3–4 minutes, not difficulty |
+| **Web fit test #2 with v1.2.3** (6m 47s player test) | ⏳ Submitted 2026-10-28. Retries are allowed after this one. Est. web playtime ~9:30–10:10 vs ~9:57 benchmark |
+| v1.2.5: supply drops (early-game hook for the quiet exits in waves 2–5) | ⏳ Built (`release/neon-wasteland-v1.2.5.zip`). Next: player fit test; compare with v1.2.3 (6m 47s), wave 2–5 exits and the `supply` events |
 | **v1.2.0** for the **last** web fit test retry: Sector 1 rebalance, Workshop + challenges, Sector 4 with two new enemies | ⏳ Built (`release/neon-wasteland-v1.2.0.zip`). Next: upload and request the final web fit test. Compare: S1 completion (was 22%), S1 w08 fails (was 33%), average playtime (was 7:32, target ~10:00) |
 | Final review | Not started |
 

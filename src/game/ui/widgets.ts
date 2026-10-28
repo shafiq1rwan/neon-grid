@@ -9,6 +9,8 @@ export interface PanelStyle {
   radius?: number;
   glow?: boolean;
   corners?: boolean;
+  /** Faint highlight over the top half (off for tall panels, where its edge cuts through content). */
+  sheen?: boolean;
 }
 
 /** Dark futuristic panel with a thin neon border and corner accents. */
@@ -27,8 +29,10 @@ export function drawPanel(
   g.fillStyle(style.fill ?? COLORS.panel, style.fillAlpha ?? 0.92);
   g.fillRoundedRect(x, y, w, h, r);
   // subtle inner sheen on the upper half
-  g.fillStyle(0xffffff, 0.025);
-  g.fillRoundedRect(x + 2, y + 2, w - 4, h * 0.45, { tl: r, tr: r, bl: 0, br: 0 });
+  if (style.sheen !== false) {
+    g.fillStyle(0xffffff, 0.025);
+    g.fillRoundedRect(x + 2, y + 2, w - 4, h * 0.45, { tl: r, tr: r, bl: 0, br: 0 });
+  }
   if (style.glow !== false) {
     g.lineStyle(6, color, 0.08);
     g.strokeRoundedRect(x, y, w, h, r);

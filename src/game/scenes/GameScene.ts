@@ -18,6 +18,7 @@ import { HackSystem, type HackOutcome } from '../systems/HackSystem';
 import { ProjectileSystem } from '../systems/ProjectileSystem';
 import { TowerSystem } from '../systems/TowerSystem';
 import { WaveSystem } from '../systems/WaveSystem';
+import { SupplySystem, dropsAfterWave, type SupplyReward } from '../systems/SupplySystem';
 import { PathData } from '../utils/MathUtils';
 import { storage } from '../utils/Storage';
 import { centerCamera } from '../utils/View';
@@ -92,6 +93,7 @@ export class GameScene extends Phaser.Scene {
   waves!: WaveSystem;
   economy!: EconomySystem;
   hack!: HackSystem;
+  supply!: SupplySystem;
 
   hp = 0;
   speed: 1 | 2 = 1;
@@ -109,6 +111,14 @@ export class GameScene extends Phaser.Scene {
   private reactorCore!: Phaser.GameObjects.Image;
   private reactorGlow!: Phaser.GameObjects.Image;
   private reactorFlash = 0;
+  /** Quick kills in a row (rising ding) and real time since the last kill. */
+  private streak = 0;
+  private sinceKill = 99;
+  private lastKillX = 0;
+  private lastKillY = 0;
+  /** Real seconds of frozen world (impact) and of slow motion (last kill of a wave). */
+  private hitStop = 0;
+  private slowMo = 0;
   /** Running totals for the "wave cleared" summary (reset after each summary). */
   private waveStats = { kills: 0, earned: 0, perfectHacks: 0, bestCombo: 0, cleared: -1 };
   /** Whole-run stats for the sector challenges. */
@@ -159,6 +169,10 @@ export class GameScene extends Phaser.Scene {
     this.playTime = 0;
     this.elapsed = 0;
     this.reactorFlash = 0;
+    this.streak = 0;
+    this.sinceKill = 99;
+    this.hitStop = 0;
+    this.slowMo = 0;
     this.attemptOpen = true;
     this.measuredWave = 0;
     this.selection = { kind: 'none' };
@@ -184,12 +198,20 @@ export class GameScene extends Phaser.Scene {
         this.economy.earn(reward);
         this.effects.popup(e.x, e.y - 14, `+${reward}`);
         this.events.emit(GameEvents.coins, e.x, e.y - 14);
+        // kill streak: quick kills ring higher and higher
+        this.streak = this.sinceKill < 0.7 ? this.streak + 1 : 0;
+        this.sinceKill = 0;
+        this.lastKillX = e.x;
+        this.lastKillY = e.y;
+        if (this.streak > 0) sfx.streakDing(this.streak);
+        if (e.def.type === 'juggernaut' || e.def.type === 'titan') this.impact(e.def.type === 'titan' ? 0.11 : 0.06);
       },
       onEscaped: (e) => this.reactorHit(e.def.leakDamage),
       onCombo: (count, x, y) => {
         this.waveStats.bestCombo = Math.max(this.waveStats.bestCombo, count);
         this.runStats.bestCombo = Math.max(this.runStats.bestCombo, count);
         this.events.emit(GameEvents.combo, count, x, y);
+        if (count >= 5) this.impact(0.07);
       },
     });
     this.hack = new HackSystem(this, this.enemies, this.effects, this.map.reactor, {
@@ -203,6 +225,7 @@ export class GameScene extends Phaser.Scene {
         poki.measure('hack', outcome, 'used');
         this.runStats.hacks++;
         if (outcome === 'perfect') {
+          this.impact(0.08);
           this.waveStats.perfectHacks++;
           this.runStats.perfectHacks++;
         }
@@ -213,6 +236,9 @@ export class GameScene extends Phaser.Scene {
     this.fxScale = 1;
     this.projectiles = new ProjectileSystem(this, this.enemies, this.effects);
     this.towers = new TowerSystem(this, this.map.platforms, this.enemies, this.projectiles, this.effects);
+    this.supply = new SupplySystem(this, this.map, this.paths, this.effects, {
+      collect: (x, y) => this.collectSupply(x, y),
+    });
     this.waves = new WaveSystem({
       spawn: (type, hpScale, lane, rewardMult) => {
         this.enemies.spawn(type, hpScale * this.difficulty, lane).rewardMult = rewardMult;
@@ -234,7 +260,8 @@ export class GameScene extends Phaser.Scene {
         sfx.play('waveStart');
         this.events.emit(GameEvents.waveStart, index);
       },
-      waveSpawned: (_index, def) => {
+      waveSpawned: (index, def) => {
+        if (dropsAfterWave(this.mapIndex, this.endless, index)) this.supply.drop();
         if (def.clearBonus > 0) {
           const bonus = Math.round(def.clearBonus * this.bountyMult);
           this.economy.earn(bonus);
@@ -269,6 +296,7 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.game.events.off(Phaser.Core.Events.HIDDEN, onHidden);
       this.enemies.destroy();
+      this.supply.clear();
       this.projectiles.clear();
       this.towers.clear();
       this.effects.destroy();
@@ -565,13 +593,21 @@ export class GameScene extends Phaser.Scene {
     const real = Math.min(delta, 50) / 1000;
     // the hack lock runs on real time; the world drops into bullet time while it does
     if (!this.over) this.hack.update(real);
-    const scale = this.speed * this.hack.warp;
+    this.sinceKill += real;
+    // a short slow motion after the last kill of a wave
+    if (this.slowMo > 0) this.slowMo -= real;
+    const scale = this.speed * this.hack.warp * (this.slowMo > 0 ? 0.3 : 1);
     if (Math.abs(scale - this.fxScale) > 0.01) {
       this.fxScale = scale;
       this.tweens.timeScale = scale;
       this.effects.setTimeScale(scale);
     }
-    const dt = real * scale;
+    // hit-stop: the world freezes for a few frames on big impacts
+    let dt = real * scale;
+    if (this.hitStop > 0) {
+      this.hitStop -= real;
+      dt = 0;
+    }
     this.elapsed += dt;
     this.effects.beginFrame(dt);
     this.animateReactor(dt);
@@ -582,9 +618,28 @@ export class GameScene extends Phaser.Scene {
     this.enemies.update(dt);
     this.towers.update(dt);
     this.projectiles.update(dt);
+    this.supply.update(dt);
     this.checkFieldClear();
 
     if (this.waves.state === 'complete' && this.enemies.count === 0) this.endGame(true);
+  }
+
+  /** Freeze the world for a moment so a big hit lands. */
+  private impact(seconds: number): void {
+    this.hitStop = Math.max(this.hitStop, seconds);
+  }
+
+  /** Supply pod tapped: every third pod brings a hack charge (if not full), the rest pay credits. */
+  private collectSupply(x: number, y: number): SupplyReward {
+    if (this.supply.collected % 3 === 2 && this.hack.grantCharge()) {
+      this.effects.popup(x, y - 30, '+1 HACK', '#7ff6ff');
+      return { kind: 'hack' };
+    }
+    const amount = 30 + 8 * this.waves.displayNumber;
+    this.economy.earn(amount);
+    this.effects.popup(x, y - 30, `+${amount}`);
+    for (let i = 0; i < 3; i++) this.events.emit(GameEvents.coins, x + (i - 1) * 14, y - 10);
+    return { kind: 'credits', amount };
   }
 
   /** Between waves with the field clear: summarise the wave and bring the next one in quickly. */
@@ -593,6 +648,12 @@ export class GameScene extends Phaser.Scene {
     if (w.state !== 'waiting' || this.enemies.count > 0) return;
     if (w.countdown > WAVE_TIMING.afterFieldClear) w.countdown = WAVE_TIMING.afterFieldClear;
     if (this.waveStats.cleared === w.index) return;
+    // the last machine of the wave just went down: brief slow motion and a bigger burst
+    if (this.sinceKill < 0.3) {
+      this.slowMo = 0.55;
+      this.effects.ring(this.lastKillX, this.lastKillY, 90, COLORS.cyan, 500);
+      this.effects.burst(this.lastKillX, this.lastKillY, COLORS.cyan, 16);
+    }
     const s = this.waveStats;
     const summary: WaveSummary = {
       wave: w.index + 1,
@@ -633,6 +694,7 @@ export class GameScene extends Phaser.Scene {
 
   private endGame(victory: boolean): void {
     this.hack.cancel();
+    this.supply.clear();
     this.hack.update(1);
     if (this.over) return;
     this.over = true;

@@ -30,6 +30,10 @@ export class UIScene extends Phaser.Scene {
   private tutorial: Tutorial | null = null;
   private hackHint: HackHint | null = null;
   private buildNudge: BuildNudge | null = null;
+  /** Red screen-edge pulse and heartbeat while the reactor is low. */
+  private danger!: Phaser.GameObjects.Image;
+  private heartbeatTimer = 0;
+  private dangerT = 0;
   /** Pooled coins that fly from kills to the credits counter. */
   private coinPool: Phaser.GameObjects.Image[] = [];
   /** Platforms ordered by how much road they cover (best spot to suggest first). */
@@ -126,6 +130,16 @@ export class UIScene extends Phaser.Scene {
     this.listen(GameEvents.waveStart, (index: number) => this.onWaveStart(index));
     this.listen(GameEvents.waveBonus, (amount: number) => this.toast(`WAVE BONUS +${amount}`));
     this.listen(GameEvents.combo, (count: number, x: number, y: number) => this.showCombo(count, x, y));
+    // red edge glow for low reactor HP (baked once, stretched to the view)
+    const dangerKey = bakeShape(this, 'ui_danger_edges', 256, 144, (g) => {
+      for (let i = 0; i < 16; i++) {
+        g.lineStyle(2, COLORS.red, 0.32 * (1 - i / 16) ** 1.6);
+        g.strokeRect(i * 2 + 1, i * 2 + 1, 256 - i * 4 - 2, 144 - i * 4 - 2);
+      }
+    });
+    this.danger = this.add.image(0, 0, dangerKey).setOrigin(0).setDepth(25).setVisible(false);
+    this.heartbeatTimer = 0;
+    this.dangerT = 0;
     this.coinPool = [];
     for (let i = 0; i < 14; i++) {
       this.coinPool.push(this.add.image(0, 0, 'ui_coin').setDepth(45).setVisible(false));
@@ -558,6 +572,31 @@ export class UIScene extends Phaser.Scene {
     if (!this.gs.isPaused) this.tutorial?.update(delta / 1000);
     this.updateHackHint(delta / 1000);
     this.updateBuildNudge(delta / 1000);
+    this.updateDanger(delta / 1000);
+  }
+
+  /** Below 30% reactor HP: pulsing red edges and a heartbeat (the stakes, not the rules). */
+  private updateDanger(dt: number): void {
+    const gs = this.gs;
+    const low = !gs.over && !gs.isPaused && gs.hp > 0 && gs.hp / gs.maxHp <= 0.3;
+    if (!low) {
+      if (this.danger.visible) this.danger.setVisible(false);
+      this.heartbeatTimer = 0;
+      return;
+    }
+    this.dangerT += dt;
+    const view = viewBounds(this);
+    this.danger.setVisible(true).setPosition(view.left, view.top).setDisplaySize(view.width, view.height);
+    // the beat quickens as HP drops
+    const period = gs.hp / gs.maxHp <= 0.15 ? 0.65 : 0.9;
+    const k = (this.dangerT % period) / period;
+    this.danger.setAlpha(0.25 + 0.45 * Math.max(0, 1 - k * 2.2));
+    this.heartbeatTimer -= dt;
+    if (this.heartbeatTimer <= 0) {
+      this.heartbeatTimer = period;
+      this.dangerT = 0;
+      sfx.play('heartbeat');
+    }
   }
 
   /** Platform indices, most road within reach first. */

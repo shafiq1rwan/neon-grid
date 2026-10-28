@@ -28,7 +28,7 @@ See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the rel
 - Keep the palette in `COLORS` (config.ts) and about 70% dark metal / 30% neon.
 - Poki Game Events go through `poki.measure()` (sector, wave, tutorial, hack; table in docs/POKI_INTEGRATION.md). Send `complete` OR `fail` per attempt, never both, and never measure ads.
 - Ads only at natural breaks (Play, Retry, Restart, Next Sector) or the opt-in revive. Never during combat.
-- Rewarded revive must keep Poki's rules: 🎬 icon, not green, an equal-size Retry beside it, and no reward unless `rewardedBreak()` resolved true (Revive is hidden when `poki.rewardedAvailable` is false).
+- Rewarded revive must keep Poki's rules: a video icon (the drawn neon clapperboard in ResultScene, formerly the 🎬 emoji), not green, an equal-size Retry beside it, and no reward unless `rewardedBreak()` resolved true (Revive is hidden when `poki.rewardedAvailable` is false).
 - Campaign content is data: sectors in `MAPS` (paths/lanes, platforms, `towers` allowed, `difficulty`, `startCredits`, waves). Re-run a balance check after changing it (docs/BALANCING.md).
 - The tutorial is hints only and must never block or pause play (playtest finding). The START beacon must always work.
 - Hacking (`systems/HackSystem.ts`, tuning in `HACK` in config.ts) is the signature mechanic. The lock runs on REAL time; the world runs at `speed × hack.warp`. Hacked machines must be skipped by every targeting query (`Targeting` already does this) and must never damage the reactor.

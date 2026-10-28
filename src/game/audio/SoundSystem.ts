@@ -38,7 +38,9 @@ export type SfxName =
   | 'star1'
   | 'star2'
   | 'star3'
-  | 'stamp';
+  | 'stamp'
+  | 'heartbeat'
+  | 'glitch';
 
 /** Minimum milliseconds between two plays of the same sound. */
 const THROTTLE: Partial<Record<SfxName, number>> = {
@@ -94,6 +96,24 @@ class SoundSystem {
   setMuted(muted: boolean): void {
     this.muted = muted;
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(muted ? 0 : 0.55, this.ctx.currentTime, 0.02);
+  }
+
+  private lastStreak = 0;
+
+  /**
+   * Kill-streak ding: each quick kill in a row rings a semitone higher
+   * (capped), so clearing a crowd sounds like a jackpot.
+   */
+  streakDing(step: number): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.master || this.muted || ctx.state !== 'running') return;
+    const now = performance.now();
+    if (now - this.lastStreak < 55) return;
+    this.lastStreak = now;
+    const f = 760 * Math.pow(2, Math.min(step, 14) / 12);
+    const t = ctx.currentTime;
+    this.tone('triangle', f, f, t, 0.09, 0.05);
+    this.tone('sine', f * 2, f * 2, t, 0.06, 0.018);
   }
 
   isMuted(): boolean {
@@ -178,6 +198,18 @@ class SoundSystem {
         this.tone('triangle', 260, 140, t, 0.16, 0.16);
         this.noiseBurst(t, 0.1, 1600, 'bandpass', 0.12);
         [1568, 2093].forEach((f, i) => this.tone('sine', f, f, t + 0.1 + i * 0.07, 0.3, 0.05));
+        break;
+      case 'glitch':
+        // broken signal: crackles and stuttering data beeps
+        this.noiseBurst(t, 0.12, 2400, 'bandpass', 0.16);
+        this.noiseBurst(t + 0.16, 0.08, 900, 'bandpass', 0.12);
+        [1180, 640, 1480, 520].forEach((f, i) => this.tone('square', f, f * 0.92, t + 0.05 + i * 0.07, 0.04, 0.035));
+        this.noiseBurst(t + 0.34, 0.3, 3200, 'highpass', 0.08, 600);
+        break;
+      case 'heartbeat':
+        // low double thump while the reactor is in danger
+        this.tone('sine', 70, 48, t, 0.14, 0.22);
+        this.tone('sine', 64, 44, t + 0.18, 0.16, 0.16);
         break;
       case 'heal':
         // soft rising two-note chime: a machine is being repaired

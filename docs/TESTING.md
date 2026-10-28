@@ -89,6 +89,16 @@ Headless browser runs (Playwright driving Edge) are useful for smoke tests and b
 - [ ] Defeat shows "NEW BEST!" / "RUN OVER", wave reached and best, W10/W20/W30 stars and "+1 ★ NEW" for new milestones. The best wave is saved per map and appears on the strip, in the picker and on the menu line.
 - [ ] RETRY and the Workshop's RETRY ENDLESS restart Endless on the same map (with the usual commercial break); Revive works as in the campaign.
 
+### Juice (v1.2.5)
+- [ ] Quick kills ring rising dings; a pause resets the pitch. The credits counter rolls up on gains and drops instantly on spending (cards and upgrades always show the right affordability).
+- [ ] The last kill of a wave gives a short slow motion and a burst. A Perfect Hack, a x5+ combo and Juggernaut / Titan kills freeze the world for a few frames (the hack lock keeps real time).
+- [ ] At 30% reactor HP or less, red screen edges pulse with a heartbeat (faster at 15%); they stop when paused, at game over and after a revive.
+
+### Supply drops
+- [ ] Sector 1: a pod falls and lands (ring, puff, small shake) right after wave 1 finishes spawning, then after waves 3, 5, 7, 9. "TAP!" bobs above it.
+- [ ] Tapping pays credits (popup + coins fly to the counter); every third pod gives "+1 HACK" if charges aren't full. Ignored pods blink and power down after ~12 s.
+- [ ] Pods never land on the road, a platform, the reactor, the beacon or under the HUD, and tapping one never opens a build drawer or starts a hack. Restart / game over clears the pod.
+
 ### Build nudge
 - [ ] Save without Sector 1 cleared: about 4 s after the player can afford a tower with an empty platform, a hand + "Build another tower!" (or "Build a tower!" with no towers) points at a good platform. It hides while the drawer is open, during the tutorial, the hack hint, a hack lock and pause.
 - [ ] Ignored for 8 s, it disappears for 20 s. Building or upgrading makes it go away at once.

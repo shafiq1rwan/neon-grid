@@ -65,6 +65,8 @@ Poki records `game / loading` by itself; everything else in the dashboard's **Ga
 | `endless-reach / w005`, `w010`, … | `reached` (custom) | Every 5th wave reached in Endless |
 | `endless-entry / result`, `endless-entry / menu` | `clicked` (custom) | TRY ENDLESS on a victory screen / ENDLESS on the main menu |
 | `speed / 2x` | `selected` (custom) | The player switches to 2x speed |
+| `supply / drop` | `shown` (custom) | A supply pod lands |
+| `supply / credits`, `supply / hack` | `collected` (custom) | The player taps a pod (by reward) |
 | `nudge / build`, `nudge / upgrade` | `shown`, `followed` (custom) | The build nudge appears / the player builds or upgrades while it points |
 
 Rules kept by the code:

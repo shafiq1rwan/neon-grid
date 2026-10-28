@@ -267,6 +267,10 @@ Playtests showed players want to start immediately, so the tutorial is hints onl
 
 The hints disappear (and the tutorial counts as done) as soon as wave 1 starts, whether from the beacon, the countdown or the Space key. The beacon always works. Wave 1 starts at most 6 seconds after the first tower is built.
 
+### Supply drops (v1.2.5)
+
+After some waves (once they finish spawning) a supply pod falls onto empty ground and waits about 12 s. Tapping it pays 30 + 8 × wave credits; every third collected pod gives a hack charge instead (if not full). Schedule (`dropsAfterWave` in `systems/SupplySystem.ts`): Sector 1 after waves 1, 3, 5, 7, 9; Sectors 2–4 every 3rd wave; Endless every 4th wave. Landing spots are precomputed per map on a 40 px grid, at least road half-width + 46 px from every road, 72 px from platforms, 130 px from the reactor and 100 px from the beacon, outside the HUD. Purpose: give players something to do between waves (the fit tests showed quiet exits in waves 2–5). The balance bot never taps pods, so bot results are unchanged; real players get a small boost.
+
 ### Build nudge (until Sector 1 is cleared; never blocks)
 
 The v1.2.0 player fit test showed most players stop building after one or two towers: they leave during wave 2 (19% of players reaching it) or get overrun at waves 4 and 8. `ui/BuildNudge.ts` points at the next useful action with the same hand and big words:

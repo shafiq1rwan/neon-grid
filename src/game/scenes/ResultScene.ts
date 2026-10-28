@@ -6,22 +6,41 @@ import { poki } from '../platform/PokiAdapter';
 import { storage } from '../utils/Storage';
 import { sfx } from '../audio/SoundSystem';
 import { NeonButton, bakeShape, drawPanel, text } from '../ui/widgets';
+import { bakeTexture, glow, noGlow, type Ctx } from '../rendering/CanvasKit';
 import { centerCamera, viewBounds } from '../utils/View';
 import type { GameScene, ResultData } from './GameScene';
 
-function starPoints(cx: number, cy: number, r: number): Phaser.Geom.Point[] {
-  const pts: Phaser.Geom.Point[] = [];
+/** Textures are baked at this resolution and shown at 1/RES for crisp edges. */
+const RES = 2;
+
+function starPath(ctx: Ctx, cx: number, cy: number, r: number, inner = 0.46): void {
+  ctx.beginPath();
   for (let i = 0; i < 10; i++) {
     const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rr = i % 2 === 0 ? r : r * 0.45;
-    pts.push(new Phaser.Geom.Point(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr));
+    const rr = i % 2 === 0 ? r : r * inner;
+    const x = cx + Math.cos(a) * rr;
+    const y = cy + Math.sin(a) * rr;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   }
-  return pts;
+  ctx.closePath();
+}
+
+/** Glitch state for the REACTOR LOST title. */
+interface LostFx {
+  t: number;
+  title: Phaser.GameObjects.Text;
+  red: Phaser.GameObjects.Text;
+  cyan: Phaser.GameObjects.Text;
+  /** Real seconds until the next small glitch, and how long the current one lasts. */
+  next: number;
+  burst: number;
 }
 
 /** Victory / defeat overlay, shown above the paused battlefield. */
 export class ResultScene extends Phaser.Scene {
   private busy = false;
+  private lost: LostFx | null = null;
 
   constructor() {
     super(SCENES.result);
@@ -29,11 +48,14 @@ export class ResultScene extends Phaser.Scene {
 
   create(data: ResultData): void {
     this.busy = false;
+    this.lost = null;
     centerCamera(this);
     const { victory, endless } = data;
     const accent = victory || endless?.newBest ? COLORS.cyan : COLORS.red;
     const cx = GAME_WIDTH / 2;
-    const py = (GAME_HEIGHT - 520) / 2;
+    // Vertical rhythm: about 24 px between groups and 10-13 px inside a group.
+    const panelH = data.canRevive ? 500 : 484;
+    const py = (GAME_HEIGHT - panelH) / 2;
     const celebrate = victory || !!endless?.newBest;
     const hasNext = victory && data.mapIndex < MAPS.length - 1;
     const campaignDone = victory && !hasNext;
@@ -47,13 +69,13 @@ export class ResultScene extends Phaser.Scene {
     this.tweens.add({ targets: dim, fillAlpha: 0.82, duration: 400 });
     if (celebrate) this.confetti();
 
-    const root = this.resultPanel(py, 520, accent);
-    const context = text(this, cx, py + 32,
+    const root = this.resultPanel(py, panelH, accent);
+    const context = text(this, cx, py + 30,
       `SECTOR ${String(data.mapIndex + 1).padStart(2, '0')}  /  ${map.name.toUpperCase()}${endless ? '  /  ENDLESS' : ''}`,
       14, COLORS.textDim, { letterSpacing: 2 }).setOrigin(0.5);
     if (context.width > 464) context.setFontSize(12);
     root.add(context);
-    const title = text(this, cx, py + 76,
+    const title = text(this, cx, py + 72,
       endless ? (endless.newBest ? 'NEW BEST!' : 'RUN OVER')
         : campaignDone ? 'CAMPAIGN COMPLETE' : victory ? 'SECTOR SECURED' : 'REACTOR LOST',
       campaignDone ? 32 : 38, accent).setOrigin(0.5);
@@ -64,16 +86,16 @@ export class ResultScene extends Phaser.Scene {
     }
 
     if (victory) {
-      this.ratingStars(root, cx, py + 160, data.stars);
-      if (data.stars === 3) root.add(this.perfectStamp(cx, py + 211, 1100));
-      else root.add(text(this, cx, py + 211, `${data.stars} / 3 STARS`, 16, COLORS.gold,
+      this.ratingStars(root, cx, py + 148, data.stars);
+      if (data.stars === 3) root.add(this.perfectStamp(cx, py + 196, 1100));
+      else root.add(text(this, cx, py + 196, `${data.stars} / 3 STARS`, 16, COLORS.gold,
         { letterSpacing: 2 }).setOrigin(0.5));
     } else {
-      root.add(text(this, cx, py + 125, 'WAVE REACHED', 14, COLORS.textDim,
+      root.add(text(this, cx, py + 112, 'WAVE REACHED', 14, COLORS.textDim,
         { letterSpacing: 2 }).setOrigin(0.5));
-      root.add(text(this, cx, py + 169, String(endless?.reached ?? data.wave).padStart(2, '0'),
+      root.add(text(this, cx, py + 154, String(endless?.reached ?? data.wave).padStart(2, '0'),
         64, COLORS.text).setOrigin(0.5));
-      root.add(text(this, cx, py + 211,
+      root.add(text(this, cx, py + 198,
         endless ? `PERSONAL BEST  /  ${endless.best}` : `OF ${data.totalWaves} WAVES`,
         14, COLORS.textDim, { letterSpacing: 2 }).setOrigin(0.5));
     }
@@ -85,7 +107,7 @@ export class ResultScene extends Phaser.Scene {
       : endless ? 'Push further on your next run.'
         : campaignDone ? 'All sectors secured. Keep the streak going.'
           : victory ? `Sector ${data.mapIndex + 2} unlocked` : 'Rebuild. Come back stronger.';
-    root.add(text(this, cx, py + 244, caption, 17, reward > 0 ? COLORS.gold : COLORS.textDim,
+    root.add(text(this, cx, py + 226, caption, 17, reward > 0 ? COLORS.gold : COLORS.textDim,
       { fontStyle: 'normal' }).setOrigin(0.5));
 
     // Only the two most useful numbers stay in the summary.
@@ -95,14 +117,14 @@ export class ResultScene extends Phaser.Scene {
       g.lineStyle(1, COLORS.textDim, 0.18);
       g.lineBetween(232, 16, 232, 56);
     });
-    root.add(this.add.image(cx, py + 310, statsKey));
-    const kills = text(this, cx - 116, py + 299, `${data.kills}`, 25, COLORS.text).setOrigin(0.5);
+    root.add(this.add.image(cx, py + 294, statsKey));
+    const kills = text(this, cx - 116, py + 283, `${data.kills}`, 25, COLORS.text).setOrigin(0.5);
     root.add(kills);
-    root.add(text(this, cx + 116, py + 299,
+    root.add(text(this, cx + 116, py + 283,
       victory ? `${data.hp} / ${data.maxHp}` : this.runTime(data.time), 25, COLORS.text).setOrigin(0.5));
-    root.add(text(this, cx - 116, py + 326, 'MACHINES DESTROYED', 12, COLORS.textDim,
+    root.add(text(this, cx - 116, py + 310, 'MACHINES DESTROYED', 12, COLORS.textDim,
       { letterSpacing: 1 }).setOrigin(0.5));
-    root.add(text(this, cx + 116, py + 326, victory ? 'REACTOR HP' : 'TIME SURVIVED',
+    root.add(text(this, cx + 116, py + 310, victory ? 'REACTOR HP' : 'TIME SURVIVED',
       12, COLORS.textDim, { letterSpacing: 1 }).setOrigin(0.5));
     if (celebrate && data.kills > 0) {
       kills.setText('0');
@@ -112,7 +134,7 @@ export class ResultScene extends Phaser.Scene {
       });
     }
 
-    const actionY = py + 398;
+    const actionY = py + 385;
     if (data.canRevive) {
       // Keep the opt-in ad explicit, non-green, and the same size as Retry.
       root.add(this.primaryAction(cx - 122, actionY, 220, 'RETRY', () => void this.playAgain()));
@@ -121,10 +143,11 @@ export class ResultScene extends Phaser.Scene {
         panelStyle: { corners: false, glow: false, radius: 12 },
         onClick: () => void this.revive(revive),
       });
-      revive.label?.setX(14);
-      revive.add(text(this, -85, 0, '\ud83c\udfac', 24, COLORS.text).setOrigin(0.5));
+      // Poki rule: the rewarded button shows a video icon (drawn to match the neon style)
+      revive.label?.setX(16);
+      revive.add(this.add.image(-76, 0, this.adIcon()).setScale(1 / RES));
       root.add(revive);
-      root.add(text(this, cx + 122, actionY + 43, 'Watch an ad', 14, COLORS.textDim,
+      root.add(text(this, cx + 122, actionY + 49, 'Watch an ad', 14, COLORS.textDim,
         { fontStyle: 'normal' }).setOrigin(0.5));
     } else if (hasNext && offerEndless) {
       // v1.2.3 fit test: this button started most Endless runs (the longest sessions), so it stays on the main screen
@@ -146,7 +169,7 @@ export class ResultScene extends Phaser.Scene {
       details.setVisible(false);
       root.setVisible(true);
     });
-    const footerY = py + 478;
+    const footerY = py + panelH - 34;
     root.add(this.quietAction(cx - (showWorkshop ? 172 : 100), footerY, 96, 'Menu', () => this.toMenu()));
     root.add(this.quietAction(cx + (showWorkshop ? -12 : 100), footerY, 150, 'Run details', () => {
       if (this.busy) return;
@@ -168,12 +191,102 @@ export class ResultScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.input.keyboard?.off('keydown', onKey));
     root.setAlpha(0).setY(20);
     this.tweens.add({ targets: root, alpha: 1, y: 0, duration: 380, ease: 'Cubic.easeOut' });
+    if (!victory && !endless) this.glitchTitle(root, title);
+  }
+
+  /* REACTOR LOST: a glitching title -------------------------------------- */
+
+  /** The REACTOR LOST title splits into red / cyan and jitters like a lost signal. */
+  private glitchTitle(root: Phaser.GameObjects.Container, title: Phaser.GameObjects.Text): void {
+    const size = 38; // the REACTOR LOST title size
+    const red = text(this, title.x, title.y, title.text, size, 0xff3355)
+      .setOrigin(0.5).setAlpha(0.7).setBlendMode(Phaser.BlendModes.ADD);
+    const cyan = text(this, title.x, title.y, title.text, size, COLORS.cyan)
+      .setOrigin(0.5).setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD);
+    root.addAt([red, cyan], root.getIndex(title));
+    sfx.play('glitch');
+    // a strong burst as the panel appears, then small silent glitches now and then
+    this.lost = { t: 0, title, red, cyan, next: 2.6, burst: 0.9 };
+  }
+
+  update(_time: number, delta: number): void {
+    const fx = this.lost;
+    if (!fx) return;
+    const dt = Math.min(delta, 50) / 1000;
+    fx.t += dt;
+    fx.next -= dt;
+    if (fx.next <= 0) {
+      fx.burst = 0.14 + Math.random() * 0.12;
+      fx.next = 2.4 + Math.random() * 2; // visual only: a repeating sound would nag on this screen
+    }
+    const glitching = fx.burst > 0;
+    if (glitching) fx.burst -= dt;
+    const amp = glitching ? (fx.t < 1 ? 7 : 4) : 0;
+    const { x, y } = fx.title;
+    fx.red.setPosition(x - 2 - Math.random() * amp, y + (Math.random() - 0.5) * amp * 0.6);
+    fx.cyan.setPosition(x + 2 + Math.random() * amp, y + (Math.random() - 0.5) * amp * 0.6);
+    fx.red.setAlpha(glitching ? 0.85 : 0.35);
+    fx.cyan.setAlpha(glitching ? 0.7 : 0.28);
+    fx.title.setX(GAME_WIDTH / 2 + (glitching ? (Math.random() - 0.5) * amp : 0));
+    // the letters briefly flicker during a glitch
+    fx.title.setAlpha(glitching && Math.random() < 0.25 ? 0.4 : 1);
+  }
+
+  /** Neon "watch a video" clapperboard (baked once). */
+  private adIcon(): string {
+    const key = 'ui_ad_video';
+    if (!this.textures.exists(key)) {
+      bakeTexture(this, key, 40 * RES, 36 * RES, (ctx) => {
+        ctx.scale(RES, RES);
+        ctx.lineJoin = 'round';
+        const gold = css(COLORS.gold);
+        glow(ctx, COLORS.gold, 6);
+        // board
+        ctx.fillStyle = '#1a2338';
+        ctx.strokeStyle = gold;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.roundRect(5, 13, 30, 19, 3);
+        ctx.fill();
+        ctx.stroke();
+        // clapper with stripes
+        ctx.beginPath();
+        ctx.moveTo(5, 11);
+        ctx.lineTo(33, 4);
+        ctx.lineTo(34.5, 9.5);
+        ctx.lineTo(6.5, 16);
+        ctx.closePath();
+        ctx.fillStyle = gold;
+        ctx.fill();
+        noGlow(ctx);
+        ctx.fillStyle = '#1a2338';
+        for (let i = 0; i < 3; i++) {
+          const sx = 11 + i * 7.5;
+          ctx.beginPath();
+          ctx.moveTo(sx, 10.2 - i * 1.85);
+          ctx.lineTo(sx + 3.5, 9.3 - i * 1.85);
+          ctx.lineTo(sx + 1.5, 13.6 - i * 1.85);
+          ctx.lineTo(sx - 2, 14.5 - i * 1.85);
+          ctx.closePath();
+          ctx.fill();
+        }
+        // play triangle
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(17, 17.5);
+        ctx.lineTo(25.5, 22.5);
+        ctx.lineTo(17, 27.5);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+    return key;
   }
 
   private resultPanel(y: number, height: number, accent: number): Phaser.GameObjects.Container {
     const key = bakeShape(this, `result_panel|${height}|${accent}`, 552, height + 16, (g) => {
       drawPanel(g, 8, 8, 536, height, {
-        color: COLORS.raised, fill: COLORS.panel, fillAlpha: 1, radius: 20, corners: false, glow: false,
+        color: COLORS.raised, fill: COLORS.panel, fillAlpha: 1, radius: 20, corners: false, glow: false, sheen: false,
       });
       g.fillStyle(accent, 0.9);
       g.fillRoundedRect(240, 8, 72, 3, 1.5);
@@ -183,28 +296,70 @@ export class ResultScene extends Phaser.Scene {
     return root;
   }
 
+  /** Neon rating stars: glowing gold with a bevelled face, or a dim neon slot. */
+  private starTextures(): { on: string; off: string } {
+    const size = 92;
+    const c = size / 2;
+    const r = 33;
+    if (!this.textures.exists('result_star_neon_on')) {
+      bakeTexture(this, 'result_star_neon_on', size * RES, size * RES, (ctx) => {
+        ctx.scale(RES, RES);
+        ctx.lineJoin = 'round';
+        glow(ctx, COLORS.gold, 14);
+        const fill = ctx.createLinearGradient(c - r, c - r, c + r * 0.6, c + r);
+        fill.addColorStop(0, '#fff3b0');
+        fill.addColorStop(0.45, css(COLORS.gold));
+        fill.addColorStop(1, '#e08a1e');
+        starPath(ctx, c, c + 2, r);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        noGlow(ctx);
+        ctx.strokeStyle = '#7a4a10';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // bevelled inner face
+        starPath(ctx, c, c + 2, r * 0.55);
+        ctx.fillStyle = 'rgba(255, 250, 220, 0.42)';
+        ctx.fill();
+        // sparkle on the top point
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(c - 5, c - r * 0.42, 3.2, 6, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+    if (!this.textures.exists('result_star_neon_off')) {
+      bakeTexture(this, 'result_star_neon_off', size * RES, size * RES, (ctx) => {
+        ctx.scale(RES, RES);
+        ctx.lineJoin = 'round';
+        starPath(ctx, c, c + 2, r);
+        ctx.fillStyle = '#0d1424';
+        ctx.fill();
+        glow(ctx, COLORS.cyan, 5);
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        noGlow(ctx);
+        starPath(ctx, c, c + 2, r * 0.55);
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.12)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
+    return { on: 'result_star_neon_on', off: 'result_star_neon_off' };
+  }
+
   private ratingStars(root: Phaser.GameObjects.Container, cx: number, y: number, earned: number): void {
-    const starOff = bakeShape(this, 'result_star_off', 68, 68, (g) => {
-      g.fillStyle(0x1a2338, 1);
-      g.fillPoints(starPoints(34, 34, 30), true);
-      g.lineStyle(2, 0x2a3550, 1);
-      g.strokePoints(starPoints(34, 34, 30), true);
-    });
-    const starOn = bakeShape(this, 'result_star_on', 68, 68, (g) => {
-      g.fillStyle(COLORS.gold, 1);
-      g.fillPoints(starPoints(34, 34, 30), true);
-      g.lineStyle(2, 0xfff0b0, 1);
-      g.strokePoints(starPoints(34, 34, 30), true);
-    });
+    const { off: starOff, on: starOn } = this.starTextures();
     for (let i = 0; i < 3; i++) {
       const sx = cx + (i - 1) * 82;
       const sy = y + (i === 1 ? -8 : 0);
-      root.add(this.add.image(sx, sy, starOff));
+      root.add(this.add.image(sx, sy, starOff).setScale(1 / RES));
       if (i >= earned) continue;
       const star = this.add.image(sx, sy, starOn).setScale(0);
       root.add(star);
       this.tweens.add({
-        targets: star, scale: 1, delay: 300 + i * 260, duration: 380, ease: 'Back.easeOut',
+        targets: star, scale: 1 / RES, delay: 300 + i * 260, duration: 380, ease: 'Back.easeOut',
         onStart: () => {
           sfx.play(i === 0 ? 'star1' : i === 1 ? 'star2' : 'star3');
           if (root.visible) this.sparkle(sx, sy);

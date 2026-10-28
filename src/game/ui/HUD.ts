@@ -34,6 +34,9 @@ export class HUD {
 
   private shownHp = -1;
   private shownCredits = -1;
+  /** Credits value currently displayed (rolls toward the real value). */
+  private rollCredits = -1;
+  private lastTime = 0;
   private coinIcon!: Phaser.GameObjects.Image;
   private shownWave = '';
   private shownSpeed = 0;
@@ -252,15 +255,28 @@ export class HUD {
     }
 
     const credits = game.economy.credits;
+    const dtMs = this.lastTime > 0 ? Math.min(100, time - this.lastTime) : 16;
+    this.lastTime = time;
     if (credits !== this.shownCredits) {
       const up = credits > this.shownCredits && this.shownCredits >= 0;
+      // spending is shown at once (affordability must stay exact); gains roll up
+      if (!up || this.rollCredits < 0) this.rollCredits = credits;
       this.shownCredits = credits;
-      this.creditText.setText(`${credits}`);
       if (up) {
         this.creditTween?.stop();
         this.creditText.setScale(1.15);
         this.creditTween = this.scene.tweens.add({ targets: this.creditText, scale: 1, duration: 160 });
       }
+    }
+    if (this.rollCredits !== credits) {
+      const gap = credits - this.rollCredits;
+      const step = Math.max(1, Math.abs(gap) * Math.min(1, dtMs / 90));
+      this.rollCredits = gap > 0 ? Math.min(credits, this.rollCredits + step) : Math.max(credits, this.rollCredits - step);
+      this.creditText.setText(`${Math.round(this.rollCredits)}`);
+      // a big haul flashes gold
+      this.creditText.setColor(gap > 40 ? '#fff4b0' : css(COLORS.gold));
+    } else if (this.creditText.text !== `${credits}`) {
+      this.creditText.setText(`${credits}`).setColor(css(COLORS.gold));
     }
 
     if (game.speed !== this.shownSpeed) {
