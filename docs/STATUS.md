@@ -89,6 +89,11 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 
 ## Backlog (prioritised)
 
+**Next, after the Poki review (v1.3 content update).** Don't change v1.2.5 while Poki reviews it. Player comment from the web fit test (2026-11): *"Brilliant overall, very nice 'AI take over' theme. You can probably add more bosses and levels to the game to make it better! Idea for new turret: Flaming ballista. It shoots fireballs that set the enemies on fire for some time, which deals damage over time."* Game Events back it up: 13% of Sector 1 starters finish all four sectors and then move to Endless.
+- **Sector 5** with a proper boss (a new enemy type) as its finale. More bosses could also fill the mid-sector slot (item 4).
+- **Thermite Launcher** (the player's flaming ballista, reskinned for the neon/AI world), unlocked in Sector 5. It lobs plasma bolts that make machines *overheat*: burn damage over time for a few seconds. No current tower does damage over time (Pulse, Cannon, Missile, Tesla, Laser, Cryo). Ideas: burn stacks on dense waves (the swarm answer), and *thermal shock*, a burst of bonus damage when it hits a machine frozen by Cryo. Needs a new attack kind in `towers.ts` and a burn status on enemies; hacked machines must still be skipped. Re-run the balance bot after.
+- Early-game hook (v1.2.6 candidate, also useful if Poki asks for improvements): a visible wave 5 goal and reward, quicker first 3 waves (~32% of web players pick 2x), an Endless teaser. A quarter of web players still leave before Sector 1 wave 4 without losing.
+
 0. **Fit-test v1.1.0 (Hacking).** Success means:
    - the test passes, with average playtime at or above the v1.0.1 baseline of **4m 56s**,
    - playtest recordings show players hacking within their first minute,
