@@ -2,7 +2,7 @@
 
 Where the project stands, what's in flight and what to do next. Read this first when picking the project up on a new machine (or in a new AI-assistant session).
 
-_Last updated: 2026-10-28 · version **1.2.5** (supply drops; v1.2.3 submitted for web fit test #2)_
+_Last updated: 2026-11-06 · version **1.2.5** (web fit test #2: 10:07 playtime, 77.6% conversion; Poki manual review in progress)_
 
 ## Set up on a new PC
 
@@ -75,7 +75,7 @@ Details: [GAME_DESIGN.md](GAME_DESIGN.md) · [ARCHITECTURE.md](ARCHITECTURE.md) 
 | v1.2.2: Endless mode + frame-rate fix (UI art baked into textures; playtest median FPS was 57) | ✅ Player fit test: **5m 53s**. Sector 1 completion 34% (was 22%), wave-2 exits 5% (was 19%), build nudge followed ~90% of the time; but playtime flat (faster pacing shortened runs). Endless: few runs (~18) but deep (7 reached wave 20) |
 | v1.2.3: denser waves (same difficulty), 1x speed per sector, softer S1 w10 / S2 w6, TRY ENDLESS + menu ENDLESS | ✅ Player fit test: 500 gameplays, **6m 47s** (best so far; v1.2.2: 5m 53s). Extra time came mostly from Endless (31 entries, 23 from the result screen; 16 runs reached wave 20) and longer runs, not more Sector 1 clears (32%, 151/478). Biggest leak is Sector 1 waves 2–4 (123 of 457 wave-1 players gone, mostly leaves: w2 36, w3 27). S1 w10 fails 20% of the players reaching it; S1 w08 8%. 2x speed picked in 18% of gameplays |
 | v1.2.4: S1 waves 1–2 not densified, S1 w10 cut further, result/pause redesign (Codex), TRY ENDLESS kept on the victory screen | ✅ Player fit test: **6m 32s** (within noise of v1.2.3). Sector 1 completion 29%, w10 fails still 17% (fails land where HP runs out, after leaks over waves 8–10), wave 2–3 exits ~6–8%. About 38% of players stop before wave 6 without losing: the main remaining gap is engagement in the first 3–4 minutes, not difficulty |
-| **Web fit test #2** (submitted with v1.2.3, 6m 47s player test) | ⏳ Submitted 2026-10-28. On 2026-10-29 Poki was asked to swap in **v1.2.5** (7m 10s player test, est. ~10:00–10:45 web vs ~9:57 benchmark). Retries are allowed after this one |
+| **Web fit test #2** (submitted with v1.2.3, swapped to **v1.2.5** on 2026-10-29) | ✅ Results 2026-11-06, 6096 gameplays: conversion to play **77.6%** (benchmark ~68%), average playtime **10:07** (benchmark ~9:57; test #1 7:32), CTR from categories **2.73%** (test #1 2.40%). ⏳ Not a final decision: Poki's manual review takes ~2 weeks in total, then sign / request improvements / not a fit. Game Events: Sector 1 cleared 43% (test #1 22%), 13% of S1 starters finish the campaign, ~1,700 Endless runs; a quarter of players still leave before S1 wave 4 without losing (same as test #1). Keep v1.2.5 live and unchanged during the review |
 | v1.2.5: supply drops (early-game hook for the quiet exits in waves 2–5) | ✅ Player fit test: 500 gameplays, **7m 10s** (best so far; v1.2.3: 6m 47s). It was 6m 39s at 461 gameplays: the longest sessions report last. Roughly 10:00–10:45 on the web by the ~1.4–1.5× ratio. Next web retry candidate if web fit test #2 (v1.2.3) fails. Still to check from the CSVs: wave 2–5 exits vs v1.2.3, the `supply` events, and that `wave / s1-w02` shows in the funnel |
 | **v1.2.0** for the **last** web fit test retry: Sector 1 rebalance, Workshop + challenges, Sector 4 with two new enemies | ⏳ Built (`release/neon-wasteland-v1.2.0.zip`). Next: upload and request the final web fit test. Compare: S1 completion (was 22%), S1 w08 fails (was 33%), average playtime (was 7:32, target ~10:00) |
 | Final review | Not started |
