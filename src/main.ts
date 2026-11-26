@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH } from './game/config';
 import { sfx } from './game/audio/SoundSystem';
-import { poki } from './game/platform/PokiAdapter';
+import { platform } from './game/platform';
 import { storage } from './game/utils/Storage';
 import { applyRotation, installAutoRotate } from './game/utils/AutoRotate';
 import { BootScene } from './game/scenes/BootScene';
@@ -20,11 +20,11 @@ window.addEventListener('pointerdown', unlock, { passive: true });
 window.addEventListener('keydown', unlock);
 window.addEventListener('touchend', unlock, { passive: true });
 
-// Silence audio during ads and while the tab is hidden.
-poki.setAudioHooks({ pause: () => sfx.suspend(), resume: () => sfx.resume() });
+// Silence audio during ads and while the tab is hidden; follow the portal's mute setting.
+platform.setAudioHooks({ pause: () => sfx.suspend(), resume: () => sfx.resume(), mute: (m) => sfx.setHostMuted(m) });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) sfx.suspend();
-  else if (!poki.isAdPlaying) sfx.resume();
+  else if (!platform.isAdPlaying) sfx.resume();
 });
 
 // Keep the page from scrolling / zooming on mobile.
@@ -91,7 +91,7 @@ function keepScaleInSync(game: Phaser.Game, container: HTMLElement): void {
   window.visualViewport?.addEventListener('resize', schedule);
 }
 
-void poki.init().finally(() => {
+void platform.init().finally(() => {
   // Phones held in portrait play rotated instead of showing a "rotate" screen.
   const container = document.getElementById('game')!;
   applyRotation(container);

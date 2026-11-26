@@ -2,7 +2,7 @@
 
 Reference: <https://developers.poki.com/guide/sdk-html5> (SDK v2).
 
-All platform code lives in `src/game/platform/PokiAdapter.ts`, which exports the singleton `poki`. Gameplay code never touches `window.PokiSDK` directly.
+All Poki code lives in `src/game/platform/PokiAdapter.ts`. Game code calls the `platform` singleton (`src/game/platform/index.ts`), which is the Poki adapter in the default build (`VITE_PORTAL=poki` in `.env`) and never touches `window.PokiSDK` directly. The CrazyGames build swaps in `CrazyGamesAdapter` (see [CRAZYGAMES.md](CRAZYGAMES.md)).
 
 ## SDK loading
 
@@ -32,7 +32,7 @@ Only documented functions are used.
 | `gameplayStop()` | `pauseGame`, game over, quit to menu, before any ad | Play stops |
 | `commercialBreak(cb)` | Menu **Play**, pause **Restart**, result **Retry / Play again** | Natural breaks only, never during combat |
 | `rewardedBreak(cb)` | Result screen **Revive** button | Opt-in, after a defeat |
-| `measure(category, what, action)` | `GameScene`, `UIScene` (via `poki.measure`) | Game Events, see below |
+| `measure(category, what, action)` | `GameScene`, `UIScene` (via `platform.measure`) | Game Events, see below |
 
 The adapter makes `gameplayStart()` and `gameplayStop()` idempotent, so duplicate calls are ignored.
 
@@ -88,11 +88,11 @@ In dev, every call is logged to the console as `[Poki] measure …` (debug level
 - **Reward:** revive with +10 reactor HP, and all enemies on the field are cleared. Once per run.
 - **Button rules:** the gold "🎬 REVIVE +10 HP" button sits beside an equal-size RETRY button (the normal continue option). It is not green and has a prominent 🎬 icon, with "Watch an ad to restore the reactor" underneath, as Poki requires.
 - **Result:** the reward is granted only when `rewardedBreak()` resolves `true`. Otherwise the button changes to "Ad unavailable".
-- **No SDK, no reward:** Revive is offered only when the SDK initialised (`poki.rewardedAvailable`). With an ad blocker or on other hosts it's hidden, so no reward is ever given without an ad. Dev builds simulate a successful ad for testing.
+- **No SDK, no reward:** Revive is offered only when the SDK initialised (`platform.rewardedAvailable`). With an ad blocker or on other hosts it's hidden, so no reward is ever given without an ad. Dev builds simulate a successful ad for testing.
 
 ## Fullscreen
 
-Poki provides its own fullscreen control. The game's fullscreen button and the auto-fullscreen on PLAY only appear when the SDK isn't live (`poki.isLive` is false), for example on GitHub Pages.
+Poki provides its own fullscreen control. The game's fullscreen button and the auto-fullscreen on PLAY only appear when the SDK isn't live (`platform.hostFullscreen` is false), for example on GitHub Pages.
 
 ## Submission checklist
 

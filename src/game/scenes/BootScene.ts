@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES } from '../config';
 import { MAPS } from '../data/maps';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { generateEffectTextures } from '../rendering/EffectsRenderer';
 import { generateEnemyTextures } from '../rendering/EnemyRenderer';
 import { ensureMapBackground, generateSharedEnvironment } from '../rendering/EnvironmentRenderer';
@@ -34,7 +34,7 @@ export class BootScene extends Phaser.Scene {
       generateSharedEnvironment(this);
       // Only sector 1 is baked up front (menu + first game); later sectors bake on demand.
       ensureMapBackground(this, first, first.paths.map((lane) => new PathData(lane, first.cornerRadius)));
-      poki.gameLoadingFinished();
+      platform.gameLoadingFinished();
       this.scene.start(SCENES.menu);
     });
   }

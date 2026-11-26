@@ -6,7 +6,7 @@ import { newEnemiesInWave, newTowersInMap } from '../data/maps';
 import { TOWERS } from '../data/towers';
 import { iconKey } from '../rendering/TowerRenderer';
 import { sfx } from '../audio/SoundSystem';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { enemyKey } from '../rendering/EnemyRenderer';
 import { storage } from '../utils/Storage';
 import { challengeProgress, challengesFor, needsWin } from '../data/challenges';
@@ -178,7 +178,7 @@ export class UIScene extends Phaser.Scene {
     const onPauseKey = (ev: KeyboardEvent) => {
       if (this.gs.isPaused && (ev.code === 'Escape' || ev.code === 'KeyP')) {
         ev.stopPropagation();
-        if (!ev.repeat && !this.pauseLeaving && !poki.isAdPlaying) this.gs.resumeGame();
+        if (!ev.repeat && !this.pauseLeaving && !platform.isAdPlaying) this.gs.resumeGame();
       }
     };
     kb?.on('keydown', onPauseKey);
@@ -200,15 +200,15 @@ export class UIScene extends Phaser.Scene {
 
   private startTutorial(): void {
     const g = this.gs;
-    const platform = g.map.platforms[g.map.tutorialPlatform ?? 0];
-    poki.measure('level', 'tutorial', 'start');
+    const spot = g.map.platforms[g.map.tutorialPlatform ?? 0];
+    platform.measure('level', 'tutorial', 'start');
     this.tutorial = new Tutorial(this, {
-      platform,
+      platform: spot,
       waveButton: this.hud.waveBtnPos,
       pulseCard: () => this.menu.cardCenter('pulse'),
       finish: () => {
         storage.update({ tutorialDone: true });
-        poki.measure('level', 'tutorial', 'complete');
+        platform.measure('level', 'tutorial', 'complete');
         this.tutorial = null;
       },
     });
@@ -551,7 +551,7 @@ export class UIScene extends Phaser.Scene {
     this.pauseLeaving = true;
     this.pauseResume.setLabel('RESTARTING...').setEnabled(false);
     this.pauseHint.setVisible(false);
-    await poki.commercialBreak();
+    await platform.commercialBreak();
     this.scene.stop(SCENES.result);
     this.gs.scene.restart();
   }
@@ -559,7 +559,7 @@ export class UIScene extends Phaser.Scene {
   private quitToMenu(): void {
     if (this.pauseLeaving) return;
     this.pauseLeaving = true;
-    poki.gameplayStop();
+    platform.gameplayStop();
     this.scene.stop(SCENES.game);
     this.scene.start(SCENES.menu);
   }

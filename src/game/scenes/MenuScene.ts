@@ -3,7 +3,7 @@ import { COLORS, GAME_WIDTH, SCENES, VIEW_PAD, css } from '../config';
 import { MAPS } from '../data/maps';
 import { TOWERS, TOWER_ORDER } from '../data/towers';
 import { sfx } from '../audio/SoundSystem';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { enemyKey } from '../rendering/EnemyRenderer';
 import { iconKey } from '../rendering/TowerRenderer';
 import { bgKey } from '../rendering/EnvironmentRenderer';
@@ -100,7 +100,7 @@ export class MenuScene extends Phaser.Scene {
         new NeonButton(this, cx + 152, 568, 288, 50, {
           label: storage.endlessTop > 0 ? `ENDLESS \u221e  BEST ${storage.endlessTop}` : 'ENDLESS \u221e', fontSize: 20, color: COLORS.purple,
           onClick: () => {
-            poki.measure('endless-entry', 'menu', 'clicked');
+            platform.measure('endless-entry', 'menu', 'clicked');
             this.scene.start(SCENES.sectors, { openEndless: true });
           },
         });
@@ -234,7 +234,7 @@ export class MenuScene extends Phaser.Scene {
     }
     // still inside the tap gesture, so the browser allows fullscreen
     fullscreen.enterOnTouchDevices();
-    await poki.commercialBreak();
+    await platform.commercialBreak();
     this.scene.start(SCENES.game, { mapIndex: 0 });
   }
 

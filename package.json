@@ -8,7 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "package": "npm run build && node scripts/package.mjs"
+    "package": "npm run build && node scripts/package.mjs",
+    "build:crazygames": "tsc --noEmit && vite build --mode crazygames",
+    "package:crazygames": "npm run build:crazygames && node scripts/package.mjs crazygames"
   },
   "dependencies": {
     "phaser": "3.90.0"

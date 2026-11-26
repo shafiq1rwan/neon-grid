@@ -7,6 +7,7 @@ A Phaser 3 + TypeScript (strict) + Vite tower defense game for Poki. There are n
 - `npm run build`: runs `tsc --noEmit`, then `vite build`. It must stay error-free.
 - `npm run typecheck`: types only.
 - `npm run package`: build + zip into `release/` for the Poki upload. Bump `version` in package.json first.
+- `npm run package:crazygames`: the CrazyGames build (`vite --mode crazygames`, `.env.crazygames`), zipped as `…-crazygames.zip`. It carries no Poki SDK or branding. See `docs/CRAZYGAMES.md`.
 
 ## Current state
 See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the release routine. Keep it updated when status changes.
@@ -16,7 +17,7 @@ See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the rel
 - Simulation: `src/game/systems/`, orchestrated by `scenes/GameScene.ts`.
 - UI: `scenes/UIScene.ts` plus `src/game/ui/`. It reads GameScene state each frame and listens to `GameEvents`.
 - Art: `src/game/rendering/`. All textures are baked once in `BootScene`.
-- Platform: all Poki calls go through `src/game/platform/PokiAdapter.ts`, never `window.PokiSDK` directly.
+- Platform: game code calls the `platform` singleton (`src/game/platform/index.ts`), never `window.PokiSDK` or `window.CrazyGames` directly. It is `PokiAdapter` or `CrazyGamesAdapter`, picked at build time by `VITE_PORTAL`; both implement `Platform` (Platform.ts).
 
 ## Conventions
 - The battlefield is 1280×720 in world coordinates. Phaser `Scale.EXPAND` grows the view to fill wider or taller screens, and every camera is centred on the battlefield (`utils/View.ts`). Pin edge UI with `viewBounds()`, never with `0` or `GAME_WIDTH`. The background is baked with `VIEW_PAD` of extra scenery.
@@ -26,9 +27,9 @@ See `docs/STATUS.md` for version, Poki progress (playtests), backlog and the rel
 - Hot loops must not allocate. Use squared distances, pooled objects and the shared `Effects.gfx` for lines.
 - Don't leave static vector art in a `Graphics` object: Phaser re-triangulates every filled Graphics shape on every frame (the HUD once cost half of each frame on phones). Bake it with `bakeShape()` (ui/widgets.ts) and show an Image; `NeonButton` already does. Per-frame Graphics should use `fillRect` / strokes, not rounded or circular fills.
 - Keep the palette in `COLORS` (config.ts) and about 70% dark metal / 30% neon.
-- Poki Game Events go through `poki.measure()` (sector, wave, tutorial, hack; table in docs/POKI_INTEGRATION.md). Send `complete` OR `fail` per attempt, never both, and never measure ads.
+- Poki Game Events go through `platform.measure()` (sector, wave, tutorial, hack; table in docs/POKI_INTEGRATION.md). Send `complete` OR `fail` per attempt, never both, and never measure ads.
 - Ads only at natural breaks (Play, Retry, Restart, Next Sector) or the opt-in revive. Never during combat.
-- Rewarded revive must keep Poki's rules: a video icon (the drawn neon clapperboard in ResultScene, formerly the 🎬 emoji), not green, an equal-size Retry beside it, and no reward unless `rewardedBreak()` resolved true (Revive is hidden when `poki.rewardedAvailable` is false).
+- Rewarded revive must keep Poki's rules: a video icon (the drawn neon clapperboard in ResultScene, formerly the 🎬 emoji), not green, an equal-size Retry beside it, and no reward unless `rewardedBreak()` resolved true (Revive is hidden when `platform.rewardedAvailable` is false). On CrazyGames, ads are off in Basic Launch builds (`VITE_CG_ADS=false`), so Revive is hidden there too.
 - Campaign content is data: sectors in `MAPS` (paths/lanes, platforms, `towers` allowed, `difficulty`, `startCredits`, waves). Re-run a balance check after changing it (docs/BALANCING.md).
 - The tutorial is hints only and must never block or pause play (playtest finding). The START beacon must always work.
 - Hacking (`systems/HackSystem.ts`, tuning in `HACK` in config.ts) is the signature mechanic. The lock runs on REAL time; the world runs at `speed × hack.warp`. Hacked machines must be skipped by every targeting query (`Targeting` already does this) and must never damage the reactor.

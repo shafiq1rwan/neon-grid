@@ -1,10 +1,10 @@
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 
 /**
  * Browser fullscreen for standalone play (e.g. GitHub Pages on a phone), which
  * hides the address bar so the battlefield gets the whole screen.
  *
- * Disabled on Poki (the site provides its own fullscreen) and wherever the
+ * Disabled on Poki and CrazyGames (the site provides its own fullscreen) and wherever the
  * Fullscreen API is unavailable (iPhone Safari).
  */
 type OrientationLock = { lock?: (o: string) => Promise<void> };
@@ -12,7 +12,7 @@ type OrientationLock = { lock?: (o: string) => Promise<void> };
 export const fullscreen = {
   get supported(): boolean {
     const el = document.documentElement as HTMLElement & { requestFullscreen?: unknown };
-    return !poki.isLive && !!document.fullscreenEnabled && typeof el.requestFullscreen === 'function';
+    return !platform.hostFullscreen && !!document.fullscreenEnabled && typeof el.requestFullscreen === 'function';
   },
 
   get active(): boolean {

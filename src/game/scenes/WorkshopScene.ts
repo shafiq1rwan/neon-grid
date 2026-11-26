@@ -4,7 +4,7 @@ import { MAPS } from '../data/maps';
 import { CHALLENGES } from '../data/challenges';
 import { PERKS, availableStars, perkLevelOf, type PerkDef } from '../data/perks';
 import { sfx } from '../audio/SoundSystem';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { bgKey } from '../rendering/EnvironmentRenderer';
 import { fullscreen } from '../utils/Fullscreen';
 import { storage } from '../utils/Storage';
@@ -144,7 +144,7 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     storage.setPerkLevel(def.id, level + 1);
-    poki.measure('workshop', `${def.id}-${level + 1}`, 'purchased');
+    platform.measure('workshop', `${def.id}-${level + 1}`, 'purchased');
     sfx.play('upgrade');
     this.disarmReset();
     this.refresh();
@@ -178,7 +178,7 @@ export class WorkshopScene extends Phaser.Scene {
       return;
     }
     fullscreen.enterOnTouchDevices();
-    await poki.commercialBreak();
+    await platform.commercialBreak();
     this.scene.start(SCENES.game, { mapIndex: retry ?? 0, endless: this.retryEndless });
   }
 }

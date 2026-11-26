@@ -1,3 +1,5 @@
+import type { AudioHooks, Platform } from './Platform';
+
 /**
  * Isolates all Poki SDK calls (https://developers.poki.com/guide/sdk-html5).
  *
@@ -26,18 +28,16 @@ declare global {
   }
 }
 
-type AudioHooks = { pause: () => void; resume: () => void };
-
-class PokiAdapter {
+export class PokiAdapter implements Platform {
   private sdk: PokiSDKApi | null = null;
   /** True once init() resolved; ads are only requested from a ready SDK. */
   private ready = false;
   private gameplayActive = false;
   private adPlaying = false;
-  private audio: AudioHooks = { pause: () => {}, resume: () => {} };
+  private audio: AudioHooks = { pause: () => {}, resume: () => {}, mute: () => {} };
 
-  /** True when running on Poki with a working SDK. */
-  get isLive(): boolean {
+  /** Poki's page provides fullscreen; standalone hosting (e.g. GitHub Pages) does not. */
+  get hostFullscreen(): boolean {
     return this.ready;
   }
 
@@ -50,15 +50,11 @@ class PokiAdapter {
     return this.ready || import.meta.env.DEV;
   }
 
-  get available(): boolean {
-    return this.sdk !== null;
-  }
-
   get isAdPlaying(): boolean {
     return this.adPlaying;
   }
 
-  /** Register how to mute/unmute game audio around ads. */
+  /** Register how to mute/unmute game audio around ads (Poki has no mute setting of its own). */
   setAudioHooks(hooks: AudioHooks): void {
     this.audio = hooks;
   }
@@ -157,5 +153,3 @@ class PokiAdapter {
     }
   }
 }
-
-export const poki = new PokiAdapter();

@@ -8,7 +8,7 @@ import { ENDLESS, endlessDifficulty, endlessStarsFor, endlessWave } from '../dat
 import { TOWERS, type TowerType } from '../data/towers';
 import type { Tower } from '../entities/Tower';
 import { sfx } from '../audio/SoundSystem';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { Effects } from '../rendering/EffectsRenderer';
 import type { SignInfo } from '../rendering/EnvironmentRenderer';
 import { PLATFORM_RADIUS, bgKey, ensureMapBackground } from '../rendering/EnvironmentRenderer';
@@ -222,7 +222,7 @@ export class GameScene extends Phaser.Scene {
         this.events.emit(GameEvents.hackLock);
       },
       onHacked: (outcome: HackOutcome) => {
-        poki.measure('hack', outcome, 'used');
+        platform.measure('hack', outcome, 'used');
         this.runStats.hacks++;
         if (outcome === 'perfect') {
           this.impact(0.08);
@@ -249,13 +249,13 @@ export class GameScene extends Phaser.Scene {
           // unbounded waves: only milestones every 5 waves
           this.measuredWave = index + 1;
           if (this.measuredWave % 5 === 0) {
-            poki.measure('endless-reach', `w${String(this.measuredWave).padStart(3, '0')}`, 'reached');
+            platform.measure('endless-reach', `w${String(this.measuredWave).padStart(3, '0')}`, 'reached');
           }
         } else {
           // a wave counts as survived once the next one starts
-          if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'complete');
+          if (this.measuredWave > 0) platform.measure('wave', this.waveId(this.measuredWave), 'complete');
           this.measuredWave = index + 1;
-          poki.measure('wave', this.waveId(this.measuredWave), 'start');
+          platform.measure('wave', this.waveId(this.measuredWave), 'start');
         }
         sfx.play('waveStart');
         this.events.emit(GameEvents.waveStart, index);
@@ -308,8 +308,8 @@ export class GameScene extends Phaser.Scene {
     storage.update({ plays: storage.data.plays + 1 });
     this.scene.stop(SCENES.result);
     this.scene.launch(SCENES.ui);
-    poki.measure(this.endless ? 'endless' : 'level', this.sectorId, 'start');
-    poki.gameplayStart();
+    platform.measure(this.endless ? 'endless' : 'level', this.sectorId, 'start');
+    platform.gameplayStart();
   }
 
   /** Poki Game Events ids, e.g. "sector-2" and "s2-w07" (padded so they sort). */
@@ -325,11 +325,11 @@ export class GameScene extends Phaser.Scene {
     if (!this.attemptOpen) return;
     this.attemptOpen = false;
     if (this.endless) {
-      poki.measure('endless', this.sectorId, 'fail');
+      platform.measure('endless', this.sectorId, 'fail');
       return;
     }
-    if (this.measuredWave > 0) poki.measure('wave', this.waveId(this.measuredWave), 'fail');
-    poki.measure('level', this.sectorId, 'fail');
+    if (this.measuredWave > 0) platform.measure('wave', this.waveId(this.measuredWave), 'fail');
+    platform.measure('level', this.sectorId, 'fail');
   }
 
   /* ---------------------------------------------------------------- */
@@ -417,7 +417,7 @@ export class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard;
     if (!kb) return;
     kb.on('keydown', (ev: KeyboardEvent) => {
-      if (this.over || poki.isAdPlaying) return;
+      if (this.over || platform.isAdPlaying) return;
       switch (ev.code) {
         case 'Space':
           this.callNextWave();
@@ -549,7 +549,7 @@ export class GameScene extends Phaser.Scene {
 
   toggleSpeed(): void {
     this.speed = this.speed === 1 ? 2 : 1;
-    if (this.speed === 2) poki.measure('speed', '2x', 'selected');
+    if (this.speed === 2) platform.measure('speed', '2x', 'selected');
     this.fxScale = this.speed * this.hack.warp;
     this.tweens.timeScale = this.fxScale;
     this.effects.setTimeScale(this.fxScale);
@@ -559,7 +559,7 @@ export class GameScene extends Phaser.Scene {
     if (this.isPaused || this.over) return;
     this.isPaused = true;
     this.scene.pause();
-    poki.gameplayStop();
+    platform.gameplayStop();
     this.events.emit(GameEvents.paused);
   }
 
@@ -567,7 +567,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.isPaused) return;
     this.isPaused = false;
     this.scene.resume();
-    poki.gameplayStart();
+    platform.gameplayStart();
     this.events.emit(GameEvents.resumed);
   }
 
@@ -582,7 +582,7 @@ export class GameScene extends Phaser.Scene {
     this.effects.ring(this.map.reactor.x, this.map.reactor.y, 140, COLORS.cyan, 700);
     this.scene.resume();
     this.isPaused = false;
-    poki.gameplayStart();
+    platform.gameplayStart();
   }
 
   /* ---------------------------------------------------------------- */
@@ -700,7 +700,7 @@ export class GameScene extends Phaser.Scene {
     this.over = true;
     this.victory = victory;
     this.deselect();
-    poki.gameplayStop();
+    platform.gameplayStop();
     const r = this.map.reactor;
     // stars rate HP lost, so Workshop plating adds a cushion without moving the thresholds
     const lost = this.maxHp - this.hp;
@@ -723,7 +723,7 @@ export class GameScene extends Phaser.Scene {
       const isNew = met && !storage.hasChallenge(c.id);
       if (isNew) {
         storage.completeChallenge(c.id);
-        poki.measure('challenge', c.id, 'complete');
+        platform.measure('challenge', c.id, 'complete');
       }
       return { text: c.text, met, isNew };
     });
@@ -734,8 +734,8 @@ export class GameScene extends Phaser.Scene {
       this.effects.burst(r.x, r.y, COLORS.cyan, 30);
       if (this.attemptOpen) {
         this.attemptOpen = false;
-        poki.measure('wave', this.waveId(this.measuredWave), 'complete');
-        poki.measure('level', this.sectorId, 'complete');
+        platform.measure('wave', this.waveId(this.measuredWave), 'complete');
+        platform.measure('level', this.sectorId, 'complete');
       }
       storage.recordStars(this.mapIndex, stars);
       storage.update({
@@ -752,7 +752,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.events.emit(GameEvents.gameOver, victory);
 
-    const canRevive = !victory && !this.revived && poki.rewardedAvailable;
+    const canRevive = !victory && !this.revived && platform.rewardedAvailable;
     // with a revive on offer the attempt may continue; fail is sent on leaving
     if (!victory && !canRevive) this.measureFail();
     const data: ResultData = {

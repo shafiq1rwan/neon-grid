@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, DEPTH } from '../config';
 import type { MapDef } from '../data/maps';
 import { sfx } from '../audio/SoundSystem';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import type { Effects } from '../rendering/EffectsRenderer';
 import { bakeShape, text } from '../ui/widgets';
 import type { PathData } from '../utils/MathUtils';
@@ -111,7 +111,7 @@ export class SupplySystem {
     this.pod = pod;
     this.life = LIFETIME;
     this.landed = false;
-    poki.measure('supply', 'drop', 'shown');
+    platform.measure('supply', 'drop', 'shown');
     // falls in, then lands with a thud
     s.tweens.add({
       targets: pod, y, duration: 520, ease: 'Quad.easeIn',
@@ -146,7 +146,7 @@ export class SupplySystem {
     const { x, y } = pod;
     this.collected++;
     const reward = this.callbacks.collect(x, y);
-    poki.measure('supply', reward.kind, 'collected');
+    platform.measure('supply', reward.kind, 'collected');
     this.effects.ring(x, y, 70, reward.kind === 'hack' ? COLORS.cyan : COLORS.gold, 420);
     this.effects.burst(x, y, reward.kind === 'hack' ? COLORS.cyan : COLORS.gold, 18);
     this.effects.flash(x, y, COLORS.gold, 1.2, 160);

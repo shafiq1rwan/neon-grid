@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS } from '../config';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { createPointer } from './Tutorial';
 import { text } from './widgets';
 
@@ -61,12 +61,12 @@ export class BuildNudge {
     this.cooldown = Math.max(0, this.cooldown - dt);
     if (!target) {
       // the opportunity is gone; if we were pointing at it, the player followed
-      if (this.showingKind) poki.measure('nudge', this.showingKind, 'followed');
+      if (this.showingKind) platform.measure('nudge', this.showingKind, 'followed');
       this.reset();
       return;
     }
     if (this.showingKind && this.showingKind !== target.kind) {
-      poki.measure('nudge', this.showingKind, 'followed');
+      platform.measure('nudge', this.showingKind, 'followed');
       this.reset();
     }
     if (blocked) {
@@ -77,7 +77,7 @@ export class BuildNudge {
       this.waiting += dt;
       if (this.waiting < DELAY || this.cooldown > 0) return;
       this.showingKind = target.kind;
-      poki.measure('nudge', target.kind, 'shown');
+      platform.measure('nudge', target.kind, 'shown');
     }
     this.shown += dt;
     if (this.shown > SHOW_TIME) {
@@ -105,7 +105,7 @@ export class BuildNudge {
 
   /** The player built or upgraded: count it if we were pointing at that, and start over. */
   acted(kind: NudgeKind): void {
-    if (this.showingKind === kind) poki.measure('nudge', kind, 'followed');
+    if (this.showingKind === kind) platform.measure('nudge', kind, 'followed');
     this.reset();
   }
 

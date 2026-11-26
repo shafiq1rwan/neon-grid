@@ -66,6 +66,8 @@ class SoundSystem {
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private muted = false;
+  /** Muted by the portal's own setting (CrazyGames), which overrides the in-game toggle. */
+  private hostMuted = false;
   private suspendedByHost = false;
   private readonly last = new Map<SfxName, number>();
   private voices = 0;
@@ -82,7 +84,7 @@ class SoundSystem {
         return;
       }
       this.master = this.ctx.createGain();
-      this.master.gain.value = this.muted ? 0 : 0.55;
+      this.master.gain.value = this.silent ? 0 : 0.55;
       const comp = this.ctx.createDynamicsCompressor();
       comp.threshold.value = -14;
       comp.ratio.value = 6;
@@ -95,7 +97,20 @@ class SoundSystem {
 
   setMuted(muted: boolean): void {
     this.muted = muted;
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(muted ? 0 : 0.55, this.ctx.currentTime, 0.02);
+    this.applyGain();
+  }
+
+  setHostMuted(muted: boolean): void {
+    this.hostMuted = muted;
+    this.applyGain();
+  }
+
+  private get silent(): boolean {
+    return this.muted || this.hostMuted;
+  }
+
+  private applyGain(): void {
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.silent ? 0 : 0.55, this.ctx.currentTime, 0.02);
   }
 
   private lastStreak = 0;
@@ -106,7 +121,7 @@ class SoundSystem {
    */
   streakDing(step: number): void {
     const ctx = this.ctx;
-    if (!ctx || !this.master || this.muted || ctx.state !== 'running') return;
+    if (!ctx || !this.master || this.silent || ctx.state !== 'running') return;
     const now = performance.now();
     if (now - this.lastStreak < 55) return;
     this.lastStreak = now;
@@ -133,7 +148,7 @@ class SoundSystem {
 
   play(name: SfxName): void {
     const ctx = this.ctx;
-    if (!ctx || !this.master || this.muted || ctx.state !== 'running') return;
+    if (!ctx || !this.master || this.silent || ctx.state !== 'running') return;
     const now = performance.now();
     const gap = THROTTLE[name];
     if (gap !== undefined) {

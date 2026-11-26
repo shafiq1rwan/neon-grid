@@ -77,7 +77,7 @@ src/game/rendering/
 src/game/scenes/            Boot, Menu, Sector (campaign select), Game, UI, Result
 src/game/ui/                widgets (NeonButton, panels, icons), HUD, TowerMenu, UpgradePanel, Tutorial (hints)
 src/game/audio/             SoundSystem (Web Audio synth, singleton `sfx`)
-src/game/platform/          PokiAdapter (singleton `poki`)
+src/game/platform/          `platform` singleton: PokiAdapter or CrazyGamesAdapter, chosen by VITE_PORTAL
 src/game/utils/             MathUtils (PathData, RNG, angles), ObjectPool, Storage (singleton `storage`),
                             View (EXPAND camera centring / viewBounds), Fullscreen (non-Poki fullscreen),
                             AutoRotate (portrait phones play rotated)

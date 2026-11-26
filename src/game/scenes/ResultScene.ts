@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, GAME_HEIGHT, GAME_WIDTH, SCENES, css } from '../config';
 import { MAPS } from '../data/maps';
 import { availableStars } from '../data/perks';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { storage } from '../utils/Storage';
 import { sfx } from '../audio/SoundSystem';
 import { NeonButton, bakeShape, drawPanel, text } from '../ui/widgets';
@@ -506,7 +506,7 @@ export class ResultScene extends Phaser.Scene {
   private async revive(btn: NeonButton): Promise<void> {
     if (this.busy) return;
     this.busy = true;
-    const ok = await poki.rewardedBreak();
+    const ok = await platform.rewardedBreak();
     this.busy = false;
     if (ok) {
       this.scene.stop();
@@ -519,7 +519,7 @@ export class ResultScene extends Phaser.Scene {
   private async playAgain(): Promise<void> {
     if (this.busy) return;
     this.busy = true;
-    await poki.commercialBreak();
+    await platform.commercialBreak();
     this.scene.stop();
     this.gameScene.scene.restart();
   }
@@ -528,8 +528,8 @@ export class ResultScene extends Phaser.Scene {
   private async tryEndless(mapIndex: number): Promise<void> {
     if (this.busy) return;
     this.busy = true;
-    poki.measure('endless-entry', 'result', 'clicked');
-    await poki.commercialBreak();
+    platform.measure('endless-entry', 'result', 'clicked');
+    await platform.commercialBreak();
     this.scene.stop();
     this.gameScene.scene.restart({ mapIndex, endless: true });
   }
@@ -537,7 +537,7 @@ export class ResultScene extends Phaser.Scene {
   private async nextSector(index: number): Promise<void> {
     if (this.busy) return;
     this.busy = true;
-    await poki.commercialBreak();
+    await platform.commercialBreak();
     this.scene.stop();
     this.gameScene.scene.restart({ mapIndex: index });
   }

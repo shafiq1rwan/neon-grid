@@ -35,8 +35,8 @@
         outline: none;
       }
     </style>
-    <!-- Poki SDK (https://developers.poki.com/guide/sdk-html5). The game runs without it. -->
-    <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+    <!-- Web portal SDK, set per build in the .env files (VITE_SDK_URL). The game runs without it. -->
+    <script src="%VITE_SDK_URL%"></script>
   </head>
   <body>
     <div id="game"></div>

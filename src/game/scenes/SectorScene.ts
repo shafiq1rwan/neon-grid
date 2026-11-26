@@ -4,7 +4,7 @@ import { ENEMIES } from '../data/enemies';
 import { MAPS, newEnemiesInMap, newTowersInMap, type MapDef } from '../data/maps';
 import { TOWERS } from '../data/towers';
 import { sfx } from '../audio/SoundSystem';
-import { poki } from '../platform/PokiAdapter';
+import { platform } from '../platform';
 import { bgKey } from '../rendering/EnvironmentRenderer';
 import { fullscreen } from '../utils/Fullscreen';
 import { storage } from '../utils/Storage';
@@ -249,7 +249,7 @@ export class SectorScene extends Phaser.Scene {
     sfx.unlock();
     // still inside the tap gesture, so the browser allows fullscreen
     fullscreen.enterOnTouchDevices();
-    await poki.commercialBreak();
+    await platform.commercialBreak();
     this.scene.start(SCENES.game, { mapIndex: index, endless });
   }
 
